@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { parse } from 'path';
+import { parse, resolve } from 'path';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 
@@ -8,23 +8,29 @@ export type Area = {
     y1: number;
     x2: number;
     y2: number;
-}
+};
 
 export type Color = { r: number; g: number; b: number };
 
 export class Comparator {
     static comparePngFiles(file1Path: string, file2Path: string, excludedAreas: Area[], diffFilePath: string): boolean {
+        file1Path = resolve(file1Path);
+        file2Path = resolve(file2Path);
+        diffFilePath = resolve(diffFilePath);
+
         if (!existsSync(file1Path)) {
             throw Error('file1 not found');
         }
         if (!existsSync(file2Path)) {
             throw Error('file2 not found');
         }
+        const file1Content: Buffer = readFileSync(file1Path);
+        const file2Content: Buffer = readFileSync(file2Path);
 
-        const img1: PNG = PNG.sync.read(readFileSync(file1Path));
-        const img2: PNG = PNG.sync.read(readFileSync(file2Path));
+        const png1: PNG = PNG.sync.read(file1Content);
+        const png2: PNG = PNG.sync.read(file2Content);
 
-        const result: number = this.comparePngImages(img1, img2, excludedAreas ?? [], diffFilePath);
+        const result: number = this.comparePngImages(png1, png2, excludedAreas ?? [], diffFilePath);
         return result === 0;
     }
 
@@ -52,7 +58,7 @@ export class Comparator {
 
         if (!isEqual && diffFilePath) {
             if (!existsSync(parse(diffFilePath).dir)) {
-                mkdirSync(parse(diffFilePath).dir, {recursive: true});
+                mkdirSync(parse(diffFilePath).dir, { recursive: true });
             }
             writeFileSync(diffFilePath, PNG.sync.write(diff));
         }
