@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { parse } from 'path';
+import { parse, resolve } from 'path';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 
@@ -8,51 +8,67 @@ export type Area = {
     y1: number;
     x2: number;
     y2: number;
-}
+};
 
 export type Color = { r: number; g: number; b: number };
 
 export class Comparator {
     static comparePngFiles(file1Path: string, file2Path: string, excludedAreas: Area[], diffFilePath: string): boolean {
+        file1Path = resolve(file1Path);
+        file2Path = resolve(file2Path);
+        diffFilePath = resolve(diffFilePath);
+
         if (!existsSync(file1Path)) {
             throw Error('file1 not found');
         }
         if (!existsSync(file2Path)) {
             throw Error('file2 not found');
         }
+        const file1Content: Buffer = readFileSync(file1Path);
+        const file2Content: Buffer = readFileSync(file2Path);
 
-        const img1: PNG = PNG.sync.read(readFileSync(file1Path));
-        const img2: PNG = PNG.sync.read(readFileSync(file2Path));
+        const png1: PNG = PNG.sync.read(file1Content);
+        const png2: PNG = PNG.sync.read(file2Content);
 
-        const result: number = this.comparePngImages(img1, img2, excludedAreas ?? [], diffFilePath);
+        const result: number = this.comparePngImages(png1, png2, excludedAreas ?? [], diffFilePath);
+
         return result === 0;
     }
 
     static comparePngImages(img1: PNG, img2: PNG, excludedAreas: Area[], diffFilePath?: string): number {
         const { width: width1, height: height1 } = img1;
         const { width: width2, height: height2 } = img1;
-
+        const imageSizesDoNotMatch = height1 !== height2 || width1 !== width2
+        
         const maxWidth: number = Math.max(width1, width2);
         const maxHeight: number = Math.max(height1, height2);
 
         const diff: PNG = new PNG({ width: maxWidth, height: maxHeight });
         const ignoredPixelColor: Color = { r: 0, g: 0, b: 255 };
 
-        this.addColoredAreasToImage(img1, excludedAreas, ignoredPixelColor);
-        this.addColoredAreasToImage(img2, excludedAreas, ignoredPixelColor);
+        if (excludedAreas.length > 1) {
+            this.addColoredAreasToImage(img1, excludedAreas, ignoredPixelColor);
+            this.addColoredAreasToImage(img2, excludedAreas, ignoredPixelColor);
+        }
 
-        this.extendImage(img1, maxWidth, maxHeight);
-        this.extendImage(img2, maxWidth, maxHeight);
+        if (imageSizesDoNotMatch) {
+            this.extendImage(img1, maxWidth, maxHeight);
+            this.extendImage(img2, maxWidth, maxHeight);
 
-        this.fillSizeDifference(img1, width1, height1);
-        this.fillSizeDifference(img2, width2, height2);
+            this.fillSizeDifference(img1, width1, height1);
+            this.fillSizeDifference(img2, width2, height2);
+        }
+        let result = 999;
 
-        const result: number = pixelmatch(img1.data, img2.data, diff.data, maxWidth, maxHeight, { threshold: 0.1 });
+        try {
+            result = pixelmatch(img1.data, img2.data, diff.data, maxWidth, maxHeight, { threshold: 0.1 });
+        } catch (error) {console.log(error)}
+
         const isEqual: boolean = result === 0;
 
         if (!isEqual && diffFilePath) {
             if (!existsSync(parse(diffFilePath).dir)) {
-                mkdirSync(parse(diffFilePath).dir, {recursive: true});
+                mkdirSync(parse(diffFilePath).dir, { recursive: true });
             }
             writeFileSync(diffFilePath, PNG.sync.write(diff));
         }
