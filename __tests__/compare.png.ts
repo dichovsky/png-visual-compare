@@ -11,22 +11,22 @@ const testDataArray: {
     {
         id: 1,
         name: 'compare PNG files with text',
-        actual: 'test-data/actual/pnggrad16rgb.png',
-        expected: 'test-data/expected/pnggrad16rgb.png',
+        actual: resolve('test-data/actual/pnggrad16rgb.png'),
+        expected: resolve('test-data/expected/pnggrad16rgb.png'),
         excludedAreas: [],
     },
     {
         id: 2,
         name: 'compare PNG files with image',
-        actual: 'test-data/actual/youtube-play-button.png',
-        expected: 'test-data/expected/youtube-play-button.png',
+        actual: resolve('test-data/actual/youtube-play-button.png'),
+        expected: resolve('test-data/expected/youtube-play-button.png'),
         excludedAreas: [],
     },
     {
         id: 3,
         name: 'compare PNG files with image',
-        actual: 'test-data/actual/ILTQq.png',
-        expected: 'test-data/expected/ILTQq.png',
+        actual: resolve('test-data/actual/ILTQq.png'),
+        expected: resolve('test-data/expected/ILTQq.png'),
         excludedAreas: [],
     },
     {
@@ -47,13 +47,7 @@ const testDataArray: {
 
 for (const testData of testDataArray) {
     test(`${testData.name}`, async () => {
-        const diffPath = `test-results/diffs/diff_${testData.id}.png`;
-        const result: boolean = Comparator.comparePngFiles(
-            testData.actual,
-            testData.expected,
-            testData.excludedAreas,
-            diffPath,
-        );
+        const result: boolean = Comparator.comparePngFiles(testData.actual, testData.expected, testData.excludedAreas);
         expect(result).toBe(true);
     });
 }

@@ -7,4 +7,4 @@ COPY . .
 RUN npm i
 
 # ON RUNNING THE IMAGE THIS COMMAND WILL BE TRIGGERED BY DEFAULT
-CMD npm run test
+CMD npm run test:docker

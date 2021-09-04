@@ -1,6 +1,6 @@
-import { Comparator } from '../src/comparator';
 import { existsSync } from 'fs';
 import { parse, resolve } from 'path';
+import { Comparator } from '../src/comparator';
 
 const testDataArray = [
     {
@@ -20,12 +20,15 @@ const testDataArray = [
 for (const testData of testDataArray) {
     test(`${testData.name}`, async () => {
         const diffPath: string = resolve(
-            `test-results/diffs/${parse(testData.actual).base}_${parse(testData.expected).base}/diff_${
-                testData.id
-            }.png`,
+            `test-results/diffs/${testData.id}/${parse(testData.actual).base}_${
+                parse(testData.expected).base
+            }/diff_${testData.id}.png`,
         );
-        const result: boolean = Comparator.comparePngFiles(testData.actual, testData.expected, [], diffPath);
+        const result: boolean = Comparator.comparePngFiles(testData.actual, testData.expected, []);
         expect(result).toBe(false);
+        expect(existsSync(diffPath)).toBe(false);
+
+        Comparator.comparePngFiles(testData.actual, testData.expected, [], diffPath);
         expect(existsSync(diffPath)).toBe(true);
     });
 }
