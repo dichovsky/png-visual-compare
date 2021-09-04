@@ -10,10 +10,12 @@
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
     "tsc": "tsc --noEmit --pretty",
+    "pretest": "npm run clean",
     "test": "jest",
+    "test:docker": "jest",
     "license-checker": "npx license-checker --production --onlyAllow 'MIT; MIT OR X11; BSD; ISC; Apache-2.0; Unlicense'",
     "docker:build": "docker build --compress -t png-visual-compare .",
-    "predocker:run": "npx make-dir-cli test-results",
+    "predocker:run": "npm run clean",
     "docker:run": "docker run --rm -it -v $PWD/test-results:/usr/e2e/test-results png-visual-compare"
   },
   "repository": {
