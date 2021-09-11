@@ -1,4 +1,4 @@
-FROM node:14.17.5-stretch
+FROM node:14.17.6-stretch
 
 # INSTALL PACKAGES
 WORKDIR /usr/e2e/
@@ -7,4 +7,4 @@ COPY . .
 RUN npm i
 
 # ON RUNNING THE IMAGE THIS COMMAND WILL BE TRIGGERED BY DEFAULT
-CMD npm run test:docker
+CMD npm run docker:test

@@ -1,8 +1,15 @@
 {
   "name": "png-visual-compare",
-  "version": "0.1.4",
-  "description": "",
-  "keywords": ["visual testing", "compare png", "compare images", "png"],
+  "version": "0.1.5",
+  "description": "Node.js utility to compare PNG files",
+  "keywords": [
+    "visual testing",
+    "compare png",
+    "compare images",
+    "png",
+    "image diff",
+    "diff"
+  ],
   "homepage": "https://github.com/dichovsky/png-visual-compare#readme",
   "bugs": {
     "url": "https://github.com/dichovsky/png-visual-compare/issues"
@@ -20,17 +27,18 @@
   ],
   "scripts": {
     "clean": "rimraf ./dist ./coverage ./test-results",
-    "build": "npm run clean && npm run lint && npm run test && npm run tsc -- --noEmit false",
+    "build": "npm run clean && npm run lint && npm run test:docker && npm run tsc",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
     "tsc": "tsc --noEmit --pretty",
     "pretest": "npm run clean",
     "test": "jest",
-    "test:docker": "jest",
+    "test:docker": "npm run docker:build && npm run docker:run",
     "license-checker": "npx license-checker --production --onlyAllow 'MIT; MIT OR X11; BSD; ISC; Apache-2.0; Unlicense'",
-    "docker:build": "docker build --compress -t png-visual-compare .",
+    "docker:build": "docker build --compress -t test-png-visual-compare .",
     "predocker:run": "npm run clean",
-    "docker:run": "docker run --rm -it -v $PWD/test-results:/usr/e2e/test-results png-visual-compare"
+    "docker:run": "docker run --rm -it -v $PWD/test-results:/usr/e2e/test-results test-png-visual-compare",
+    "docker:test": "jest"
   },
   "dependencies": {
     "pixelmatch": "5.2.1",
@@ -47,6 +55,7 @@
     "jest": "27.1.1",
     "rimraf": "3.0.2",
     "ts-jest": "27.0.5",
+    "ts-node": "10.2.1",
     "typescript": "4.4.3"
   }
 }
