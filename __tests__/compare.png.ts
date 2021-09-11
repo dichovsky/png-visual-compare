@@ -1,7 +1,7 @@
-import { resolve } from 'path';
-import { Area, comparePng } from '../src/comparator';
-import { PNG } from 'pngjs';
 import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { PNG } from 'pngjs';
+import comparePng, { Area } from '../src';
 
 const testDataArray: {
     id: number;

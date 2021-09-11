@@ -2,31 +2,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { parse } from 'path';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
+import { Area, Color, CompareOptions } from './types';
 
-export type Area = {
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-};
+export default function comparePng(opts: CompareOptions): number {
+    let img1: PNG = getPng(opts.img1);
+    let img2: PNG = getPng(opts.img2);
 
-export type Color = { r: number; g: number; b: number };
-
-export interface ICompareProps {
-    img1: string | PNG;
-    img2: string | PNG;
-    excludedAreas?: Area[];
-    excludedAreaColor?: Color;
-    diffFilePath?: string;
-    matchingThreshold?: number;
-}
-
-export function comparePng(props: ICompareProps): number {
-    let img1: PNG = getPng(props.img1);
-    let img2: PNG = getPng(props.img2);
-
-    const excludedAreas: Area[] = props.excludedAreas ?? [];
-    const excludedAreaColor: Color = props.excludedAreaColor ?? { r: 0, g: 0, b: 255 };
+    const excludedAreas: Area[] = opts.excludedAreas ?? [];
+    const excludedAreaColor: Color = opts.excludedAreaColor ?? { r: 0, g: 0, b: 255 };
 
     const { width: width1, height: height1 } = img1;
     const { width: width2, height: height2 } = img2;
@@ -51,14 +34,14 @@ export function comparePng(props: ICompareProps): number {
     }
 
     const result: number = pixelmatch(img1.data, img2.data, diff.data, maxWidth, maxHeight, {
-        threshold: props.matchingThreshold ?? 0.1,
+        threshold: opts.matchingThreshold ?? 0.1,
     });
 
-    if (result > 0 && props.diffFilePath !== undefined) {
-        if (!existsSync(parse(props.diffFilePath).dir)) {
-            mkdirSync(parse(props.diffFilePath).dir, { recursive: true });
+    if (result > 0 && opts.diffFilePath !== undefined) {
+        if (!existsSync(parse(opts.diffFilePath).dir)) {
+            mkdirSync(parse(opts.diffFilePath).dir, { recursive: true });
         }
-        writeFileSync(props.diffFilePath, PNG.sync.write(diff));
+        writeFileSync(opts.diffFilePath, PNG.sync.write(diff));
     }
     return result;
 }

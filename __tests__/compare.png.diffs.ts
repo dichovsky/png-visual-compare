@@ -1,8 +1,13 @@
 import { existsSync } from 'fs';
 import { parse, resolve } from 'path';
-import { comparePng } from '../src/comparator';
+import comparePng from '../src';
 
-const testDataArray = [
+const testDataArray: {
+    id: number;
+    name: string;
+    actual: string;
+    expected: string;
+}[] = [
     {
         id: 1,
         name: 'compare different PNG files with image',
