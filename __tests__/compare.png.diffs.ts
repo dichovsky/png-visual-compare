@@ -24,7 +24,7 @@ for (const testData of testDataArray) {
                 testData.id
             }.png`,
         );
-        const result: boolean = Compare.png({ img1: testData.actual, img2: testData.expected });
+        const result: boolean = Compare.png({ img1: testData.actual, img2: testData.expected }) === 0;
 
         expect(result).toBe(false);
         expect(existsSync(diffFilePath)).toBe(false);
