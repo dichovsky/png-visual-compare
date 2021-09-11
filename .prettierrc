@@ -1,6 +1,6 @@
 {
     "trailingComma": "all",
-    "tabWidth": 4,
+    "tabWidth": 2,
     "semi": true,
     "singleQuote": true,
     "printWidth": 120,
@@ -10,7 +10,7 @@
       {
         "files": ["*.json", ".*.json"],
         "options": {
-          "tabWidth": 4
+          "tabWidth": 2
         }
       }
     ]
