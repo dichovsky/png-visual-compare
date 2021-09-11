@@ -1,1 +1,1 @@
-export { Compare } from './comparator';
+export { Area, Color, ICompareProps, comparePng } from './comparator';

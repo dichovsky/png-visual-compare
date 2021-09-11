@@ -1,5 +1,5 @@
 import { resolve } from 'path';
-import { Area, Compare } from '../src/comparator';
+import { Area, comparePng } from '../src/comparator';
 import { PNG } from 'pngjs';
 import { readFileSync } from 'fs';
 
@@ -50,7 +50,7 @@ const testDataArray: {
 for (const testData of testDataArray) {
     test(`${testData.name}, file`, async () => {
         const result: boolean =
-            Compare.png({
+            comparePng({
                 img1: testData.actual,
                 img2: testData.expected,
                 excludedAreas: testData.excludedAreas,
@@ -61,7 +61,7 @@ for (const testData of testDataArray) {
 
     test(`${testData.name}, PNG`, async () => {
         const result: boolean =
-            Compare.png({
+            comparePng({
                 img1: PNG.sync.read(readFileSync(testData.actual)),
                 img2: PNG.sync.read(readFileSync(testData.expected)),
                 excludedAreas: testData.excludedAreas,
