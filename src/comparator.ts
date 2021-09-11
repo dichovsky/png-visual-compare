@@ -12,28 +12,33 @@ export type Area = {
 
 export type Color = { r: number; g: number; b: number };
 
-export class Comparator {
-    static comparePngFiles(
-        file1Path: string,
-        file2Path: string,
-        excludedAreas: Area[],
-        diffFilePath?: string,
-    ): boolean {
-        if (!existsSync(file1Path)) throw Error('File1 not found');
-        if (!existsSync(file2Path)) throw Error('File2 not found');
+export interface ICompareProps {
+    img1: string | PNG;
+    img2: string | PNG;
+    excludedAreas?: Area[];
+    diffFilePath?: string;
+}
 
-        const file1Content: Buffer = readFileSync(file1Path);
-        const file2Content: Buffer = readFileSync(file2Path);
+export class Compare {
+    static png(props: ICompareProps): boolean {
+        const img1: PNG = this.getPng(props.img1);
+        const img2: PNG = this.getPng(props.img2);
 
-        const png1: PNG = PNG.sync.read(file1Content);
-        const png2: PNG = PNG.sync.read(file2Content);
-
-        const result: number = this.comparePngImages(png1, png2, excludedAreas, diffFilePath);
+        const result: number = this.comparePngImages(img1, img2, props.excludedAreas ?? [], props.diffFilePath);
 
         return result === 0;
     }
 
-    static comparePngImages(img1: PNG, img2: PNG, excludedAreas: Area[], diffFilePath?: string): number {
+    private static getPng(pngSource: string | PNG): PNG {
+        if (typeof pngSource === 'string') {
+            if (!existsSync(pngSource)) throw Error('File not found');
+            const file1Content: Buffer = readFileSync(pngSource);
+            return PNG.sync.read(file1Content);
+        }
+        return pngSource
+    }
+
+    private static comparePngImages(img1: PNG, img2: PNG, excludedAreas: Area[], diffFilePath?: string): number {
         const { width: width1, height: height1 } = img1;
         const { width: width2, height: height2 } = img2;
         const imageSizesDoNotMatch = height1 !== height2 || width1 !== width2;
@@ -53,8 +58,8 @@ export class Comparator {
             img1 = this.extendImage(img1, maxWidth, maxHeight);
             img2 = this.extendImage(img2, maxWidth, maxHeight);
 
-            img1 = this.fillSizeDifference(img1, width1, height1);
-            img2 = this.fillSizeDifference(img2, width2, height2);
+            img1 = this.fillImageSizeDifference(img1, width1, height1);
+            img2 = this.fillImageSizeDifference(img2, width2, height2);
         }
 
         const result: number = pixelmatch(img1.data, img2.data, diff.data, maxWidth, maxHeight, { threshold: 0.1 });
@@ -69,8 +74,8 @@ export class Comparator {
         return result;
     }
 
-    private static addColoredAreasToImage(img1: PNG, areas: Area[], color: Color): PNG {
-        const { height, width } = img1;
+    private static addColoredAreasToImage(image: PNG, areas: Area[], color: Color): PNG {
+        const { height, width } = image;
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const isIgnoredPixel: boolean =
@@ -80,33 +85,33 @@ export class Comparator {
                     });
                 if (isIgnoredPixel) {
                     const pos: number = (y * width + x) * 4;
-                    this.drawPixel(img1.data, pos, color);
+                    this.drawPixelOnBuff(image.data, pos, color);
                 }
             }
         }
 
-        return img1;
+        return image;
     }
 
-    private static drawPixel(output: Buffer, position: number, color: Color): void {
-        output[position + 0] = color.r;
-        output[position + 1] = color.g;
-        output[position + 2] = color.b;
-        output[position + 3] = 255;
+    private static drawPixelOnBuff(buff: Buffer, position: number, color: Color): void {
+        buff[position + 0] = color.r;
+        buff[position + 1] = color.g;
+        buff[position + 2] = color.b;
+        buff[position + 3] = 255;
     }
 
-    private static extendImage(source: PNG, newWidth: number, newHeight: number): PNG {
+    private static extendImage(image: PNG, newWidth: number, newHeight: number): PNG {
         const resized = new PNG({ width: newWidth, height: newHeight, fill: true });
-        PNG.bitblt(source, resized, 0, 0, source.width, source.height, 0, 0);
+        PNG.bitblt(image, resized, 0, 0, image.width, image.height, 0, 0);
         return resized;
     }
 
-    private static fillSizeDifference(image: PNG, width: number, height: number): PNG {
+    private static fillImageSizeDifference(image: PNG, width: number, height: number): PNG {
         for (let y = 0; y < image.height; y++) {
             for (let x = 0; x < image.width; x++) {
                 if (y > height || x > width) {
                     const pos: number = (image.width * y + x) << 2;
-                    this.drawPixel(image.data, pos, { r: 0, g: 0, b: 0 });
+                    this.drawPixelOnBuff(image.data, pos, { r: 0, g: 0, b: 0 });
                 }
             }
         }

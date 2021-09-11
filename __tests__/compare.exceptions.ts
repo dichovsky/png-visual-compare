@@ -1,5 +1,5 @@
 import { resolve } from 'path';
-import { Comparator } from '../src/comparator';
+import { Compare } from '../src/comparator';
 
 const testDataArray = [
     {
@@ -19,7 +19,7 @@ const testDataArray = [
 for (const testData of testDataArray) {
     test(`${testData.name}`, async () => {
         expect(() => {
-            Comparator.comparePngFiles(testData.actual, testData.expected, []);
+            Compare.png({ img1: testData.actual, img2: testData.expected });
         }).toThrow(Error);
     });
 }
