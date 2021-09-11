@@ -1,1 +1,1 @@
-export { Compare as Comparator } from './comparator';
+export { Compare } from './comparator';
