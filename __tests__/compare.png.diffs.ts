@@ -29,12 +29,12 @@ for (const testData of testDataArray) {
         parse(testData.expected).base
       }/diff_${testData.id}.png`,
     );
-    const result: boolean = comparePng({ img1: testData.actual, img2: testData.expected }) === 0;
+    const result: boolean = comparePng(testData.actual, testData.expected) === 0;
 
     expect(result).toBe(false);
     expect(existsSync(diffFilePath)).toBe(false);
 
-    comparePng({ img1: testData.actual, img2: testData.expected, diffFilePath });
+    comparePng(testData.actual, testData.expected, { diffFilePath });
 
     expect(existsSync(diffFilePath)).toBe(true);
   });

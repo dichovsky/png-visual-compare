@@ -24,7 +24,7 @@ const testDataArray: {
 for (const testData of testDataArray) {
   test(`${testData.name}`, async () => {
     expect(() => {
-      comparePng({ img1: testData.actual, img2: testData.expected });
+      comparePng(testData.actual, testData.expected );
     }).toThrow(Error);
   });
 }
