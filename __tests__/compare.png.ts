@@ -50,20 +50,14 @@ const testDataArray: {
 for (const testData of testDataArray) {
   test(`${testData.name}, file`, async () => {
     const result: boolean =
-      comparePng({
-        img1: testData.actual,
-        img2: testData.expected,
-        excludedAreas: testData.excludedAreas,
-      }) === 0;
+      comparePng(testData.actual, testData.expected, { excludedAreas: testData.excludedAreas }) === 0;
 
     expect(result).toBe(true);
   });
 
   test(`${testData.name}, PNG`, async () => {
     const result: boolean =
-      comparePng({
-        img1: PNG.sync.read(readFileSync(testData.actual)),
-        img2: PNG.sync.read(readFileSync(testData.expected)),
+      comparePng(PNG.sync.read(readFileSync(testData.actual)), PNG.sync.read(readFileSync(testData.expected)), {
         excludedAreas: testData.excludedAreas,
       }) === 0;
 
