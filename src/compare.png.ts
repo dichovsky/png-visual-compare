@@ -4,7 +4,7 @@ import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import { Area, Color, CompareOptions } from './types';
 
-export default function comparePng(image1: string | PNG, image2: string | PNG, opts?: CompareOptions): number {
+export default function comparePng(image1: string | Buffer, image2: string | Buffer, opts?: CompareOptions): number {
   let img1: PNG = getPng(image1);
   let img2: PNG = getPng(image2);
 
@@ -46,13 +46,13 @@ export default function comparePng(image1: string | PNG, image2: string | PNG, o
   return result;
 }
 
-function getPng(pngSource: string | PNG): PNG {
+function getPng(pngSource: string | Buffer): PNG {
   if (typeof pngSource === 'string') {
     if (!existsSync(pngSource)) throw Error('File not found');
     const file1Content: Buffer = readFileSync(pngSource);
     return PNG.sync.read(file1Content);
   }
-  return pngSource;
+  return PNG.sync.read(pngSource);
 }
 
 function addColoredAreasToImage(image: PNG, areas: Area[], color: Color): PNG {

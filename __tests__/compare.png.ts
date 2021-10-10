@@ -1,6 +1,5 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { PNG } from 'pngjs';
 import comparePng, { Area } from '../src';
 
 const testDataArray: {
@@ -57,7 +56,7 @@ for (const testData of testDataArray) {
 
   test(`${testData.name}, PNG`, async () => {
     const result: boolean =
-      comparePng(PNG.sync.read(readFileSync(testData.actual)), PNG.sync.read(readFileSync(testData.expected)), {
+      comparePng((readFileSync(testData.actual)), (readFileSync(testData.expected)), {
         excludedAreas: testData.excludedAreas,
       }) === 0;
 
