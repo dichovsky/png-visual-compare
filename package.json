@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Node.js utility to compare PNG files",
   "keywords": [
     "visual testing",
@@ -52,7 +52,7 @@
     "@typescript-eslint/eslint-plugin": "4.33.0",
     "@typescript-eslint/parser": "4.33.0",
     "eslint": "7.32.0",
-    "jest": "27.2.4",
+    "jest": "27.2.5",
     "rimraf": "3.0.2",
     "ts-jest": "27.0.5",
     "ts-node": "10.2.1",
