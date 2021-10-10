@@ -1,10 +1,10 @@
-FROM node:14.17.6-stretch
+FROM node:16.10.0-buster
 
 # INSTALL PACKAGES
-WORKDIR /usr/e2e/
+WORKDIR /usr/pkg/
 COPY . .
 
-RUN npm i
+RUN npm ci
 
 # ON RUNNING THE IMAGE THIS COMMAND WILL BE TRIGGERED BY DEFAULT
 CMD npm run docker:test

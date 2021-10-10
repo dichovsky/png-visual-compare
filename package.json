@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Node.js utility to compare PNG files",
   "keywords": [
     "visual testing",
@@ -20,13 +20,13 @@
   },
   "license": "MIT",
   "author": "Igor Magdich",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "out/index.js",
+  "types": "out/index.d.ts",
   "files": [
-    "/dist"
+    "/out"
   ],
   "scripts": {
-    "clean": "rimraf ./dist ./coverage ./test-results",
+    "clean": "rimraf ./out ./coverage ./test-results",
     "prepublish": "npm run clean && npm run lint && npm run test && npm run tsc",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
@@ -37,7 +37,7 @@
     "license-checker": "npx license-checker --production --onlyAllow 'MIT; MIT OR X11; BSD; ISC; Apache-2.0; Unlicense'",
     "docker:build": "docker build --compress -t test-png-visual-compare .",
     "predocker:run": "npm run clean",
-    "docker:run": "docker run --rm -it -v $PWD/test-results:/usr/e2e/test-results test-png-visual-compare",
+    "docker:run": "docker run --rm -it -v $PWD/test-results:/usr/pkg/test-results test-png-visual-compare",
     "docker:test": "jest"
   },
   "dependencies": {
