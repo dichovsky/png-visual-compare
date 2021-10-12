@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Node.js utility to compare PNG files",
   "keywords": [
     "visual testing",
@@ -27,7 +27,7 @@
   ],
   "scripts": {
     "clean": "rimraf ./out ./coverage ./test-results",
-    "build": "npm run clean && npm run lint && npm run test && npm run tsc",
+    "build": "npm run clean && npm run tsc",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
     "tsc": "tsc --pretty",

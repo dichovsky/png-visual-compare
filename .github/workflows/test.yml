@@ -1,5 +1,8 @@
 name: Tests on push
-on: push
+on:
+  push:
+    branches:    
+      - '!release/*'
 jobs:
   macos:
     runs-on: macos-11
