@@ -1,7 +1,5 @@
 name: Tests on push
-
 on: push
-
 jobs:
   macos:
     runs-on: macos-11
@@ -15,7 +13,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - run: npm test
-
   ubuntu:
     runs-on: ubuntu-latest
     steps:
@@ -28,7 +25,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - run: npm test
-
   windows:
     runs-on: windows-latest
     steps:
