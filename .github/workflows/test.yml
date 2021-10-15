@@ -1,8 +1,8 @@
 name: Tests on push
 on:
   push:
-    branches:    
-      - '!release/*'
+    branches-ignore:    
+      - 'release/*' 
 jobs:
   macos:
     runs-on: macos-11
