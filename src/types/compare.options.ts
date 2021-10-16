@@ -1,7 +1,7 @@
 import { Area } from './area';
 import { Color } from './color';
 
-export type CompareOptions = {
+export type ComparePngOptions = {
     excludedAreas?: Area[];
     excludedAreaColor?: Color;
     diffFilePath?: string;

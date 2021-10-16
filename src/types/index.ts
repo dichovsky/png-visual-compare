@@ -1,3 +1,3 @@
 export { Color } from './color';
 export { Area } from '../types/area';
-export { CompareOptions } from '../types/compare.options';
+export { ComparePngOptions } from '../types/compare.options';

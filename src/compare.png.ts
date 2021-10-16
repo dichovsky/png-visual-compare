@@ -2,9 +2,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { parse } from 'path';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
-import { Area, Color, CompareOptions } from './types';
+import { Area, Color, ComparePngOptions } from './types';
 
-export default function comparePng(image1: string | Buffer, image2: string | Buffer, opts?: CompareOptions): number {
+export default function comparePng(image1: string | Buffer, image2: string | Buffer, opts?: ComparePngOptions): number {
   let img1: PNG = getPng(image1);
   let img2: PNG = getPng(image2);
 
