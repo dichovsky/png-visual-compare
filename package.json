@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Node.js utility to compare PNG files",
   "keywords": [
     "visual testing",
