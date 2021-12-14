@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Node.js utility to compare PNG files",
   "keywords": [
     "visual testing",
@@ -19,26 +19,26 @@
     "url": "git+https://github.com/dichovsky/png-visual-compare.git"
   },
   "license": "MIT",
-  "author": "Igor Magdich",
+  "author": "Igor Magdich <magdich.igor@gmail.com>",
   "main": "out/index.js",
   "types": "out/index.d.ts",
   "files": [
     "/out"
   ],
   "scripts": {
-    "clean": "rimraf ./out ./coverage ./test-results",
     "build": "npm run clean && npm run tsc",
-    "lint": "eslint .",
-    "lint:fix": "npm run lint -- --fix",
-    "tsc": "tsc --pretty",
-    "pretest": "npm run clean",
-    "test": "jest",
-    "test:docker": "npm run docker:build && npm run docker:run",
-    "license-checker": "npx license-checker --production --onlyAllow 'MIT; MIT OR X11; BSD; ISC; Apache-2.0; Unlicense'",
+    "clean": "rimraf ./out ./coverage ./test-results",
     "docker:build": "docker build --compress -t test-png-visual-compare .",
     "predocker:run": "npm run clean",
     "docker:run": "docker run --rm -it -v $PWD/test-results:/usr/pkg/test-results test-png-visual-compare",
-    "docker:test": "jest"
+    "docker:test": "jest",
+    "license-checker": "npx license-checker --production --onlyAllow 'MIT; MIT OR X11; BSD; ISC; Apache-2.0; Unlicense'",
+    "lint": "eslint .",
+    "lint:fix": "npm run lint -- --fix",
+    "pretest": "npm run clean",
+    "test": "jest",
+    "test:docker": "npm run docker:build && npm run docker:run",
+    "tsc": "tsc --pretty"
   },
   "dependencies": {
     "pixelmatch": "5.2.1",
@@ -46,16 +46,16 @@
   },
   "devDependencies": {
     "@types/jest": "27.0.3",
-    "@types/node": "16.11.10",
+    "@types/node": "16.11.12",
     "@types/pixelmatch": "5.2.4",
     "@types/pngjs": "6.0.1",
-    "@typescript-eslint/eslint-plugin": "5.4.0",
-    "@typescript-eslint/parser": "5.4.0",
-    "eslint": "8.3.0",
-    "jest": "27.4.0",
+    "@typescript-eslint/eslint-plugin": "5.7.0",
+    "@typescript-eslint/parser": "5.7.0",
+    "eslint": "8.4.1",
+    "jest": "27.4.5",
     "rimraf": "3.0.2",
-    "ts-jest": "27.0.7",
+    "ts-jest": "27.1.1",
     "ts-node": "10.4.0",
-    "typescript": "4.5.2"
+    "typescript": "4.5.4"
   }
 }
