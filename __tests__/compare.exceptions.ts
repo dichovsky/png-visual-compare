@@ -1,12 +1,7 @@
 import { resolve } from 'path';
 import comparePng from '../src';
 
-const testDataArray: {
-  id: number;
-  name: string;
-  actual: string;
-  expected: string;
-}[] = [
+const testDataArray: { id: number; name: string; actual: string; expected: string }[] = [
   {
     id: 1,
     name: 'should throw error if file1 not found',
@@ -24,7 +19,7 @@ const testDataArray: {
 for (const testData of testDataArray) {
   test(`${testData.name}`, async () => {
     expect(() => {
-      comparePng(testData.actual, testData.expected );
+      comparePng(testData.actual, testData.expected);
     }).toThrow(Error);
   });
 }
