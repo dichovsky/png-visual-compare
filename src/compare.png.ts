@@ -4,12 +4,17 @@ import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import { Area, Color, ComparePngOptions } from './types';
 
-export default function comparePng(image1: string | Buffer, image2: string | Buffer, opts?: ComparePngOptions): number {
-  let img1: PNG = getPng(image1);
-  let img2: PNG = getPng(image2);
+export default function comparePng(
+  image1FilePathOrBuffer: string | Buffer,
+  image2FilePathOrBuffer: string | Buffer,
+  opts?: ComparePngOptions,
+): number {
+  let img1: PNG = getPng(image1FilePathOrBuffer);
+  let img2: PNG = getPng(image2FilePathOrBuffer);
 
-  const excludedAreas: Area[] = opts?.excludedAreas ?? [];
-  const excludedAreaColor: Color = opts?.excludedAreaColor ?? { r: 0, g: 0, b: 255 };
+  const excludedAreas: Area[] = opts?.excludedAreas ? opts.excludedAreas : [];
+  const excludedAreaColor: Color = opts?.excludedAreaColor ? opts.excludedAreaColor : { r: 0, g: 0, b: 255 };
+  const matchingThreshold: number = opts?.matchingThreshold ? opts?.matchingThreshold : 0.1;
 
   const { width: width1, height: height1 } = img1;
   const { width: width2, height: height2 } = img2;
@@ -34,7 +39,7 @@ export default function comparePng(image1: string | Buffer, image2: string | Buf
   }
 
   const result: number = pixelmatch(img1.data, img2.data, diff.data, maxWidth, maxHeight, {
-    threshold: opts?.matchingThreshold ?? 0.1,
+    threshold: matchingThreshold,
   });
 
   if (result > 0 && opts?.diffFilePath !== undefined) {
