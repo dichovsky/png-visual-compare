@@ -39,3 +39,9 @@ test(`Compare PNG`, async () => {
    ...
 });
 ```
+
+## Buy Me A Coffee
+
+In case you want support my work
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/dichovsky)
