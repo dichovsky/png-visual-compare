@@ -1,7 +1,6 @@
 # Visual Regression Testing for PNGs in JavaScript/Typescript
 
-Node.js utility to compare PNG images or their parts without binary and OS dependencies.
-
+Node.js utility to compare PNG images or their areas without binary and OS dependencies.
 
 [![Tests on push](https://github.com/dichovsky/png-visual-compare/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/dichovsky/png-visual-compare/actions/workflows/test.yml)
 
@@ -9,7 +8,6 @@ Node.js utility to compare PNG images or their parts without binary and OS depen
 
 This package exports single function `comparePng` which returns the number of mismatched pixels and optionally can create a diff PNG file.  
 Under the hood it uses [pixelmatch](https://github.com/mapbox/pixelmatch/blob/master/README.md) lib for pixel-level image comparison.
-
 
 ## Getting started
 
