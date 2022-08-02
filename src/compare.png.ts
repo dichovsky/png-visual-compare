@@ -12,13 +12,20 @@ export default function comparePng(
   let img1: PNG = getPng(image1FilePathOrBuffer);
   let img2: PNG = getPng(image2FilePathOrBuffer);
 
-  const excludedAreas: Area[] = opts?.excludedAreas ? opts.excludedAreas : [];
-  const excludedAreaColor: Color = opts?.excludedAreaColor ? opts.excludedAreaColor : { r: 0, g: 0, b: 255 };
-  const matchingThreshold: number = opts?.matchingThreshold ? opts?.matchingThreshold : 0.1;
+  const excludedAreas: Area[] = opts?.excludedAreas 
+    ? opts.excludedAreas 
+    : [];
+  const excludedAreaColor: Color = opts?.excludedAreaColor 
+    ? opts.excludedAreaColor 
+    : { r: 0, g: 0, b: 255 };
+  const matchingThreshold: number = opts?.matchingThreshold 
+    ? opts?.matchingThreshold 
+    : 0.1;
 
   const { width: width1, height: height1 } = img1;
   const { width: width2, height: height2 } = img2;
-  const imageSizesDoNotMatch: boolean = height1 !== height2 || width1 !== width2;
+  const imageHeightDoNotMatch: boolean = height1 !== height2;
+  const imageWidthDoNotMatch: boolean = width1 !== width2;
 
   const maxWidth: number = Math.max(width1, width2);
   const maxHeight: number = Math.max(height1, height2);
@@ -30,7 +37,7 @@ export default function comparePng(
     img2 = addColoredAreasToImage(img2, excludedAreas, excludedAreaColor);
   }
 
-  if (imageSizesDoNotMatch) {
+  if (imageHeightDoNotMatch || imageWidthDoNotMatch) {
     img1 = extendImage(img1, maxWidth, maxHeight);
     img2 = extendImage(img2, maxWidth, maxHeight);
 
@@ -54,8 +61,7 @@ export default function comparePng(
 function getPng(pngSource: string | Buffer): PNG {
   if (typeof pngSource === 'string') {
     if (!existsSync(pngSource)) throw Error('File not found');
-    const file1Content: Buffer = readFileSync(pngSource);
-    return PNG.sync.read(file1Content);
+    return PNG.sync.read(readFileSync(pngSource));
   }
   return PNG.sync.read(pngSource);
 }

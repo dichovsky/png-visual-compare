@@ -17,7 +17,7 @@ const testDataArray: { id: number; name: string; actual: string; expected: strin
 ];
 
 for (const testData of testDataArray) {
-  test(`${testData.name}`, async () => {
+  test(testData.name, async () => {
     expect(() => {
       comparePng(testData.actual, testData.expected);
     }).toThrow(Error);

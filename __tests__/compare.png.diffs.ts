@@ -18,7 +18,7 @@ const testDataArray: { id: number; name: string; actual: string; expected: strin
 ];
 
 for (const testData of testDataArray) {
-  test(`${testData.name}`, async () => {
+  test(testData.name, async () => {
     const diffFilePath: string = resolve(
       `test-results/diffs/compare.png.diffs/${testData.id}/${parse(testData.actual).base}_${
         parse(testData.expected).base
