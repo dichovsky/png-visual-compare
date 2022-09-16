@@ -24,8 +24,8 @@ export default function comparePng(
 
   const { width: width1, height: height1 } = img1;
   const { width: width2, height: height2 } = img2;
-  const imageHeightDoNotMatch: boolean = height1 !== height2;
-  const imageWidthDoNotMatch: boolean = width1 !== width2;
+  const isHeightMismatch: boolean = height1 !== height2;
+  const isWidthMismatch: boolean = width1 !== width2;
 
   const maxWidth: number = Math.max(width1, width2);
   const maxHeight: number = Math.max(height1, height2);
@@ -37,7 +37,7 @@ export default function comparePng(
     img2 = addColoredAreasToImage(img2, excludedAreas, excludedAreaColor);
   }
 
-  if (imageHeightDoNotMatch || imageWidthDoNotMatch) {
+  if (isHeightMismatch || isWidthMismatch) {
     img1 = extendImage(img1, maxWidth, maxHeight);
     img2 = extendImage(img2, maxWidth, maxHeight);
 
@@ -45,17 +45,18 @@ export default function comparePng(
     img2 = fillImageSizeDifference(img2, width2, height2, excludedAreaColor);
   }
 
-  const result: number = pixelmatch(img1.data, img2.data, diff.data, maxWidth, maxHeight, {
+  const pixelmatchResult: number = pixelmatch(img1.data, img2.data, diff.data, maxWidth, maxHeight, {
     threshold: matchingThreshold,
   });
 
-  if (result > 0 && opts?.diffFilePath !== undefined) {
-    if (!existsSync(parse(opts.diffFilePath).dir)) {
-      mkdirSync(parse(opts.diffFilePath).dir, { recursive: true });
+  if (pixelmatchResult > 0 && opts?.diffFilePath !== undefined) {
+    const diffFolder: string = parse(opts.diffFilePath).dir;
+    if (!existsSync(diffFolder)) {
+      mkdirSync(diffFolder, { recursive: true });
     }
     writeFileSync(opts.diffFilePath, PNG.sync.write(diff));
   }
-  return result;
+  return pixelmatchResult;
 }
 
 function getPng(pngSource: string | Buffer): PNG {
