@@ -27,5 +27,5 @@ test(`compare different PNG files, diff color is specified`, async () => {
   );
   comparePng(actual, expected, { diffFilePath, pixelmatchOptions: { diffColor: [100, 100, 100] } });
 
-  expect(readFileSync(diffFilePath)).toMatchSnapshot(diffFilePath);
+  expect(readFileSync(diffFilePath)).toMatchSnapshot();
 });

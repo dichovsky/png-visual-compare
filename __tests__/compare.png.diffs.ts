@@ -38,7 +38,7 @@ for (const testData of testDataArrayValidInput) {
     });
 
     expect(result).toBe(testData.result);
-    expect(readFileSync(diffFilePath)).toMatchSnapshot(diffFilePath);
+    expect(readFileSync(diffFilePath)).toMatchSnapshot();
   });
 }
 
@@ -71,6 +71,6 @@ for (const testData of testDataArrayInvalidInput) {
     });
 
     expect(result).toBe(testData.result);
-    expect(readFileSync(diffFilePath)).toMatchSnapshot(diffFilePath);
+    expect(readFileSync(diffFilePath)).toMatchSnapshot();
   });
 }

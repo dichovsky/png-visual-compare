@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`compare different PNG files, diff color is specified: /Users/imagdich/Projects/png-visual-compare/test-results/diffs/compare.png.diffs.color/ILTQq copy.png_ILTQq copy.png/diff_threshold.png 1`] = `
+exports[`compare different PNG files, diff color is specified 1`] = `
 {
   "data": [
     137,
