@@ -6,25 +6,25 @@ const testDataArrayInvalidSingle: { id: number; name: string; actual: string; ex
   {
     id: 1,
     name: 'file1 not found',
-    actual: resolve('test-data/actual/non-existing.png'),
-    expected: resolve('test-data/expected/youtube-play-button.png'),
+    actual: resolve('./test-data/actual/non-existing.png'),
+    expected: resolve('./test-data/expected/youtube-play-button.png'),
   },
   {
     id: 2,
     name: 'file2 not found',
-    actual: resolve('test-data/actual/ILTQq.png'),
-    expected: resolve('test-data/expected/non-existing.png'),
+    actual: resolve('./test-data/actual/ILTQq.png'),
+    expected: resolve('./test-data/expected/non-existing.png'),
   },
   {
     id: 3,
     name: 'file1 has invalid data type',
     actual: new PNG() as unknown as string,
-    expected: resolve('test-data/expected/youtube-play-button.png'),
+    expected: resolve('./test-data/expected/youtube-play-button.png'),
   },
   {
     id: 4,
     name: 'file2 has invalid data typ',
-    actual: resolve('test-data/expected/youtube-play-button.png'),
+    actual: resolve('./test-data/expected/youtube-play-button.png'),
     expected: new PNG() as unknown as string,
   },
 ];
@@ -55,15 +55,15 @@ const testDataArrayInvalidBoth: {
   {
     id: 1,
     name: 'both files not found, throwErrorOnInvalidInputData set to false',
-    actual: resolve('test-data/actual/non-existing.png'),
-    expected: resolve('test-data/actual/non-existing.png'),
+    actual: resolve('./test-data/actual/non-existing.png'),
+    expected: resolve('./test-data/actual/non-existing.png'),
     throwErrorOnInvalidInputData: false,
   },
   {
     id: 2,
     name: 'both files not found, throwErrorOnInvalidInputData set to true',
-    actual: resolve('test-data/actual/ILTQq.png'),
-    expected: resolve('test-data/expected/non-existing.png'),
+    actual: resolve('./test-data/actual/ILTQq.png'),
+    expected: resolve('./test-data/expected/non-existing.png'),
     throwErrorOnInvalidInputData: true,
   },
   {
