@@ -23,16 +23,16 @@ npm install -D png-visual-compare
 test(`Compare PNG`, async () => {
     const compareResult: number =
       comparePng(
-        img1, // First File path or Buffer to compare
+        img1, // First file path or Buffer to compare
         img2, // Second file path or Buffer to compare
         {
-            excludedAreas // Areas list to exclude from comparing. Empty array by default.
-            excludedAreaColor // Color to be used to fill excluded areas. { r: 0, g: 0, b: 255 } by default.
-            matchingThreshold // Matching threshold, ranges from 0 to 1. Smaller values make the comparison more sensitive. 0.1 by default.
-            diffFilePath // File path to file with differences
+            excludedAreas // Areas list to exclude from comparing, default value is [].
+            diffFilePath // File path where the differences file will be stored, default value is undefined.
+            throwErrorOnInvalidInputData // Compare with empty file if set to false, default value is undefined. Will throw an exception if both files are invalid.
+            pixelmatchOptions: // Pass options to Pixelmatch, default value is undefined.
         });
 
-    expect(compareResult).toBe(0);
+    expect(compareResult).toBe(0); // Number of mismatched pixels should be 0.
 
    ...
 });
