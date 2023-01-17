@@ -9,21 +9,23 @@ export default function comparePng(
   image2FilePathOrBuffer: string | Buffer,
   opts?: ComparePngOptions,
 ): number {
-  let img1: PNG = getPng(image1FilePathOrBuffer);
-  let img2: PNG = getPng(image2FilePathOrBuffer);
+  const excludedAreas: Area[] = opts?.excludedAreas !== undefined ? opts.excludedAreas : [];
+  const throwErrorOnInvalidInputData: boolean =
+    opts?.throwErrorOnInvalidInputData !== undefined ? opts.throwErrorOnInvalidInputData : true;
+  const extendedAreaColorImage: Color = { r: 0, g: 255, b: 0 };
+  const excludedAreaColor: Color = { r: 0, g: 0, b: 255 };
+  const shouldCreateDiffFile: boolean = opts?.diffFilePath !== undefined;
 
-  const excludedAreas: Area[] = opts?.excludedAreas 
-    ? opts.excludedAreas 
-    : [];
-  const excludedAreaColor: Color = opts?.excludedAreaColor 
-    ? opts.excludedAreaColor 
-    : { r: 0, g: 0, b: 255 };
-  const matchingThreshold: number = opts?.matchingThreshold 
-    ? opts?.matchingThreshold 
-    : 0.1;
+  const pngData1 = getPng(image1FilePathOrBuffer, throwErrorOnInvalidInputData);
+  const pngData2 = getPng(image2FilePathOrBuffer, throwErrorOnInvalidInputData);
 
-  const { width: width1, height: height1 } = img1;
-  const { width: width2, height: height2 } = img2;
+  if(!pngData1.isValid && !pngData2.isValid) {
+    throw Error('Unknown PNG files input type');
+  }
+
+  const { width: width1, height: height1 } = pngData1.png;
+  const { width: width2, height: height2 } = pngData2.png;
+
   const isHeightMismatch: boolean = height1 !== height2;
   const isWidthMismatch: boolean = width1 !== width2;
 
@@ -33,38 +35,58 @@ export default function comparePng(
   const diff: PNG = new PNG({ width: maxWidth, height: maxHeight });
 
   if (excludedAreas.length > 0) {
-    img1 = addColoredAreasToImage(img1, excludedAreas, excludedAreaColor);
-    img2 = addColoredAreasToImage(img2, excludedAreas, excludedAreaColor);
+    pngData1.png = addColoredAreasToImage(pngData1.png, excludedAreas, excludedAreaColor);
+    pngData2.png = addColoredAreasToImage(pngData2.png, excludedAreas, excludedAreaColor);
   }
 
   if (isHeightMismatch || isWidthMismatch) {
-    img1 = extendImage(img1, maxWidth, maxHeight);
-    img2 = extendImage(img2, maxWidth, maxHeight);
+    pngData1.png = extendImage(pngData1.png, maxWidth, maxHeight);
+    pngData2.png = extendImage(pngData2.png, maxWidth, maxHeight);
 
-    img1 = fillImageSizeDifference(img1, width1, height1, excludedAreaColor);
-    img2 = fillImageSizeDifference(img2, width2, height2, excludedAreaColor);
+    pngData1.png = fillImageSizeDifference(pngData1.png, width1, height1, extendedAreaColorImage);
+    pngData2.png = fillImageSizeDifference(pngData2.png, width2, height2, extendedAreaColorImage);
   }
 
-  const pixelmatchResult: number = pixelmatch(img1.data, img2.data, diff.data, maxWidth, maxHeight, {
-    threshold: matchingThreshold,
-  });
+  const pixelmatchResult: number = pixelmatch(
+    pngData1.png.data,
+    pngData2.png.data,
+    shouldCreateDiffFile ? diff.data : null,
+    maxWidth,
+    maxHeight,
+    opts?.pixelmatchOptions,
+  );
 
-  if (pixelmatchResult > 0 && opts?.diffFilePath !== undefined) {
-    const diffFolder: string = parse(opts.diffFilePath).dir;
+  if (pixelmatchResult > 0 && shouldCreateDiffFile) {
+    const diffFolder: string = parse(opts?.diffFilePath as string).dir;
     if (!existsSync(diffFolder)) {
       mkdirSync(diffFolder, { recursive: true });
     }
-    writeFileSync(opts.diffFilePath, PNG.sync.write(diff));
+    writeFileSync(opts?.diffFilePath as string, PNG.sync.write(diff));
   }
+
   return pixelmatchResult;
 }
 
-function getPng(pngSource: string | Buffer): PNG {
+function getPng(pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean): { isValid: boolean; png: PNG; } {
   if (typeof pngSource === 'string') {
-    if (!existsSync(pngSource)) throw Error('File not found');
-    return PNG.sync.read(readFileSync(pngSource));
+    if (!existsSync(pngSource)) {
+      if (throwErrorOnInvalidInputData) {
+        throw Error(`PNG file ${pngSource} not found`);
+      }
+      return { isValid: false, png: new PNG({ width: 0, height: 0 }) };
+    }
+    return { isValid: true, png: PNG.sync.read(readFileSync(pngSource)) };
   }
-  return PNG.sync.read(pngSource);
+
+  if (Buffer.isBuffer(pngSource)) {
+    return { isValid: true, png: PNG.sync.read(pngSource) };
+  }
+
+  if (throwErrorOnInvalidInputData) {
+    throw Error('Unknown PNG file input type');
+  }
+
+  return { isValid: false, png: new PNG({ width: 0, height: 0 }) };
 }
 
 function addColoredAreasToImage(image: PNG, areas: Area[], color: Color): PNG {
@@ -75,8 +97,8 @@ function addColoredAreasToImage(image: PNG, areas: Area[], color: Color): PNG {
         return x >= rectangle.x1 && y >= rectangle.y1 && x <= rectangle.x2 && y <= rectangle.y2;
       });
       if (shouldBeColored) {
-        const pos: number = (y * width + x) * 4;
-        image.data = drawPixelOnBuff(image.data, pos, color);
+        const position: number = (y * width + x) * 4;
+        image.data = drawPixelOnBuff(image.data, position, color);
       }
     }
   }
@@ -94,17 +116,17 @@ function drawPixelOnBuff(buff: Buffer, position: number, color: Color): Buffer {
 }
 
 function extendImage(image: PNG, newWidth: number, newHeight: number): PNG {
-  const resized = new PNG({ width: newWidth, height: newHeight, fill: true });
-  PNG.bitblt(image, resized, 0, 0, image.width, image.height, 0, 0);
-  return resized;
+  const extendedImage = new PNG({ width: newWidth, height: newHeight, fill: true });
+  PNG.bitblt(image, extendedImage, 0, 0, image.width, image.height, 0, 0);
+  return extendedImage;
 }
 
 function fillImageSizeDifference(image: PNG, width: number, height: number, color: Color): PNG {
   for (let y = 0; y < image.height; y++) {
     for (let x = 0; x < image.width; x++) {
       if (y > height || x > width) {
-        const pos: number = (image.width * y + x) << 2;
-        image.data = drawPixelOnBuff(image.data, pos, color);
+        const position: number = (image.width * y + x) << 2;
+        image.data = drawPixelOnBuff(image.data, position, color);
       }
     }
   }
