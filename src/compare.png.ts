@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { parse } from 'path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { parse } from 'node:path';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import { Area, Color, ComparePngOptions } from './types';
@@ -9,9 +9,12 @@ export default function comparePng(
   image2FilePathOrBuffer: string | Buffer,
   opts?: ComparePngOptions,
 ): number {
-  const excludedAreas: Area[] = opts?.excludedAreas !== undefined ? opts.excludedAreas : [];
-  const throwErrorOnInvalidInputData: boolean =
-    opts?.throwErrorOnInvalidInputData !== undefined ? opts.throwErrorOnInvalidInputData : true;
+  const excludedAreas: Area[] = opts?.excludedAreas !== undefined 
+    ? opts.excludedAreas 
+    : [];
+  const throwErrorOnInvalidInputData: boolean = opts?.throwErrorOnInvalidInputData !== undefined 
+    ? opts.throwErrorOnInvalidInputData 
+    : true;
   const extendedAreaColorImage: Color = { r: 0, g: 255, b: 0 };
   const excludedAreaColor: Color = { r: 0, g: 0, b: 255 };
   const shouldCreateDiffFile: boolean = opts?.diffFilePath !== undefined;
