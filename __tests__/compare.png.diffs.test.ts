@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { parse, resolve } from 'path';
 import comparePng from '../src';
+import { expect, test } from 'vitest';
 
 const testDataArrayValidInput: { id: number; actual: string; expected: string; result: number }[] = [
   {

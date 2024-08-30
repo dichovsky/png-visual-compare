@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "1.2.3",
+  "version": "2.0.0",
   "description": "Node.js utility to compare PNG files or their areas",
   "keywords": [
     "visual testing",
@@ -26,36 +26,35 @@
     "/out"
   ],
   "scripts": {
-    "build": "npm run clean && npm run tsc",
+    "prebuild": "npm run clean",
+    "build": "tsc --pretty",
     "clean": "rimraf ./out ./coverage ./test-results",
     "docker:build": "docker build --compress -t test-png-visual-compare .",
     "predocker:run": "npm run clean",
     "docker:run": "docker run --rm -it -v $PWD/test-results:/usr/pkg/test-results test-png-visual-compare",
-    "docker:test": "jest",
+    "docker:test": "vitest run",
     "license-checker": "npx license-checker --production --onlyAllow 'MIT; MIT OR X11; BSD; ISC; Apache-2.0; Unlicense'",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
     "pretest": "npm run clean",
-    "test": "jest",
-    "test:docker": "npm run docker:build && npm run docker:run",
-    "tsc": "tsc --pretty"
+    "test": "vitest run --coverage",
+    "test:docker": "npm run docker:build && npm run docker:run"
   },
   "dependencies": {
-    "pixelmatch": "^5.3.0",
+    "pixelmatch": "^6.0.0",
     "pngjs": "^7.0.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.27",
+    "@types/node": "^22.5.1",
     "@types/pixelmatch": "^5.2.6",
-    "@types/pngjs": "^6.0.4",
-    "@typescript-eslint/eslint-plugin": "^7.2.0",
-    "@typescript-eslint/parser": "^7.2.0",
-    "eslint": "^8.57.0",
-    "jest": "^29.7.0",
-    "rimraf": "^5.0.5",
-    "ts-jest": "^29.1.2",
+    "@types/pngjs": "^6.0.5",
+    "@typescript-eslint/eslint-plugin": "^8.3.0",
+    "@typescript-eslint/parser": "^8.3.0",
+    "@vitest/coverage-v8": "^2.0.5",
+    "eslint": "^9.9.1",
+    "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.2"
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
   }
 }

@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import comparePng, { Area } from '../src';
+import { expect, test } from 'vitest';
 
 const testDataArray: {
   id: number;
