@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { parse, resolve } from 'path';
 import comparePng from '../src';
+import { expect, test } from 'vitest';
 
 test(`compare different PNG files, threshold is specified`, async () => {
   const actual: string = resolve('./test-data/actual/ILTQq copy.png');
