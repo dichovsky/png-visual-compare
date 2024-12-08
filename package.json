@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Node.js utility to compare PNG files or their areas",
   "keywords": [
     "visual testing",
@@ -20,14 +20,15 @@
   },
   "license": "MIT",
   "author": "Igor Magdich <magdich.igor@gmail.com>",
-  "main": "out/index.js",
-  "types": "out/index.d.ts",
+  "main": "./out/index.js",
+  "types": "./out/index.d.ts",
   "files": [
-    "/out"
+    "./out"
   ],
   "scripts": {
     "prebuild": "npm run clean",
-    "build": "tsc --pretty",
+    "build": "tsc --pretty --project tsconfig.prod.json",
+    "build:test": "tsc --pretty --noEmit --project tsconfig.json",
     "clean": "rimraf ./out ./coverage ./test-results",
     "docker:build": "docker build --compress -t test-png-visual-compare .",
     "predocker:run": "npm run clean",
@@ -45,16 +46,21 @@
     "pngjs": "^7.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.5.1",
+    "@types/eslint__eslintrc": "^2.1.2",
+    "@types/node": "^22.10.1",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
-    "@typescript-eslint/eslint-plugin": "^8.3.0",
-    "@typescript-eslint/parser": "^8.3.0",
-    "@vitest/coverage-v8": "^2.0.5",
-    "eslint": "^9.9.1",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^9.16.0",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.4",
-    "vitest": "^2.0.5"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20",
+    "yarn": "please-use-npm"
   }
 }

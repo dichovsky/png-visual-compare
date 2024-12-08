@@ -1,4 +1,4 @@
-import comparePng from './compare.png';
+import comparePng from './comparePng';
 
 export default comparePng;
-export { Area, Color, ComparePngOptions } from './types';
+export type * from './types';
