@@ -1,8 +1,8 @@
-FROM node:20
+FROM node:22
 
 WORKDIR /usr/pkg/
 COPY . .
 
 RUN npm ci
 
-CMD npm run docker:test
+CMD ["npm", "run", "docker:test"]
