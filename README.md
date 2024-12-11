@@ -17,7 +17,7 @@ Installation:
 npm install -D png-visual-compare
 ```
 
-**Note:** This package requires Node.js version 22 or higher.
+**Note:** This package requires Node.js version 20 or higher.
 
 ## Example
 
