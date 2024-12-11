@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "Node.js utility to compare PNG files or their areas",
   "keywords": [
     "visual testing",
@@ -46,7 +46,7 @@
     "pngjs": "^7.0.0"
   },
   "devDependencies": {
-    "@tsconfig/node20": "^20.1.4",
+    "@tsconfig/node22": "^22.0.0",
     "@types/eslint__eslintrc": "^2.1.2",
     "@types/node": "^22.10.1",
     "@types/pixelmatch": "^5.2.6",
@@ -61,7 +61,7 @@
     "vitest": "^2.1.8"
   },
   "engines": {
-    "node": ">=20",
+    "node": ">=22",
     "yarn": "please-use-npm"
   }
 }
