@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { drawPixelOnBuff } from '../src/drawPixelOnBuff';
-import { Color } from '../src/types';
+import { Color } from '../out/types';
+import { Buffer } from 'node:buffer';
 
 describe('drawPixelOnBuff', () => {
     it('should draw the correct color at the specified position in the buffer', () => {

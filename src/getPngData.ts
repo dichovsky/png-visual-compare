@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from 'fs';
+import { Buffer } from 'node:buffer';
 import { PNG, PNGWithMetadata } from 'pngjs';
 import { PngData } from './types/png.data';
 
-export function getPng(pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean): PngData {
+export function getPngData(pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean): PngData {
     const invalidPng: PngData = { isValid: false, png: new PNG({ width: 0, height: 0 }) as PNGWithMetadata };
 
     if (typeof pngSource === 'string') {

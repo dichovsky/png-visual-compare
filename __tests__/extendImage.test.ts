@@ -1,6 +1,6 @@
 import { PNG, PNGWithMetadata } from 'pngjs';
 import { expect, test } from 'vitest';
-import { extendImage } from '../src/extendImage';
+import { extendImage } from '../out/extendImage';
 
 test('extendImage should return the same image if new dimensions are smaller or equal', () => {
     const image = new PNG({ width: 100, height: 100 }) as PNGWithMetadata;

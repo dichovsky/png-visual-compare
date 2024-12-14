@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { parse, resolve } from 'path';
 import { expect, test } from 'vitest';
-import comparePng from '../src';
+import comparePng from '../out';
 
 const testDataArrayValidInput: { id: number; actual: string; expected: string; result: number }[] = [
     {
@@ -27,7 +27,7 @@ const testDataArrayValidInput: { id: number; actual: string; expected: string; r
 for (const testData of testDataArrayValidInput) {
     test(`compare different PNG files with image ${testData.id}`, async () => {
         const diffFilePath: string = resolve(
-            `test-results/diffs/compare.png.diffs/${testData.id}/${parse(testData.actual).base}_${
+            `./test-results/diffs/compare.png.diffs/${testData.id}/${parse(testData.actual).base}_${
                 parse(testData.expected).base
             }/diff_${testData.id}.png`,
         );
@@ -61,7 +61,7 @@ const testDataArrayInvalidInput: { id: number; actual: string; expected: string;
 for (const testData of testDataArrayInvalidInput) {
     test(`compare different PNG files with image ${testData.id}, invalid input`, async () => {
         const diffFilePath: string = resolve(
-            `test-results/diffs/compare.png.diffs.invalid.input/${testData.id}/${parse(testData.actual).base}_${
+            `./test-results/diffs/compare.png.diffs.invalid.input/${testData.id}/${parse(testData.actual).base}_${
                 parse(testData.expected).base
             }/diff_${testData.id}.png`,
         );

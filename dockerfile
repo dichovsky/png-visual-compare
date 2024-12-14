@@ -5,4 +5,4 @@ COPY . .
 
 RUN npm ci
 
-CMD ["npm", "run", "docker:test"]
+CMD ["npm", "run", "test"]

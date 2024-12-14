@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { parse } from 'node:path';
 import pixelmatch from 'pixelmatch';
@@ -5,15 +6,11 @@ import { PNG } from 'pngjs';
 import { addColoredAreasToImage } from './addColoredAreasToImage';
 import { extendImage } from './extendImage';
 import { fillImageSizeDifference } from './fillImageSizeDifference';
-import { getPng } from './getPng';
+import { getPngData } from './getPngData';
 import { Area, Color, ComparePngOptions } from './types';
 import { PngData } from './types/png.data';
 
-export default function comparePng(
-    image1FilePathOrBuffer: string | Buffer,
-    image2FilePathOrBuffer: string | Buffer,
-    opts?: ComparePngOptions,
-): number {
+export default function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): number {
     // Default values
     const excludedAreas: Area[] = opts?.excludedAreas ?? [];
     const throwErrorOnInvalidInputData: boolean = opts?.throwErrorOnInvalidInputData ?? true;
@@ -22,8 +19,8 @@ export default function comparePng(
     const shouldCreateDiffFile: boolean = opts?.diffFilePath !== undefined;
 
     // Get PNG data
-    const pngData1: PngData = getPng(image1FilePathOrBuffer, throwErrorOnInvalidInputData);
-    const pngData2: PngData = getPng(image2FilePathOrBuffer, throwErrorOnInvalidInputData);
+    const pngData1: PngData = getPngData(png1, throwErrorOnInvalidInputData);
+    const pngData2: PngData = getPngData(png2, throwErrorOnInvalidInputData);
 
     // Check if PNG data is valid
     if (!pngData1.isValid && !pngData2.isValid) {

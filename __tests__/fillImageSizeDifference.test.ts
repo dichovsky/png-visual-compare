@@ -1,10 +1,10 @@
 import { PNG } from 'pngjs';
 import { describe, expect, it, vi } from 'vitest';
-import { drawPixelOnBuff } from '../src/drawPixelOnBuff';
-import { fillImageSizeDifference } from '../src/fillImageSizeDifference';
-import { Color } from '../src/types';
+import { drawPixelOnBuff } from '../out/drawPixelOnBuff';
+import { fillImageSizeDifference } from '../out/fillImageSizeDifference';
+import { Color } from '../out/types';
 
-vi.mock('../src/drawPixelOnBuff');
+vi.mock('../out/drawPixelOnBuff');
 
 describe('fillImageSizeDifference', () => {
     it('should fill the image size difference with the specified color', () => {
