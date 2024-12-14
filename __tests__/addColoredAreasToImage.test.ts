@@ -1,10 +1,10 @@
 import { PNG } from 'pngjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { addColoredAreasToImage } from '../src/addColoredAreasToImage';
-import { drawPixelOnBuff } from '../src/drawPixelOnBuff';
-import { Area, Color } from '../src/types';
+import { addColoredAreasToImage } from '../out/addColoredAreasToImage';
+import { drawPixelOnBuff } from '../out/drawPixelOnBuff';
+import { Area, Color } from '../out/types';
 
-vi.mock('../src/drawPixelOnBuff');
+vi.mock('../out/drawPixelOnBuff');
 
 describe('addColoredAreasToImage', () => {
     afterEach(() => {

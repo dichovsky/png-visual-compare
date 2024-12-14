@@ -1,12 +1,14 @@
 {
   "name": "png-visual-compare",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Node.js utility to compare PNG files or their areas",
   "keywords": [
     "visual testing",
     "compare png",
     "compare images",
     "png",
+    "png compare",
+    "pnf diff",
     "image diff",
     "diff"
   ],
@@ -27,19 +29,15 @@
   ],
   "scripts": {
     "prebuild": "npm run clean",
-    "build": "tsc --pretty --project tsconfig.prod.json",
-    "build:test": "tsc --pretty --noEmit --project tsconfig.json",
+    "build": "tsc --pretty --project tsconfig.json",
     "clean": "rimraf ./out ./coverage ./test-results",
     "docker:build": "docker build --compress -t test-png-visual-compare .",
-    "predocker:run": "npm run clean",
-    "docker:run": "docker run --rm -it -v $PWD/test-results:/usr/pkg/test-results test-png-visual-compare",
-    "docker:test": "vitest run",
-    "license-checker": "npx license-checker --production --onlyAllow 'MIT; MIT OR X11; BSD; ISC; Apache-2.0; Unlicense'",
+    "docker:run": "docker run --rm -it test-png-visual-compare",
     "lint": "eslint .",
-    "lint:fix": "npm run lint -- --fix",
-    "pretest": "npm run clean",
+    "pretest": "npm run build && npm run lint && npm run test:license",
     "test": "vitest run --coverage",
-    "test:docker": "npm run docker:build && npm run docker:run"
+    "test:docker": "npm run clean && npm run docker:build && npm run docker:run",
+    "test:license": "npx --yes license-checker --production --onlyAllow \"ISC; MIT; MIT OR X11; BSD; Apache-2.0; Unlicense\""
   },
   "dependencies": {
     "pixelmatch": "^6.0.0",
@@ -48,13 +46,13 @@
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
     "@types/eslint__eslintrc": "^2.1.2",
-    "@types/node": "^22.10.1",
+    "@types/node": "^22.10.2",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
     "@vitest/coverage-v8": "^2.1.8",
-    "eslint": "^9.16.0",
+    "eslint": "^9.17.0",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2",

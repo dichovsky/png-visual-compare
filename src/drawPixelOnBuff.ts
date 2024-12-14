@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { Color } from './types';
 
 export function drawPixelOnBuff(buff: Buffer, position: number, color: Color): void {
