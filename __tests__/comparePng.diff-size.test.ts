@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { parse, resolve } from 'path';
 import { PNG } from 'pngjs';
 import { expect, test } from 'vitest';
-import comparePng from '../out';
+import { comparePng } from '../out';
 
 test(`compare different PNG files with image, diff size`, async () => {
     const actual: string = resolve('./test-data/actual/budweiser640x862.png');

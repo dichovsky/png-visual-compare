@@ -10,7 +10,7 @@ import { getPngData } from './getPngData';
 import { Area, Color, ComparePngOptions } from './types';
 import { PngData } from './types/png.data';
 
-export default function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): number {
+export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): number {
     // Default values
     const excludedAreas: Area[] = opts?.excludedAreas ?? [];
     const throwErrorOnInvalidInputData: boolean = opts?.throwErrorOnInvalidInputData ?? true;
