@@ -7,8 +7,8 @@ import { addColoredAreasToImage } from './addColoredAreasToImage';
 import { extendImage } from './extendImage';
 import { fillImageSizeDifference } from './fillImageSizeDifference';
 import { getPngData } from './getPngData';
-import { Area, Color, ComparePngOptions } from './types';
-import { PngData } from './types/png.data';
+import type { Area, Color, ComparePngOptions } from './types';
+import { type PngData } from './types/png.data';
 
 export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): number {
     // Default values

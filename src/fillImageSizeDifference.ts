@@ -1,6 +1,6 @@
 import { PNG } from 'pngjs';
 import { drawPixelOnBuff } from './drawPixelOnBuff';
-import { Color } from './types';
+import { type Color } from './types';
 
 export function fillImageSizeDifference(image: PNG, width: number, height: number, color: Color): void {
     for (let y = 0; y < image.height; y++) {

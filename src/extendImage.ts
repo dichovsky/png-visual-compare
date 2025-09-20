@@ -1,4 +1,4 @@
-import { PNG, PNGWithMetadata } from 'pngjs';
+import { PNG, type PNGWithMetadata } from 'pngjs';
 
 export function extendImage(image: PNGWithMetadata, newWidth: number, newHeight: number): PNGWithMetadata {
     if (image.width >= newWidth && image.height >= newHeight) {

@@ -1,3 +1,3 @@
-import { PNGWithMetadata } from 'pngjs';
+import type { PNGWithMetadata } from 'pngjs';
 
 export type PngData = { isValid: boolean; png: PNGWithMetadata };

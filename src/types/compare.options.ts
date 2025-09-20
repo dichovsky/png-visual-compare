@@ -1,5 +1,5 @@
-import { PixelmatchOptions } from 'pixelmatch';
-import { Area } from './area';
+import type { PixelmatchOptions } from 'pixelmatch';
+import type { Area } from './area';
 
 export type ComparePngOptions = {
   excludedAreas?: Area[];

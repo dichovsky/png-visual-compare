@@ -1,6 +1,6 @@
 import { PNG } from 'pngjs';
 import { drawPixelOnBuff } from './drawPixelOnBuff';
-import { Area, Color } from './types';
+import type { Area, Color } from './types';
 
 export function addColoredAreasToImage(image: PNG, areas: Area[], color: Color): void {
     const { height, width } = image;

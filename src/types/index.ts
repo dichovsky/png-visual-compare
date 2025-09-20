@@ -1,4 +1,4 @@
-export { Area } from './area';
-export { Color } from './color';
-export { ComparePngOptions } from './compare.options';
-export { PngData } from './png.data';
+export type { Area } from './area';
+export type { Color } from './color';
+export type { ComparePngOptions } from './compare.options';
+export type { PngData } from './png.data';
