@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, unlinkSync } from 'fs';
 import { parse, resolve } from 'path';
 import { expect, test } from 'vitest';
 import { comparePng } from '../out';
@@ -31,6 +31,10 @@ for (const testData of testDataArrayValidInput) {
                 parse(testData.expected).base
             }/diff_${testData.id}.png`,
         );
+
+        if (existsSync(diffFilePath)) {
+            unlinkSync(diffFilePath);
+        }
 
         expect(existsSync(diffFilePath)).toBe(false);
 

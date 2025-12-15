@@ -26,8 +26,7 @@ export default [...compat.extends(
         parser: tsParser,
     },
 
-    rules: {
-        "@typescript-eslint/no-var-requires": 0,
-        "@typescript-eslint/no-explicit-any": 0,
-    },
+    rules: {},
+}, {
+    ignores: ["out/", "coverage/", "test-results/", "dist/"],
 }];

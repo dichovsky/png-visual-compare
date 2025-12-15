@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync, unlinkSync } from 'fs';
 import { resolve } from 'path';
 import { expect, test } from 'vitest';
 import { comparePng, Area } from '../out';
@@ -65,3 +65,26 @@ for (const testData of testDataArray) {
         expect(result).toBe(0);
     });
 }
+
+test('should compare different PNG files without creating diff file (mismatch)', () => {
+    const actual = resolve('./test-data/actual/ILTQq.png');
+    const expected = resolve('./test-data/expected/youtube-play-button.png');
+    
+    const result: number = comparePng(actual, expected);
+    expect(result).toBeGreaterThan(0);
+});
+
+test('should create diff file directory recursively if it does not exist', () => {
+    const actual = resolve('./test-data/actual/ILTQq.png');
+    const expected = resolve('./test-data/expected/youtube-play-button.png');
+    const diffFilePath = resolve('./test-results/new-diff-folder/subfolder/diff.png');
+
+    if (existsSync(diffFilePath)) {
+        unlinkSync(diffFilePath);
+    }
+
+    const result = comparePng(actual, expected, { diffFilePath });
+    expect(result).toBeGreaterThan(0);
+    expect(existsSync(diffFilePath)).toBe(true);
+});
+
