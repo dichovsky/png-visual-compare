@@ -1,7 +1,7 @@
 import { resolve } from 'path';
 import { PNG } from 'pngjs';
 import { expect, test } from 'vitest';
-import { comparePng } from '../out';
+import { comparePng } from '../src';
 
 const testDataArrayInvalidSingle: { id: number; name: string; actual: string; expected: string }[] = [
     {

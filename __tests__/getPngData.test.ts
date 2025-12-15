@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { PNG } from 'pngjs';
 import { describe, expect, it } from 'vitest';
-import { getPngData } from '../out/getPngData';
+import { getPngData } from '../src/getPngData';
 
 describe('getPngData', () => {
     const validPngPath = path.resolve('./test-data/actual/youtube-play-button.png');
