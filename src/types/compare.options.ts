@@ -1,4 +1,13 @@
-import type { PixelmatchOptions } from 'pixelmatch';
+export type PixelmatchOptions = {
+    threshold?: number;
+    includeAA?: boolean;
+    alpha?: number;
+    aaColor?: [number, number, number];
+    diffColor?: [number, number, number];
+    diffColorAlt?: [number, number, number];
+    diffMask?: boolean;
+};
+
 import type { Area } from './area';
 
 export type ComparePngOptions = {

@@ -8,19 +8,19 @@ const testDataArrayValidInput: { id: number; actual: string; expected: string; r
         id: 1,
         actual: resolve('./test-data/actual/ILTQq.png'),
         expected: resolve('./test-data/expected/youtube-play-button.png'),
-        result: 375329,
+        result: 434915,
     },
     {
         id: 2,
         actual: resolve('./test-data/actual/ILTQq copy.png'),
         expected: resolve('./test-data/expected/ILTQq copy.png'),
-        result: 479,
+        result: 480,
     },
     {
         id: 3,
         actual: resolve('./test-data/actual/youtube-play-button.png'),
         expected: resolve('./test-data/expected/pnggrad16rgb.png'),
-        result: 506219,
+        result: 506712,
     },
 ];
 
@@ -48,13 +48,13 @@ const testDataArrayInvalidInput: { id: number; actual: string; expected: string;
         id: 1,
         actual: resolve('./test-data/actual/non-existing-file.png'),
         expected: resolve('./test-data/expected/youtube-play-button.png'),
-        result: 470129,
+        result: 470130,
     },
     {
         id: 2,
         actual: resolve('./test-data/expected/youtube-play-button.png'),
         expected: resolve('./test-data/actual/non-existing-file.png'),
-        result: 470129,
+        result: 470130,
     },
 ];
 

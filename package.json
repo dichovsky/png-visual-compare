@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "3.2.0",
+  "version": "4.0.0",
   "description": "Node.js utility to compare PNG files or their areas",
   "keywords": [
     "visual testing",
@@ -40,23 +40,22 @@
     "test:license": "npx --yes license-checker --production --onlyAllow \"ISC; MIT; MIT OR X11; BSD; Apache-2.0; Unlicense\""
   },
   "dependencies": {
-    "pixelmatch": "~6.0.0",
-    "pngjs": "~7.0.0"
+    "pixelmatch": "7.1.0",
+    "pngjs": "7.0.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.1",
-    "@tsconfig/recommended": "^1.0.10",
-    "@types/node": "^24.5.2",
-    "@types/pixelmatch": "^5.2.6",
-    "@types/pngjs": "^6.0.5",
-    "@typescript-eslint/eslint-plugin": "^8.44.0",
-    "@typescript-eslint/parser": "^8.44.0",
-    "@vitest/coverage-v8": "^3.2.4",
-    "eslint": "^9.36.0",
-    "rimraf": "^6.0.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "@eslint/eslintrc": "3.3.3",
+    "@tsconfig/recommended": "1.0.13",
+    "@types/node": "25.0.2",
+    "@types/pngjs": "6.0.5",
+    "@typescript-eslint/eslint-plugin": "8.50.0",
+    "@typescript-eslint/parser": "8.50.0",
+    "@vitest/coverage-v8": "4.0.15",
+    "eslint": "9.39.2",
+    "rimraf": "6.1.2",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3",
+    "vitest": "4.0.15"
   },
   "engines": {
     "node": ">=20"
