@@ -1,7 +1,7 @@
-import { readFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync } from 'fs';
 import { resolve } from 'path';
 import { expect, test } from 'vitest';
-import { comparePng, Area } from '../out';
+import { Area, comparePng } from '../src';
 
 const testDataArray: {
     id: number;
@@ -65,3 +65,47 @@ for (const testData of testDataArray) {
         expect(result).toBe(0);
     });
 }
+
+test('should compare different PNG files without creating diff file (mismatch)', () => {
+    const actual = resolve('./test-data/actual/ILTQq.png');
+    const expected = resolve('./test-data/expected/youtube-play-button.png');
+    
+    const result: number = comparePng(actual, expected);
+    expect(result).toBe(434915);
+});
+
+test('should create diff file directory recursively if it does not exist', () => {
+    const actual = resolve('./test-data/actual/ILTQq.png');
+    const expected = resolve('./test-data/expected/youtube-play-button.png');
+    const diffFilePath = resolve('./test-results/new-diff-folder/subfolder/diff.png');
+    const diffFolder = resolve('./test-results/new-diff-folder/subfolder');
+
+    if (existsSync(diffFolder)) {
+        rmSync(diffFolder, { recursive: true, force: true });
+    }
+
+    const result = comparePng(actual, expected, { diffFilePath });
+    expect(result).toBe(434915);
+    expect(existsSync(diffFilePath)).toBe(true);
+});
+
+test('should create diff file when directory already exists', () => {
+    const actual = resolve('./test-data/actual/ILTQq.png');
+    const expected = resolve('./test-data/expected/youtube-play-button.png');
+    const diffFilePath = resolve('./test-results/existing-diff-folder/diff.png');
+    const diffFolder = resolve('./test-results/existing-diff-folder');
+
+    // Ensure directory exists
+    if (!existsSync(diffFolder)) {
+        mkdirSync(diffFolder, { recursive: true });
+    }
+    // Clean up file if exists
+    if (existsSync(diffFilePath)) {
+        unlinkSync(diffFilePath);
+    }
+
+    const result = comparePng(actual, expected, { diffFilePath });
+    expect(result).toBe(434915);
+    expect(existsSync(diffFilePath)).toBe(true);
+});
+

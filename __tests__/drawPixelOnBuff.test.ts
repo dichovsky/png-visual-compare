@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { drawPixelOnBuff } from '../src/drawPixelOnBuff';
-import { Color } from '../out/types';
+import { Color } from '../src/types';
 import { Buffer } from 'node:buffer';
 
 describe('drawPixelOnBuff', () => {

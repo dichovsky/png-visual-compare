@@ -54,7 +54,7 @@ export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: 
     const pixelmatchResult: number = pixelmatch(
         pngData1.png.data,
         pngData2.png.data,
-        shouldCreateDiffFile ? diff.data : null,
+        shouldCreateDiffFile ? diff.data : undefined,
         maxWidth,
         maxHeight,
         opts?.pixelmatchOptions,

@@ -5,8 +5,8 @@ export default defineConfig({
     testTimeout: 90000,
     coverage: {
       provider: 'v8',
-      include: ['out/**/*.js'],
-      exclude: ['out/types/**/*'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/types/**/*'],
     },
   },
 })
