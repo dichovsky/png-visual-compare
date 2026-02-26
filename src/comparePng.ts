@@ -10,6 +10,33 @@ import { getPngData } from './getPngData';
 import type { Area, Color, ComparePngOptions } from './types';
 import { type PngData } from './types/png.data';
 
+/**
+ * Compares two PNG images pixel-by-pixel and returns the number of mismatched pixels.
+ *
+ * Both inputs can be file paths or raw `Buffer` instances. Images of different sizes are handled
+ * by expanding the smaller one to match the larger canvas — the padded region is painted green
+ * `(0, 255, 0)` so it always shows as a difference.
+ *
+ * Rectangular areas listed in `opts.excludedAreas` are painted blue `(0, 0, 255)` on both images
+ * before comparison, making them always match.
+ *
+ * A diff PNG is written to `opts.diffFilePath` only when there are mismatched pixels (`result > 0`)
+ * and `diffFilePath` is provided. The target directory is created automatically.
+ *
+ * @param png1 - First PNG: absolute file path or `Buffer` containing PNG data.
+ * @param png2 - Second PNG: absolute file path or `Buffer` containing PNG data.
+ * @param opts - Optional comparison options (excluded areas, diff output path, pixelmatch settings).
+ * @returns Number of mismatched pixels (`0` means the images are identical).
+ *
+ * @example
+ * ```ts
+ * const mismatch = comparePng('actual.png', 'expected.png', {
+ *   diffFilePath: 'diff.png',
+ *   pixelmatchOptions: { threshold: 0.1 },
+ * });
+ * expect(mismatch).toBe(0);
+ * ```
+ */
 export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): number {
     // Default values
     const excludedAreas: Area[] = opts?.excludedAreas ?? [];

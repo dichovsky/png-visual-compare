@@ -6,12 +6,10 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 
 ## Description
 
-This package exports single function `comparePng` which returns the number of mismatched pixels and optionally can create a diff PNG file.  
-Under the hood it uses [pixelmatch](https://github.com/mapbox/pixelmatch/blob/master/README.md) lib for pixel-level image comparison.
+This package exports a single function `comparePng` which returns the number of mismatched pixels and optionally creates a diff PNG file.  
+Under the hood it uses [pixelmatch](https://github.com/mapbox/pixelmatch/blob/master/README.md) for pixel-level image comparison.
 
 ## Getting started
-
-Installation:
 
 ```sh
 npm install -D png-visual-compare
@@ -21,24 +19,66 @@ npm install -D png-visual-compare
 
 ## Example
 
-```javascript
-test(`Compare PNG`, async () => {
-  const compareResult: number =
-    comparePng(
-    img1, // First file path or Buffer to compare
-    img2, // Second file path or Buffer to compare
-    {
-      excludedAreas, // Areas list to exclude from comparing, default value is [].
-      diffFilePath, // File path where the differences file will be stored, default value is undefined.
-      throwErrorOnInvalidInputData, // Compare with empty file if set to false, default value is undefined. Will throw an exception if both files are invalid.
-      pixelmatchOptions, // Pass options to Pixelmatch, default value is undefined.
-    });
+```typescript
+import { comparePng } from 'png-visual-compare';
 
-  expect(compareResult).toBe(0); // Number of mismatched pixels should be 0.
+const mismatchedPixels: number = comparePng(
+  img1, // First PNG: absolute file path or Buffer
+  img2, // Second PNG: absolute file path or Buffer
+  {
+    excludedAreas,          // Regions to skip during comparison. Default: []
+    diffFilePath,           // Path to write the diff PNG (only written when mismatch > 0). Default: undefined
+    throwErrorOnInvalidInputData, // Throw on missing/invalid input. Default: true
+    pixelmatchOptions,      // Options forwarded to pixelmatch. Default: undefined
+  }
+);
 
-   ...
-});
+expect(mismatchedPixels).toBe(0);
 ```
+
+## API
+
+### `comparePng(png1, png2, opts?): number`
+
+| Parameter | Type | Description |
+|---|---|---|
+| `png1` | `string \| Buffer` | First PNG — absolute file path or raw PNG `Buffer` |
+| `png2` | `string \| Buffer` | Second PNG — absolute file path or raw PNG `Buffer` |
+| `opts` | `ComparePngOptions` | Optional. See below |
+
+Returns the number of mismatched pixels (`0` means identical).
+
+### `ComparePngOptions`
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `excludedAreas` | `Area[]` | `[]` | Rectangular regions to exclude from comparison |
+| `diffFilePath` | `string` | `undefined` | File path for the diff PNG. Only written when `result > 0` |
+| `throwErrorOnInvalidInputData` | `boolean` | `true` | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid |
+| `pixelmatchOptions` | `PixelmatchOptions` | `undefined` | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch) |
+
+### `Area`
+
+```typescript
+type Area = {
+  x1: number; // left edge (pixels from left)
+  y1: number; // top edge (pixels from top)
+  x2: number; // right edge (pixels from left, inclusive)
+  y2: number; // bottom edge (pixels from top, inclusive)
+};
+```
+
+### `PixelmatchOptions`
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `threshold` | `number` | `0.1` | Matching threshold `0`–`1`. Lower = more sensitive |
+| `includeAA` | `boolean` | `false` | When `true`, anti-aliased pixels count as mismatches |
+| `alpha` | `number` | `0.1` | Opacity of unchanged pixels in the diff image |
+| `aaColor` | `[r, g, b]` | `[255, 255, 0]` | Colour of anti-aliased pixels in the diff |
+| `diffColor` | `[r, g, b]` | `[255, 0, 0]` | Colour of differing pixels in the diff |
+| `diffColorAlt` | `[r, g, b]` | `undefined` | Alternative diff colour for dark pixels (dark-mode support) |
+| `diffMask` | `boolean` | `false` | Show only changed pixels on a transparent background |
 
 ## Buy Me A Coffee
 
