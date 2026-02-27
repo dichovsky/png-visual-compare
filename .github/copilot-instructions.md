@@ -165,10 +165,10 @@ All types live in `src/types/`, one file per type, collected in `src/types/index
 | `Area` | yes | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left) |
 | `ComparePngOptions` | yes | Options bag for `comparePng` |
 | `PixelmatchOptions` | yes | Forwarded verbatim to pixelmatch |
-| `Color` | no | Internal `{ r, g, b }` for pixel painting |
-| `PngData` | no | Internal `{ isValid: boolean, png: PNGWithMetadata }` |
+| `Color` | yes | Public `{ r, g, b }` used for pixel painting |
+| `PngData` | yes | Public `{ isValid: boolean, png: PNGWithMetadata }` used by helpers |
 
-`Color` and `PngData` are intentionally not in the public API. Do not add them to `src/index.ts`.
+`Color` and `PngData` are currently part of the public type surface via \`src/index.ts\`. Treat them as stable exports when updating types or documentation.
 
 ---
 
