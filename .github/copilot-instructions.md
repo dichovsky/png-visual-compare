@@ -220,7 +220,7 @@ Current coverage is 100% across all source files.
 - **Extensionless relative imports within `src/`** — even with `"module": "nodenext"` / `"moduleResolution": "node16"`, source files use imports like `import { foo } from './foo'` (resolved correctly for the CommonJS build output).
 - **One type per file** in `src/types/`. Collected by `src/types/index.ts`.
 - **Test files mirror source names** — `src/comparePng.ts` → `__tests__/comparePng.test.ts`.
-- **No test helpers or shared fixtures** — each test file is self-contained.
+- **No shared test helper modules** — each test file is self-contained; common PNG fixtures live in `test-data/actual/` and `test-data/expected/`.
 - **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense`. Enforced by `npm run test:license` (runs as part of `pretest`).
 - **`throwErrorOnInvalidInputData` defaults to `true`**. Set to `false` only when intentionally comparing against a missing/invalid file (treated as a zero-size PNG). An error is **always** thrown when **both** inputs are invalid, regardless of this flag.
 - **Diff file is never written when `pixelmatchResult === 0`**, even if `diffFilePath` is provided — avoids creating empty/misleading diff artifacts.
