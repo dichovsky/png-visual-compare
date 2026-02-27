@@ -1,6 +1,6 @@
 {
   "name": "png-visual-compare",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "description": "Node.js utility to compare PNG files or their areas",
   "keywords": [
     "visual testing",
@@ -8,7 +8,7 @@
     "compare images",
     "png",
     "png compare",
-    "pnf diff",
+    "png diff",
     "image diff",
     "diff"
   ],
@@ -20,10 +20,21 @@
     "type": "git",
     "url": "git+https://github.com/dichovsky/png-visual-compare.git"
   },
+  "funding": {
+    "type": "buymeacoffee",
+    "url": "https://buymeacoffee.com/dichovsky"
+  },
   "license": "MIT",
   "author": "Igor Magdich <magdich.igor@gmail.com>",
   "main": "./out/index.js",
   "types": "./out/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./out/index.d.ts",
+      "default": "./out/index.js"
+    }
+  },
+  "sideEffects": false,
   "files": [
     "./out"
   ],
@@ -45,7 +56,7 @@
   },
   "devDependencies": {
     "@tsconfig/recommended": "~1.0.13",
-    "@types/node": "~25.3.0",
+    "@types/node": "~25.3.2",
     "@types/pngjs": "~6.0.5",
     "@vitest/coverage-v8": "~4.0.18",
     "eslint": "~10.0.2",
