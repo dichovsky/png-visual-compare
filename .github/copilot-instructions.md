@@ -245,11 +245,11 @@ Each job: `npm ci` → `npm test` (which runs the full `pretest` + vitest pipeli
 ```
 npm ci
 npm test        ← full test suite including lint, license check, build
-npm run build   ← clean rebuild to produce a pristine ./out without coverage artifacts
+npm run build   ← clean + fresh tsc after tests; ensures ./out is built from a clean state
 npm publish     ← publishes only ./out (per "files" in package.json)
 ```
 
-The double build is intentional: `npm test` compiles to `./out` as part of `pretest`, but the subsequent `npm run build` runs `prebuild → clean → tsc` again to ensure no coverage instrumentation artifacts end up in the published package.
+The double build is intentional: `npm test` compiles to `./out` as part of `pretest`, but also writes `./coverage` and `./test-results`. The subsequent `npm run build` triggers `prebuild → clean → tsc`, which deletes those directories and produces a fresh `./out` from a known-clean state before the package is published.
 
 Publishing requires the `NPM_TOKEN` secret to be set on the GitHub repository.
 
