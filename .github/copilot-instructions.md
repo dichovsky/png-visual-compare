@@ -217,7 +217,7 @@ Current coverage is 100% across all source files.
 
 ## Key Conventions
 
-- **`.js` extensions in relative imports within `src/`** — required by `"module": "nodenext"` / `"moduleResolution": "node16"`. Always write `import { foo } from './foo.js'` even though the source file is `foo.ts`.
+- **Extensionless relative imports within `src/`** — even with `"module": "nodenext"` / `"moduleResolution": "node16"`, source files use imports like `import { foo } from './foo'` (resolved correctly for the CommonJS build output).
 - **One type per file** in `src/types/`. Collected by `src/types/index.ts`.
 - **Test files mirror source names** — `src/comparePng.ts` → `__tests__/comparePng.test.ts`.
 - **No test helpers or shared fixtures** — each test file is self-contained.
