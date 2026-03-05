@@ -174,4 +174,5 @@ test('should accept custom extendedAreaColor for size-differing images', () => {
 
     expect(resultDefault).toBeGreaterThan(0);
     expect(resultCustomColor).toBeGreaterThan(0);
+    expect(resultDefault).not.toBe(resultCustomColor);
 });
