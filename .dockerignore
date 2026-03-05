@@ -5,3 +5,9 @@ out
 .vscode
 .github
 .devcontainer
+dockerfile
+Dockerfile
+*.md
+LICENSE
+.prettierrc
+.prettierignore

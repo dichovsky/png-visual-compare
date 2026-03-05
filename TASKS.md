@@ -79,22 +79,6 @@ Separate the filesystem check and read into a helper (e.g., `readPngFromFile`) a
 
 ---
 
-### [P3] Dockerfile filename violates convention
-
-**Problem**
-The Dockerfile is named `dockerfile` (all-lowercase) instead of the conventional `Dockerfile` (capitalized). Most Docker tooling, CI systems, and IDE plugins use the conventional capitalized name by default.
-
-**Impact**
-`docker build .` (without `-f`) defaults to looking for `Dockerfile` on case-sensitive filesystems (Linux). CI pipelines, GitHub Actions, or `docker buildx` that do not explicitly pass `-f dockerfile` will fail on Linux.
-
-**Solution**
-Rename `dockerfile` to `Dockerfile`.
-
-**Files**
-- `dockerfile` → `Dockerfile`
-
----
-
 ### [P3] `@tsconfig/recommended` devDependency is not used
 
 **Problem**
@@ -290,31 +274,6 @@ Enable branch protection on `main` in the GitHub repository settings: require PR
 
 ## Docker & Deployment
 
-### [P1] Dockerfile uses full `node:22` image (large base image) and runs as root
-
-**Problem**
-The Dockerfile uses `FROM node:22` — a Debian-based image that includes compilers, Python, git, and other tools not needed at runtime. The resulting image is ~1 GB. Additionally, the container runs as root (no `USER` directive), violating the principle of least privilege.
-
-**Impact**
-Larger images increase pull time, registry storage cost, and attack surface. Running as root means a compromised container process has unrestricted access inside the container and to any mounted host volumes. This is a Docker CIS Benchmark finding.
-
-**Solution**
-Switch to `node:22-slim` (Debian-slim, ~250 MB) or `node:22-alpine` (~50 MB). The project has no native dependencies so Alpine is safe to use. Add a `USER node` directive and use `--chown=node:node` when copying files (the `node:22` base image ships a pre-created `node` user with UID 1000):
-
-```dockerfile
-FROM node:22-slim
-WORKDIR /usr/pkg/
-COPY --chown=node:node . .
-RUN npm ci
-USER node
-CMD ["npm", "run", "test"]
-```
-
-**Files**
-- `dockerfile` (rename to `Dockerfile`)
-
----
-
 ### [P2] No multi-stage Docker build
 
 **Problem**
@@ -339,37 +298,6 @@ For a publishable package image, add a second stage that installs only productio
 
 **Files**
 - `dockerfile` (rename to `Dockerfile`)
-
----
-
-### [P2] `.dockerignore` does not exclude `dockerfile` and documentation files
-
-**Problem**
-`.dockerignore` excludes `node_modules`, `coverage`, `out`, and some IDE folders, but does not exclude `dockerfile` itself, `*.md` files, `LICENSE`, or `.prettierrc`. These files are copied into the image unnecessarily.
-
-**Impact**
-Slightly larger image build context; documentation or configuration files leak into the production image unnecessarily. The `dockerfile` inside the image is especially unnecessary.
-
-**Solution**
-Extend `.dockerignore` to exclude additional non-runtime files. Both `dockerfile` and `Dockerfile` are listed to handle the transition period during renaming (case-sensitive Linux filesystems treat them as distinct files):
-
-```
-# Both names listed to cover the pre/post-rename transition period
-dockerfile
-Dockerfile
-*.md
-LICENSE
-.prettierrc
-.prettierignore
-eslint.config.mjs
-vitest.config.mjs
-tsconfig.json
-.github
-__tests__
-```
-
-**Files**
-- `.dockerignore`
 
 ---
 
