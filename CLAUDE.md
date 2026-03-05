@@ -8,8 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run build          # compile TypeScript → ./out (runs clean first via prebuild)
 npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
-npm run test           # full suite: clean → lint → license check → build → vitest --coverage
+npm run test           # full suite: clean → lint → format:check → license check → build → vitest --coverage
 npm run test:license   # check all production dependency licenses are in the approved list
+npm run format         # format files with Prettier
+npm run format:check   # validate formatting with Prettier
 ```
 
 Run a single test file (skips pretest steps):
@@ -36,7 +38,7 @@ Update snapshots:
 npx vitest run --update-snapshots
 ```
 
-> Use `npx vitest run` directly to skip clean/lint/build when iterating quickly.
+> Use `npx vitest run` directly to skip clean/lint/format:check/build when iterating quickly.
 
 ## Architecture
 
@@ -60,10 +62,10 @@ src/
 
 ### `comparePng` data flow
 
-1. Parse options (`excludedAreas`, `throwErrorOnInvalidInputData`, `diffFilePath`)
+1. Parse options (`excludedAreas`, `throwErrorOnInvalidInputData`, `extendedAreaColor`, `excludedAreaColor`, `diffFilePath`)
 2. `getPngData()` on each input — if both are invalid, always throws; if one is invalid with `throwError=false`, treats it as a 0×0 PNG
-3. If `excludedAreas` is set: paint those regions **blue** on both images (they always match)
-4. If images differ in size: extend both to `max(w1,w2) × max(h1,h2)`, paint padded area **green** (always counts as diff)
+3. If `excludedAreas` is set: paint those regions with `excludedAreaColor` on both images (default blue, they always match)
+4. If images differ in size: extend both to `max(w1,w2) × max(h1,h2)`, paint padded area with `extendedAreaColor` (default green, always counts as diff)
 5. Run `pixelmatch()` → returns mismatch count
 6. If `mismatchCount > 0` and `diffFilePath` is set: write diff PNG (parent dirs created automatically)
 7. Return mismatch count (0 = identical)
