@@ -144,26 +144,6 @@ mkdirSync(diffFolder, { recursive: true });
 
 ## Code Quality
 
-### [P1] Off-by-one bug in `fillImageSizeDifference` boundary condition
-
-**Problem**
-The condition `y > height || x > width` uses strict greater-than. This means the first extended row (`y === height`) is only painted when `x > width`, and the first extended column (`x === width`) is only painted when `y > height`. A 1-pixel-wide strip at the exact boundary is left as transparent instead of being painted with the extension colour.
-
-**Impact**
-The diff PNG for images of different sizes has a 1-pixel transparent border gap between the original content and the green extended region. Callers relying on the diff image for visual debugging will see an incorrect artefact.
-
-**Solution**
-Change the condition to use greater-than-or-equal:
-
-```ts
-if (y >= height || x >= width) {
-```
-
-**Files**
-- `src/fillImageSizeDifference.ts`
-
----
-
 ### [P2] Non-null assertions (`opts!`) in `comparePng` should use optional chaining
 
 **Problem**
@@ -274,25 +254,6 @@ Either remove the dependency entirely, or add `"extends": "@tsconfig/recommended
 
 ## Testing
 
-### [P1] `fillImageSizeDifference` has no unit tests
-
-**Problem**
-`src/fillImageSizeDifference.ts` is the only production source file that lacks a dedicated unit test file. The off-by-one boundary condition (see Code Quality tasks) exists precisely because the edge cases are not tested directly.
-
-**Impact**
-Regressions in the pixel-painting logic would only be caught indirectly by snapshot diffs in `comparePng.diff-size.test.ts`, which makes it hard to diagnose the root cause.
-
-**Solution**
-Create `__tests__/fillImageSizeDifference.test.ts` with tests that:
-1. Verify pixels at exactly `x === originalWidth` and `y === originalHeight` are painted with the extension colour.
-2. Verify pixels inside the original bounds are NOT painted.
-3. Verify the corner pixel `(originalWidth, originalHeight)` is painted.
-
-**Files**
-- `__tests__/fillImageSizeDifference.test.ts` *(new)*
-
----
-
 ### [P2] Missing test: diff file must NOT be created when images match
 
 **Problem**
@@ -345,22 +306,6 @@ Lower the timeout to a more appropriate value, e.g., `5000` ms (5 seconds). If s
 ---
 
 ## Documentation
-
-### [P2] README lacks information about the `fillImageSizeDifference` off-by-one behaviour affecting diff output
-
-**Problem**
-The README documents what happens when images have different sizes ("the padded region is painted green") but does not warn that the boundary row/column has a known visual artefact (1-pixel transparent strip — see Code Quality tasks).
-
-**Impact**
-Users who rely on the diff PNG for visual inspection may be confused by the thin transparent gap. Documenting it (or fixing it) prevents confusion and support requests.
-
-**Solution**
-After the bug is fixed (see Code Quality task [P1] _Off-by-one bug in `fillImageSizeDifference` boundary condition_), no documentation change is needed. If the fix is deferred, add a note in the README under the diff output section.
-
-**Files**
-- `README.md`
-
----
 
 ### [P3] No `CONTRIBUTING.md` file
 

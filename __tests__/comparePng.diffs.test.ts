@@ -8,7 +8,7 @@ const testDataArrayValidInput: { id: number; actual: string; expected: string; r
         id: 1,
         actual: resolve('./test-data/actual/ILTQq.png'),
         expected: resolve('./test-data/expected/youtube-play-button.png'),
-        result: 434915,
+        result: 434926,
     },
     {
         id: 2,
@@ -20,7 +20,7 @@ const testDataArrayValidInput: { id: number; actual: string; expected: string; r
         id: 3,
         actual: resolve('./test-data/actual/youtube-play-button.png'),
         expected: resolve('./test-data/expected/pnggrad16rgb.png'),
-        result: 506712,
+        result: 506139,
     },
 ];
 
