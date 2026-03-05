@@ -25,6 +25,7 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
+- [Contributing](#contributing)
 - [License](#license)
 
 ---
@@ -85,8 +86,8 @@ Compares two PNG images pixel-by-pixel and returns the number of mismatched pixe
 | `excludedAreas`                | `Area[]`            | `[]`                     | Rectangular regions to exclude from comparison (painted on both images before diffing, so they always match)                                             |
 | `diffFilePath`                 | `string`            | `undefined`              | File path for the diff PNG. Only written when `result > 0`                                                                                               |
 | `throwErrorOnInvalidInputData` | `boolean`           | `true`                   | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid |
-| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Color used to paint padded regions when comparing different image sizes                                                                                  |
-| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Color used to paint all excluded regions before comparison                                                                                               |
+| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Fill colour for padded regions when images differ in size. Override when the default green clashes with your image content                               |
+| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill colour applied to `excludedAreas` on both images before comparison. Override when the default blue clashes with your image content                  |
 | `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                  |
 
 ---
@@ -127,6 +128,19 @@ type Color = {
 | `diffColor`    | `[r, g, b]` | `[255, 0, 0]`   | Colour of differing pixels in the diff                      |
 | `diffColorAlt` | `[r, g, b]` | `undefined`     | Alternative diff colour for dark pixels (dark-mode support) |
 | `diffMask`     | `boolean`   | `false`         | Show only changed pixels on a transparent background        |
+
+### Exported constants
+
+| Constant                      | Value                    | Description                                           |
+| ----------------------------- | ------------------------ | ----------------------------------------------------- |
+| `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions |
+| `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                |
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, commands, and PR guidelines.
 
 ---
 
