@@ -23,9 +23,10 @@ export function getPngData(pngSource: string | Buffer, throwErrorOnInvalidInputD
     if (typeof pngSource === 'string') {
         try {
             return { isValid: true, png: PNG.sync.read(readFileSync(pngSource)) };
-        } catch {
+        } catch (e) {
             if (throwErrorOnInvalidInputData) {
-                throw new Error(`PNG file ${pngSource} not found`);
+                const errorMessage = e instanceof Error && e.message ? `: ${e.message}` : '';
+                throw new Error(`PNG file ${pngSource} could not be read${errorMessage}`);
             }
             return invalidPng;
         }
