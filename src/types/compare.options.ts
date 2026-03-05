@@ -1,4 +1,5 @@
 import type { Area } from './area';
+import type { Color } from './color';
 
 export type PixelmatchOptions = {
     /**
@@ -60,6 +61,18 @@ export type ComparePngOptions = {
      * @default true
      */
     throwErrorOnInvalidInputData?: boolean;
+    /**
+     * Colour used to paint size-extended padding regions (areas added when images differ in size).
+     * Override when the default green `{ r: 0, g: 255, b: 0 }` clashes with your image content.
+     * @default { r: 0, g: 255, b: 0 }
+     */
+    extendedAreaColor?: Color;
+    /**
+     * Colour used to paint excluded areas before comparison (making them always match).
+     * Override when the default blue `{ r: 0, g: 0, b: 255 }` clashes with your image content.
+     * @default { r: 0, g: 0, b: 255 }
+     */
+    excludedAreaColor?: Color;
     /**
      * Options forwarded directly to [pixelmatch](https://github.com/mapbox/pixelmatch).
      * @default undefined

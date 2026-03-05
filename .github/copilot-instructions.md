@@ -12,16 +12,19 @@ npm run test:docker    # clean → docker build → docker run (runs the full te
 ```
 
 Run a single test file (skips pretest):
+
 ```sh
 npx vitest run __tests__/comparePng.test.ts
 ```
 
 Run tests matching a name pattern:
+
 ```sh
 npx vitest run --reporter=verbose -t "compare PNG with text"
 ```
 
 Run tests and watch for changes during development:
+
 ```sh
 npx vitest --reporter=verbose
 ```
@@ -42,6 +45,7 @@ import { comparePng } from 'png-visual-compare';
 Everything in the codebase resolves to `comparePng` in `src/comparePng.ts`, re-exported through `src/index.ts`.
 
 **Production dependencies (2 total):**
+
 - `pixelmatch ~7.1.0` — pixel-level image comparison engine
 - `pngjs ~7.0.0` — synchronous PNG read/write
 
@@ -137,20 +141,21 @@ out/                              # compiled output (gitignored, npm-published)
 
 ### `getPngData(pngSource, throwErrorOnInvalidInputData)`
 
-| Input type | File exists? | `throwError=true` | `throwError=false` |
-|---|---|---|---|
-| `string` (path) | yes | `{ isValid: true, png: <decoded> }` | `{ isValid: true, png: <decoded> }` |
-| `string` (path) | no | throws `"PNG file … not found"` | `{ isValid: false, png: 0×0 PNG }` |
-| `Buffer` | n/a | `{ isValid: true, png: <decoded> }` | `{ isValid: true, png: <decoded> }` |
-| any other type | n/a | throws `"Unknown PNG file input type"` | `{ isValid: false, png: 0×0 PNG }` |
+| Input type      | File exists? | `throwError=true`                      | `throwError=false`                  |
+| --------------- | ------------ | -------------------------------------- | ----------------------------------- |
+| `string` (path) | yes          | `{ isValid: true, png: <decoded> }`    | `{ isValid: true, png: <decoded> }` |
+| `string` (path) | no           | throws `"PNG file … not found"`        | `{ isValid: false, png: 0×0 PNG }`  |
+| `Buffer`        | n/a          | `{ isValid: true, png: <decoded> }`    | `{ isValid: true, png: <decoded> }` |
+| any other type  | n/a          | throws `"Unknown PNG file input type"` | `{ isValid: false, png: 0×0 PNG }`  |
 
 > An invalid-placeholder PNG is `new PNG({ width: 0, height: 0 })` cast to `PNGWithMetadata`.
 
 ### Pixel address formula
 
 All pixel operations use the same address formula:
+
 ```ts
-position = (image.width * y + x) * 4;  // byte offset of red channel
+position = (image.width * y + x) * 4; // byte offset of red channel
 // buff[position+0] = R, [+1] = G, [+2] = B, [+3] = A (always 255)
 ```
 
@@ -160,13 +165,13 @@ position = (image.width * y + x) * 4;  // byte offset of red channel
 
 All types live in `src/types/`, one file per type, collected in `src/types/index.ts`.
 
-| Type | Exported publicly | Purpose |
-|---|---|---|
-| `Area` | yes | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left) |
-| `ComparePngOptions` | yes | Options bag for `comparePng` |
-| `PixelmatchOptions` | yes | Forwarded verbatim to pixelmatch |
-| `Color` | yes | Public `{ r, g, b }` used for pixel painting |
-| `PngData` | yes | Public `{ isValid: boolean, png: PNGWithMetadata }` used by helpers |
+| Type                | Exported publicly | Purpose                                                             |
+| ------------------- | ----------------- | ------------------------------------------------------------------- |
+| `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left)    |
+| `ComparePngOptions` | yes               | Options bag for `comparePng`                                        |
+| `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                    |
+| `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                        |
+| `PngData`           | yes               | Public `{ isValid: boolean, png: PNGWithMetadata }` used by helpers |
 
 `Color` and `PngData` are currently part of the public type surface via \`src/index.ts\`. Treat them as stable exports when updating types or documentation.
 
@@ -189,26 +194,28 @@ Never write a standalone `test(...)` when the same assertion applies to multiple
 ### Imports in tests
 
 Tests import from the **source** (`../src`), not from the compiled output (`../out`):
+
 ```ts
-import { comparePng } from '../src';           // correct
+import { comparePng } from '../src'; // correct
 import { getPngData } from '../src/getPngData'; // correct for internal unit tests
 ```
 
 ### Snapshot tests
 
 `comparePng.diffs.test.ts` and `comparePng.pixelmatch-options.test.ts` use `toMatchSnapshot()` on the raw diff PNG `Buffer`. Snapshots are committed in `__tests__/__snapshots__/`. Update them with:
+
 ```sh
 npx vitest run --update-snapshots
 ```
 
 ### Coverage thresholds (enforced by vitest)
 
-| Metric | Minimum |
-|---|---|
-| Lines | 90% |
-| Functions | 90% |
-| Statements | 90% |
-| Branches | 75% |
+| Metric     | Minimum |
+| ---------- | ------- |
+| Lines      | 90%     |
+| Functions  | 90%     |
+| Statements | 90%     |
+| Branches   | 75%     |
 
 `src/types/**/*` is excluded from coverage (type-only files have no runtime behaviour).
 Current coverage is 100% across all source files.
@@ -233,9 +240,9 @@ Current coverage is 100% across all source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches)
 
-| Job | OS | Node |
-|---|---|---|
-| ubuntu | ubuntu-latest | 24.x |
+| Job     | OS             | Node |
+| ------- | -------------- | ---- |
+| ubuntu  | ubuntu-latest  | 24.x |
 | windows | windows-latest | 22.x |
 
 Each job: `npm ci` → `npm test` (which runs the full `pretest` + vitest pipeline).
@@ -260,6 +267,7 @@ Publishing requires the `NPM_TOKEN` secret to be set on the GitHub repository.
 Only the `./out` directory is published to npm (controlled by `"files": ["./out"]` in `package.json`).
 
 The package exposes:
+
 - `"main": "./out/index.js"` — CommonJS entry point (legacy resolution)
 - `"types": "./out/index.d.ts"` — TypeScript type definitions
 - `"exports": { ".": { "types": "./out/index.d.ts", "default": "./out/index.js" } }` — modern subpath exports

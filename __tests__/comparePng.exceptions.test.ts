@@ -32,9 +32,7 @@ const testDataArrayInvalidSingle: { id: number; name: string; actual: string; ex
 
 for (const testData of testDataArrayInvalidSingle) {
     test(`should throw error if ${testData.name}`, async () => {
-        expect(() => comparePng(testData.actual, testData.expected, { throwErrorOnInvalidInputData: true })).toThrow(
-            Error,
-        );
+        expect(() => comparePng(testData.actual, testData.expected, { throwErrorOnInvalidInputData: true })).toThrow(Error);
     });
 
     test(`should throw error if ${testData.name}, default props`, async () => {
@@ -42,9 +40,7 @@ for (const testData of testDataArrayInvalidSingle) {
     });
 
     test(`should NOT throw error if ${testData.name}, throwErrorOnInvalidInputData is disabled`, async () => {
-        expect(() =>
-            comparePng(testData.actual, testData.expected, { throwErrorOnInvalidInputData: false }),
-        ).not.toThrow(Error);
+        expect(() => comparePng(testData.actual, testData.expected, { throwErrorOnInvalidInputData: false })).not.toThrow(Error);
     });
 }
 

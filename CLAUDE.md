@@ -13,21 +13,25 @@ npm run test:license   # check all production dependency licenses are in the app
 ```
 
 Run a single test file (skips pretest steps):
+
 ```sh
 npx vitest run __tests__/comparePng.test.ts
 ```
 
 Run tests matching a name pattern:
+
 ```sh
 npx vitest run --reporter=verbose -t "compare PNG with text"
 ```
 
 Watch mode during development:
+
 ```sh
 npx vitest --reporter=verbose
 ```
 
 Update snapshots:
+
 ```sh
 npx vitest run --update-snapshots
 ```
@@ -67,7 +71,7 @@ src/
 ### Pixel address formula (used throughout)
 
 ```ts
-position = (image.width * y + x) * 4;  // R=[pos], G=[pos+1], B=[pos+2], A=[pos+3]
+position = (image.width * y + x) * 4; // R=[pos], G=[pos+1], B=[pos+2], A=[pos+3]
 ```
 
 ## Key Conventions
