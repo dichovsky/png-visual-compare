@@ -51,6 +51,8 @@ const mismatchedPixels: number = comparePng(
         excludedAreas, // Regions to skip during comparison. Default: []
         diffFilePath, // Path to write the diff PNG (only written when mismatch > 0). Default: undefined
         throwErrorOnInvalidInputData, // Throw on missing/invalid input. Default: true
+        extendedAreaColor, // Color used for size-padding regions. Default: { r: 0, g: 255, b: 0 }
+        excludedAreaColor, // Color used for excluded areas. Default: { r: 0, g: 0, b: 255 }
         pixelmatchOptions, // Options forwarded to pixelmatch. Default: undefined
     },
 );
@@ -78,12 +80,14 @@ Compares two PNG images pixel-by-pixel and returns the number of mismatched pixe
 
 ### `ComparePngOptions`
 
-| Option                         | Type                | Default     | Description                                                                                                                                              |
-| ------------------------------ | ------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `excludedAreas`                | `Area[]`            | `[]`        | Rectangular regions to exclude from comparison                                                                                                           |
-| `diffFilePath`                 | `string`            | `undefined` | File path for the diff PNG. Only written when `result > 0`                                                                                               |
-| `throwErrorOnInvalidInputData` | `boolean`           | `true`      | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid |
-| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined` | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                  |
+| Option                         | Type                | Default                  | Description                                                                                                                                              |
+| ------------------------------ | ------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `excludedAreas`                | `Area[]`            | `[]`                     | Rectangular regions to exclude from comparison (painted on both images before diffing, so they always match)                                             |
+| `diffFilePath`                 | `string`            | `undefined`              | File path for the diff PNG. Only written when `result > 0`                                                                                               |
+| `throwErrorOnInvalidInputData` | `boolean`           | `true`                   | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid |
+| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Color used to paint padded regions when comparing different image sizes                                                                                  |
+| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Color used to paint all excluded regions before comparison                                                                                               |
+| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                  |
 
 ---
 
@@ -95,6 +99,18 @@ type Area = {
     y1: number; // top edge (pixels from top)
     x2: number; // right edge (pixels from left, inclusive)
     y2: number; // bottom edge (pixels from top, inclusive)
+};
+```
+
+---
+
+### `Color`
+
+```typescript
+type Color = {
+    r: number; // red channel (0-255)
+    g: number; // green channel (0-255)
+    b: number; // blue channel (0-255)
 };
 ```
 

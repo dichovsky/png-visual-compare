@@ -6,9 +6,11 @@
 npm run build          # compile TypeScript → ./out (runs clean first via prebuild)
 npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
-npm run test           # full suite: clean → lint → license check → build → vitest --coverage
+npm run test           # full suite: clean → lint → format-check → license check → build → vitest --coverage
 npm run test:license   # check all production dependency licenses are in the approved list
 npm run test:docker    # clean → docker build → docker run (runs the full test suite in Docker)
+npm run format         # format files with Prettier
+npm run format:check   # validate formatting with Prettier
 ```
 
 Run a single test file (skips pretest):
@@ -29,7 +31,7 @@ Run tests and watch for changes during development:
 npx vitest --reporter=verbose
 ```
 
-> `npm run test` triggers `pretest` (clean → lint → license check → build) before vitest runs.
+> `npm run test` triggers `pretest` (clean → lint → format-check → license check → build) before vitest runs.
 > To iterate quickly during development, use `npx vitest run` directly to skip those steps.
 
 ---
@@ -108,6 +110,8 @@ out/                              # compiled output (gitignored, npm-published)
 1. Parse options
    ├── excludedAreas                → [] by default
    ├── throwErrorOnInvalidInputData → true by default
+   ├── extendedAreaColor            → green(0,255,0) by default
+   ├── excludedAreaColor            → blue(0,0,255) by default
    └── shouldCreateDiffFile        → (opts.diffFilePath !== undefined)
 
 2. getPngData(png1, throwErrorOnInvalidInputData)  →  PngData { isValid, png }
@@ -117,16 +121,16 @@ out/                              # compiled output (gitignored, npm-published)
    └── If ONE is invalid and flag=false → treat as zero-size PNG (0×0)
 
 3. If excludedAreas.length > 0
-   └── addColoredAreasToImage(png1, excludedAreas, blue(0,0,255))
-       addColoredAreasToImage(png2, excludedAreas, blue(0,0,255))
-       → identical blue pixels on both images → those regions always match
+   └── addColoredAreasToImage(png1, excludedAreas, excludedAreaColor)
+      addColoredAreasToImage(png2, excludedAreas, excludedAreaColor)
+      → identical painted pixels on both images → those regions always match
 
 4. If images differ in size
    ├── maxWidth  = Math.max(w1, w2)
    ├── maxHeight = Math.max(h1, h2)
    ├── extendImage(pngData.png, maxWidth, maxHeight)
    │   └── PNG.bitblt copies original into top-left of new canvas; rest is transparent
-   └── fillImageSizeDifference(extendedPng, originalWidth, originalHeight, green(0,255,0))
+      └── fillImageSizeDifference(extendedPng, originalWidth, originalHeight, extendedAreaColor)
        └── paints pixels where y > originalHeight OR x > originalWidth → always a diff
 
 5. pixelmatch(data1, data2, diffBuffer?, maxWidth, maxHeight, pixelmatchOptions?)
@@ -231,8 +235,8 @@ Current coverage is 100% across all source files.
 - **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense`. Enforced by `npm run test:license` (runs as part of `pretest`).
 - **`throwErrorOnInvalidInputData` defaults to `true`**. Set to `false` only when intentionally comparing against a missing/invalid file (treated as a zero-size PNG). An error is **always** thrown when **both** inputs are invalid, regardless of this flag.
 - **Diff file is never written when `pixelmatchResult === 0`**, even if `diffFilePath` is provided — avoids creating empty/misleading diff artifacts.
-- **Excluded areas are painted blue on both images** before comparison — they will always match. Coordinates are clamped to image bounds inside `addColoredAreasToImage`.
-- **Size difference region is painted green** on the extended canvas. This makes the padded area always count as a difference, which is intentional.
+- **Excluded areas are painted on both images** before comparison — they will always match. Default is blue `{ r: 0, g: 0, b: 255 }`, override via `excludedAreaColor`. Coordinates are clamped to image bounds inside `addColoredAreasToImage`.
+- **Size difference region is painted on the extended canvas**. Default is green `{ r: 0, g: 255, b: 0 }`, override via `extendedAreaColor`. The padded area intentionally always counts as a difference.
 
 ---
 
@@ -251,7 +255,7 @@ Each job: `npm ci` → `npm test` (which runs the full `pretest` + vitest pipeli
 
 ```
 npm ci
-npm test        ← full test suite including lint, license check, build
+npm test        ← full test suite including lint, format-check, license check, build
 npm run build   ← clean + fresh tsc after tests; ensures ./out is built from a clean state
 npm publish     ← publishes only ./out (per "files" in package.json)
 ```
