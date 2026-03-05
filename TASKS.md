@@ -64,37 +64,6 @@ Document the expected maximum input size in `ComparePngOptions` or add an option
 
 ## Performance
 
-### [P2] `fillImageSizeDifference` iterates the entire canvas instead of only the extended region
-
-**Problem**
-`fillImageSizeDifference` loops over every pixel in the extended canvas (`image.width × image.height`) and then applies a branch condition to skip pixels that are inside the original bounds. For large images this is `O(newWidth × newHeight)` even though only the border strip needs to be painted.
-
-**Impact**
-For a 640×862 original image extended to 1500×862, the full 1500×862 = 1,293,000 iterations are performed even though only ~(1500-640)×862 ≈ 741,320 pixels need to be touched. This is ~42 % wasteful and gets worse at larger scale.
-
-**Solution**
-Replace the all-pixel nested loop with two targeted loops — one for the horizontal extension and one for the vertical extension:
-
-```ts
-// Paint the right extension (x >= width, all y)
-for (let y = 0; y < image.height; y++) {
-    for (let x = width; x < image.width; x++) {
-        drawPixelOnBuff(image.data, (image.width * y + x) << 2, color);
-    }
-}
-// Paint the bottom extension (y >= height, x < width)
-for (let y = height; y < image.height; y++) {
-    for (let x = 0; x < width; x++) {
-        drawPixelOnBuff(image.data, (image.width * y + x) << 2, color);
-    }
-}
-```
-
-**Files**
-- `src/fillImageSizeDifference.ts`
-
----
-
 ## Code Quality
 
 ### [P3] Magic colour literals hardcoded in `comparePng`
