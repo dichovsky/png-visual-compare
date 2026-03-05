@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `diffFilePath` is now resolved to an absolute path via `path.resolve` before use, preventing
   accidental relative-path writes.
-- Test timeout lowered from 90 s to 5 s in `vitest.config.mjs`.
+- Test timeout lowered from 90 s to 30 s in `vitest.config.mjs`.
 - GitHub Actions workflows now run with least-privilege `permissions: contents: read`.
 - Docker image switched from `node:22` to `node:22-slim`; container now runs as non-root `node`
   user; Dockerfile renamed from `dockerfile` to `Dockerfile`.

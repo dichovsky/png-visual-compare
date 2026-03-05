@@ -10,6 +10,12 @@ import { getPngData } from './getPngData';
 import type { Area, Color, ComparePngOptions } from './types';
 import { type PngData } from './types/png.data';
 
+/** Default colour applied to size-extended padding regions (green). */
+export const DEFAULT_EXTENDED_AREA_COLOR: Color = { r: 0, g: 255, b: 0 };
+
+/** Default colour applied to excluded areas before comparison (blue). */
+export const DEFAULT_EXCLUDED_AREA_COLOR: Color = { r: 0, g: 0, b: 255 };
+
 /**
  * Compares two PNG images pixel-by-pixel and returns the number of mismatched pixels.
  *
@@ -37,12 +43,6 @@ import { type PngData } from './types/png.data';
  * expect(mismatch).toBe(0);
  * ```
  */
-/** Default colour applied to size-extended padding regions (green). */
-export const DEFAULT_EXTENDED_AREA_COLOR: Color = { r: 0, g: 255, b: 0 };
-
-/** Default colour applied to excluded areas before comparison (blue). */
-export const DEFAULT_EXCLUDED_AREA_COLOR: Color = { r: 0, g: 0, b: 255 };
-
 export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): number {
     // Default values
     const excludedAreas: Area[] = opts?.excludedAreas ?? [];
