@@ -23,28 +23,6 @@ Resolve `diffFilePath` to an absolute path with `path.resolve` and document that
 
 ---
 
-### [P2] Add explicit `permissions` field to GitHub Actions workflows
-
-**Problem**
-Neither `test.yml` nor `publish.yml` declares a `permissions` block. Without explicit restrictions, jobs inherit the repository default token permissions which (unless the repo admin has changed the default) includes write access to several scopes (contents, packages, etc.).
-
-**Impact**
-The principle of least privilege is violated. A compromised third-party action or a supply-chain attack could use the elevated token to push code, modify releases, or publish packages.
-
-**Solution**
-Add `permissions: read-all` at the workflow level and grant only the specific write permissions each job actually needs (e.g., `contents: read` for test workflows). For the publish workflow, add `id-token: write` only for the publish step:
-
-```yaml
-permissions:
-  contents: read
-```
-
-**Files**
-- `.github/workflows/test.yml`
-- `.github/workflows/publish.yml`
-
----
-
 ### [P3] Avoid passing unbounded `Buffer` input directly to `PNG.sync.read`
 
 **Problem**
