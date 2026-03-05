@@ -66,6 +66,20 @@ for (const testData of testDataArray) {
     });
 }
 
+test('should NOT create diff file when images are identical', () => {
+    const actual = resolve('./test-data/actual/pnggrad16rgb.png');
+    const expected = resolve('./test-data/expected/pnggrad16rgb.png');
+    const diffFilePath = resolve('./test-results/no-diff-when-match/diff.png');
+
+    if (existsSync(diffFilePath)) {
+        unlinkSync(diffFilePath);
+    }
+
+    const result = comparePng(actual, expected, { diffFilePath });
+    expect(result).toBe(0);
+    expect(existsSync(diffFilePath)).toBe(false);
+});
+
 test('should compare different PNG files without creating diff file (mismatch)', () => {
     const actual = resolve('./test-data/actual/ILTQq.png');
     const expected = resolve('./test-data/expected/youtube-play-button.png');
