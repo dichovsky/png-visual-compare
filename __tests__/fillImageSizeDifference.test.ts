@@ -16,47 +16,27 @@ function getPixel(image: PNG, x: number, y: number): { r: number; g: number; b: 
     return { r: image.data[pos], g: image.data[pos + 1], b: image.data[pos + 2], a: image.data[pos + 3] };
 }
 
-test('paints pixel at exactly x === originalWidth (right boundary)', () => {
-    const origWidth = 5;
-    const origHeight = 5;
-    const image = makeExtendedImage(10, 10);
+const boundaryTestCases: { name: string; x: number; y: number }[] = [
+    { name: 'paints pixel at exactly x === originalWidth (right boundary)', x: 5, y: 0 },
+    { name: 'paints pixel at exactly y === originalHeight (bottom boundary)', x: 0, y: 5 },
+    { name: 'paints corner pixel at (originalWidth, originalHeight)', x: 5, y: 5 },
+];
 
-    fillImageSizeDifference(image, origWidth, origHeight, color);
+for (const { name, x, y } of boundaryTestCases) {
+    test(name, () => {
+        const origWidth = 5;
+        const origHeight = 5;
+        const image = makeExtendedImage(10, 10);
 
-    const pixel = getPixel(image, origWidth, 0);
-    expect(pixel.r).toBe(color.r);
-    expect(pixel.g).toBe(color.g);
-    expect(pixel.b).toBe(color.b);
-    expect(pixel.a).toBe(255);
-});
+        fillImageSizeDifference(image, origWidth, origHeight, color);
 
-test('paints pixel at exactly y === originalHeight (bottom boundary)', () => {
-    const origWidth = 5;
-    const origHeight = 5;
-    const image = makeExtendedImage(10, 10);
-
-    fillImageSizeDifference(image, origWidth, origHeight, color);
-
-    const pixel = getPixel(image, 0, origHeight);
-    expect(pixel.r).toBe(color.r);
-    expect(pixel.g).toBe(color.g);
-    expect(pixel.b).toBe(color.b);
-    expect(pixel.a).toBe(255);
-});
-
-test('paints corner pixel at (originalWidth, originalHeight)', () => {
-    const origWidth = 5;
-    const origHeight = 5;
-    const image = makeExtendedImage(10, 10);
-
-    fillImageSizeDifference(image, origWidth, origHeight, color);
-
-    const pixel = getPixel(image, origWidth, origHeight);
-    expect(pixel.r).toBe(color.r);
-    expect(pixel.g).toBe(color.g);
-    expect(pixel.b).toBe(color.b);
-    expect(pixel.a).toBe(255);
-});
+        const pixel = getPixel(image, x, y);
+        expect(pixel.r).toBe(color.r);
+        expect(pixel.g).toBe(color.g);
+        expect(pixel.b).toBe(color.b);
+        expect(pixel.a).toBe(255);
+    });
+}
 
 test('does NOT paint pixels inside original bounds', () => {
     const origWidth = 5;
