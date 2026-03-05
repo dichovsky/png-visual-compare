@@ -20,11 +20,13 @@ export const DEFAULT_EXCLUDED_AREA_COLOR: Color = { r: 0, g: 0, b: 255 };
  * Compares two PNG images pixel-by-pixel and returns the number of mismatched pixels.
  *
  * Both inputs can be file paths or raw `Buffer` instances. Images of different sizes are handled
- * by expanding the smaller one to match the larger canvas — the padded region is painted green
- * `(0, 255, 0)` so it always shows as a difference.
+ * by expanding the smaller one to match the larger canvas — the padded region is painted with
+ * `opts.extendedAreaColor` (defaults to `DEFAULT_EXTENDED_AREA_COLOR`: green `(0, 255, 0)`) so it
+ * always shows as a difference.
  *
- * Rectangular areas listed in `opts.excludedAreas` are painted blue `(0, 0, 255)` on both images
- * before comparison, making them always match.
+ * Rectangular areas listed in `opts.excludedAreas` are painted with `opts.excludedAreaColor`
+ * (defaults to `DEFAULT_EXCLUDED_AREA_COLOR`: blue `(0, 0, 255)`) on both images before
+ * comparison, making them always match.
  *
  * A diff PNG is written to `opts.diffFilePath` only when there are mismatched pixels (`result > 0`)
  * and `diffFilePath` is provided. The target directory is created automatically.
