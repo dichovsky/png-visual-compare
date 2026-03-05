@@ -37,12 +37,18 @@ import { type PngData } from './types/png.data';
  * expect(mismatch).toBe(0);
  * ```
  */
+/** Default colour applied to size-extended padding regions (green). */
+export const DEFAULT_EXTENDED_AREA_COLOR: Color = { r: 0, g: 255, b: 0 };
+
+/** Default colour applied to excluded areas before comparison (blue). */
+export const DEFAULT_EXCLUDED_AREA_COLOR: Color = { r: 0, g: 0, b: 255 };
+
 export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): number {
     // Default values
     const excludedAreas: Area[] = opts?.excludedAreas ?? [];
     const throwErrorOnInvalidInputData: boolean = opts?.throwErrorOnInvalidInputData ?? true;
-    const extendedAreaColor: Color = { r: 0, g: 255, b: 0 };
-    const excludedAreaColor: Color = { r: 0, g: 0, b: 255 };
+    const extendedAreaColor: Color = opts?.extendedAreaColor ?? DEFAULT_EXTENDED_AREA_COLOR;
+    const excludedAreaColor: Color = opts?.excludedAreaColor ?? DEFAULT_EXCLUDED_AREA_COLOR;
     const shouldCreateDiffFile: boolean = opts?.diffFilePath !== undefined;
 
     // Get PNG data

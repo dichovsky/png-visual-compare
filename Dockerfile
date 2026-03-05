@@ -1,4 +1,4 @@
-FROM node:22-slim
+FROM node:22-slim AS test
 
 WORKDIR /usr/pkg/
 COPY --chown=node:node . .
