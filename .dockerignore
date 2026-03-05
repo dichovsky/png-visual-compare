@@ -5,3 +5,13 @@ out
 .vscode
 .github
 .devcontainer
+dockerfile
+Dockerfile
+*.md
+LICENSE
+.prettierrc
+.prettierignore
+eslint.config.mjs
+vitest.config.mjs
+tsconfig.json
+__tests__

@@ -1,8 +1,10 @@
-FROM node:22
+FROM node:22-slim
 
 WORKDIR /usr/pkg/
-COPY . .
+COPY --chown=node:node . .
 
 RUN npm ci
+
+USER node
 
 CMD ["npm", "run", "test"]
