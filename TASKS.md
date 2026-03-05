@@ -7,33 +7,6 @@ testing, documentation, dependency hygiene, DevOps/CI, Docker & deployment, and 
 
 ## Security
 
-### [P2] Eliminate TOCTOU race condition in `getPngData`
-
-**Problem**
-`getPngData` calls `existsSync(pngSource)` and then `readFileSync(pngSource)` as two separate operations. Between the `existsSync` check and the `readFileSync` call the file could be deleted, replaced, or made unreadable — a classic time-of-check / time-of-use (TOCTOU) race condition.
-
-**Impact**
-In concurrent environments or on adversarial filesystems this can lead to unexpected crashes or, in the worst case, reading a file swapped in by an attacker. The code also makes two syscalls instead of one.
-
-**Solution**
-Remove the `existsSync` guard and wrap `readFileSync` in a `try/catch`. Re-throw as a meaningful error (or return `invalidPng`) based on `throwErrorOnInvalidInputData`:
-
-```ts
-try {
-    return { isValid: true, png: PNG.sync.read(readFileSync(pngSource)) };
-} catch {
-    if (throwErrorOnInvalidInputData) {
-        throw new Error(`PNG file ${pngSource} not found`);
-    }
-    return invalidPng;
-}
-```
-
-**Files**
-- `src/getPngData.ts`
-
----
-
 ### [P2] Validate and sanitise `diffFilePath` to prevent path traversal
 
 **Problem**
@@ -122,67 +95,7 @@ for (let y = height; y < image.height; y++) {
 
 ---
 
-### [P3] Remove redundant `existsSync` check before `mkdirSync` in `comparePng`
-
-**Problem**
-`comparePng` calls `existsSync(diffFolder)` before calling `mkdirSync(diffFolder, { recursive: true })`. `mkdirSync` with `{ recursive: true }` already silently succeeds when the directory exists — the `existsSync` guard is both unnecessary and a second TOCTOU exposure.
-
-**Impact**
-Extra filesystem syscall on every comparison that produces a diff. Introduces a minor race condition window (directory could be deleted between `existsSync` and `mkdirSync`).
-
-**Solution**
-Remove the `existsSync` check and call `mkdirSync` directly:
-
-```ts
-mkdirSync(diffFolder, { recursive: true });
-```
-
-**Files**
-- `src/comparePng.ts`
-
----
-
 ## Code Quality
-
-### [P2] Non-null assertions (`opts!`) in `comparePng` should use optional chaining
-
-**Problem**
-`comparePng.ts` uses `opts!.diffFilePath!` in two places. These non-null assertions suppress TypeScript's null-safety checks. If the `shouldCreateDiffFile` guard ever drifts from the actual condition, a runtime `TypeError` will occur.
-
-**Impact**
-Suppressing type-safety checks makes the code fragile and can mask future refactoring mistakes. Optional chaining is safer and communicates intent better.
-
-**Solution**
-Replace `opts!.diffFilePath!` with `opts?.diffFilePath` and handle `undefined` explicitly, or extract the value into a guaranteed-non-null local variable after the guard:
-
-```ts
-const diffFilePath = opts?.diffFilePath as string; // guarded by shouldCreateDiffFile
-```
-
-**Files**
-- `src/comparePng.ts`
-
----
-
-### [P3] Inconsistent Node.js built-in import style in `getPngData`
-
-**Problem**
-`src/getPngData.ts` imports `fs` built-ins using the bare `'fs'` specifier (`import { existsSync, readFileSync } from 'fs'`), while every other source file uses the `'node:'` prefix protocol (e.g., `import { Buffer } from 'node:buffer'`).
-
-**Impact**
-Inconsistency makes the codebase harder to read and violates the project's own style convention. The `node:` prefix is the modern Node.js way to explicitly distinguish built-in modules from npm packages.
-
-**Solution**
-Update the import to use the `node:` prefix:
-
-```ts
-import { existsSync, readFileSync } from 'node:fs';
-```
-
-**Files**
-- `src/getPngData.ts`
-
----
 
 ### [P3] Magic colour literals hardcoded in `comparePng`
 

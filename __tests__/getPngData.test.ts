@@ -17,7 +17,9 @@ describe('getPngData', () => {
     });
 
     it('should throw an error for an invalid PNG file path when throwErrorOnInvalidInputData is true', () => {
-        expect(() => getPngData(invalidPngPath, true)).toThrow(`PNG file ${invalidPngPath} not found`);
+        expect(() => getPngData(invalidPngPath, true)).toThrow(
+            new RegExp(`PNG file .+ could not be read: .+`),
+        );
     });
 
     it('should return invalid PngData for an invalid PNG file path when throwErrorOnInvalidInputData is false', () => {

@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'fs';
 import { Buffer } from 'node:buffer';
+import { readFileSync } from 'node:fs';
 import { PNG, type PNGWithMetadata } from 'pngjs';
 import type { PngData } from './types/png.data';
 
@@ -21,13 +21,15 @@ export function getPngData(pngSource: string | Buffer, throwErrorOnInvalidInputD
     const invalidPng: PngData = { isValid: false, png: new PNG({ width: 0, height: 0 }) as PNGWithMetadata };
 
     if (typeof pngSource === 'string') {
-        if (!existsSync(pngSource)) {
+        try {
+            return { isValid: true, png: PNG.sync.read(readFileSync(pngSource)) };
+        } catch (e) {
             if (throwErrorOnInvalidInputData) {
-                throw new Error(`PNG file ${pngSource} not found`);
+                const errorMessage = e instanceof Error && e.message ? `: ${e.message}` : '';
+                throw new Error(`PNG file ${pngSource} could not be read${errorMessage}`);
             }
             return invalidPng;
         }
-        return { isValid: true, png: PNG.sync.read(readFileSync(pngSource)) };
     }
 
     if (Buffer.isBuffer(pngSource)) {
