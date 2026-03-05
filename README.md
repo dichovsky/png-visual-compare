@@ -78,12 +78,14 @@ Compares two PNG images pixel-by-pixel and returns the number of mismatched pixe
 
 ### `ComparePngOptions`
 
-| Option                         | Type                | Default     | Description                                                                                                                                              |
-| ------------------------------ | ------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `excludedAreas`                | `Area[]`            | `[]`        | Rectangular regions to exclude from comparison                                                                                                           |
-| `diffFilePath`                 | `string`            | `undefined` | File path for the diff PNG. Only written when `result > 0`                                                                                               |
-| `throwErrorOnInvalidInputData` | `boolean`           | `true`      | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid |
-| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined` | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                  |
+| Option                         | Type                | Default                  | Description                                                                                                                                              |
+| ------------------------------ | ------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `excludedAreas`                | `Area[]`            | `[]`                     | Rectangular regions to exclude from comparison                                                                                                           |
+| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill colour used when painting `excludedAreas` onto both images before comparison. Defaults to solid blue when not provided                              |
+| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Fill colour used for the padded region when images differ in size. Defaults to solid green when not provided                                             |
+| `diffFilePath`                 | `string`            | `undefined`              | File path for the diff PNG. Only written when `result > 0`                                                                                               |
+| `throwErrorOnInvalidInputData` | `boolean`           | `true`                   | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid |
+| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                  |
 
 ---
 
