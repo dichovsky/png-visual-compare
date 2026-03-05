@@ -114,41 +114,6 @@ Either remove the dependency entirely, or add `"extends": "@tsconfig/recommended
 
 ## Testing
 
-### [P2] Missing test: diff file must NOT be created when images match
-
-**Problem**
-There is no test that verifies `comparePng` does not write a diff file when `pixelmatchResult === 0` but `diffFilePath` is provided. The code contains this guard (`if (pixelmatchResult > 0 && shouldCreateDiffFile)`), but it is not tested.
-
-**Impact**
-If the guard is accidentally removed or inverted in future, identical image comparisons would silently produce diff files, confusing consumers.
-
-**Solution**
-Add a test case to `comparePng.test.ts` (or `comparePng.diffs.test.ts`) that:
-1. Compares two identical images with `diffFilePath` set.
-2. Asserts `result === 0`.
-3. Asserts `existsSync(diffFilePath)` is `false`.
-
-**Files**
-- `__tests__/comparePng.test.ts`
-
----
-
-### [P2] Missing test for `addColoredAreasToImage` coordinate clamping
-
-**Problem**
-`addColoredAreasToImage` clamps area coordinates to the image bounds with `Math.max` / `Math.min`, but there are no tests that exercise this clamping logic with out-of-bounds coordinates.
-
-**Impact**
-A buffer overrun could occur if the clamping logic is accidentally removed. The guard goes untested.
-
-**Solution**
-Add tests to `__tests__/comparePng.test.ts` (or a dedicated `addColoredAreasToImage.test.ts`) that pass `Area` objects with negative coordinates, coordinates larger than the image dimensions, and verify the function neither throws nor corrupts the image buffer.
-
-**Files**
-- `__tests__/comparePng.test.ts` (or a new `__tests__/addColoredAreasToImage.test.ts`)
-
----
-
 ### [P3] Test timeout of 90 seconds in `vitest.config.mjs` is excessive
 
 **Problem**
