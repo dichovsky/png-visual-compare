@@ -6,7 +6,7 @@
 npm run build          # compile TypeScript → ./out (runs clean first via prebuild)
 npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
-npm run test           # full suite: clean → lint → format-check → license check → build → vitest --coverage
+npm run test           # full suite: clean → lint → format:check → license check → build → vitest --coverage
 npm run test:license   # check all production dependency licenses are in the approved list
 npm run test:docker    # clean → docker build → docker run (runs the full test suite in Docker)
 npm run format         # format files with Prettier
@@ -31,7 +31,7 @@ Run tests and watch for changes during development:
 npx vitest --reporter=verbose
 ```
 
-> `npm run test` triggers `pretest` (clean → lint → format-check → license check → build) before vitest runs.
+> `npm run test` triggers `pretest` (clean → lint → format:check → license check → build) before vitest runs.
 > To iterate quickly during development, use `npx vitest run` directly to skip those steps.
 
 ---
@@ -255,7 +255,7 @@ Each job: `npm ci` → `npm test` (which runs the full `pretest` + vitest pipeli
 
 ```
 npm ci
-npm test        ← full test suite including lint, format-check, license check, build
+npm test        ← full test suite including lint, format:check, license check, build
 npm run build   ← clean + fresh tsc after tests; ensures ./out is built from a clean state
 npm publish     ← publishes only ./out (per "files" in package.json)
 ```

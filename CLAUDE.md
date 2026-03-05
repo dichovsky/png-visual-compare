@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run build          # compile TypeScript → ./out (runs clean first via prebuild)
 npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
-npm run test           # full suite: clean → lint → format-check → license check → build → vitest --coverage
+npm run test           # full suite: clean → lint → format:check → license check → build → vitest --coverage
 npm run test:license   # check all production dependency licenses are in the approved list
 npm run format         # format files with Prettier
 npm run format:check   # validate formatting with Prettier
@@ -38,7 +38,7 @@ Update snapshots:
 npx vitest run --update-snapshots
 ```
 
-> Use `npx vitest run` directly to skip clean/lint/format-check/build when iterating quickly.
+> Use `npx vitest run` directly to skip clean/lint/format:check/build when iterating quickly.
 
 ## Architecture
 
