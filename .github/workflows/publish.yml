@@ -1,21 +1,24 @@
 name: Node.js Package
 on:
-  release:
-    types: [created]
+    release:
+        types: [created]
 permissions:
-  contents: read
+    contents: read
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22.x'
-          registry-url: 'https://registry.npmjs.org'
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '22.x'
+                  registry-url: 'https://registry.npmjs.org'
+            - run: npm ci
+            - run: npm test
+            # Second build is intentional: npm test (via pretest) runs clean→build but also
+            # writes ./coverage and ./test-results. This build runs prebuild (clean→tsc) to
+            # delete those directories and produce a fresh ./out before publishing.
+            - run: npm run build
+            - run: npm publish
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

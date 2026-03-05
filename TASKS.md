@@ -7,22 +7,6 @@ testing, documentation, dependency hygiene, DevOps/CI, Docker & deployment, and 
 
 ## Security
 
-### [P2] Validate and sanitise `diffFilePath` to prevent path traversal
-
-**Problem**
-`opts.diffFilePath` is passed directly to `mkdirSync` and `writeFileSync` without any validation. A caller can supply a path like `../../../../etc/cron.d/malicious` to write outside the intended output directory.
-
-**Impact**
-Depending on the process's file-system permissions this could allow writing arbitrary files to the host, enabling privilege escalation or data corruption.
-
-**Solution**
-Resolve `diffFilePath` to an absolute path with `path.resolve` and document that callers are expected to supply a trusted path. Optionally add an option to restrict diff output to a configurable base directory and throw if the resolved path escapes it.
-
-**Files**
-- `src/comparePng.ts`
-
----
-
 ### [P3] Avoid passing unbounded `Buffer` input directly to `PNG.sync.read`
 
 **Problem**
@@ -39,8 +23,6 @@ Document the expected maximum input size in `ComparePngOptions` or add an option
 - `src/types/compare.options.ts`
 
 ---
-
-## Performance
 
 ## Code Quality
 
@@ -79,199 +61,6 @@ Separate the filesystem check and read into a helper (e.g., `readPngFromFile`) a
 
 ---
 
-### [P3] `@tsconfig/recommended` devDependency is not used
-
-**Problem**
-`@tsconfig/recommended` is listed in `devDependencies` but `tsconfig.json` does not extend it.
-
-**Impact**
-Dead dependencies increase `node_modules` size, add a potential attack surface from transitive dependencies, and mislead developers into thinking the recommended tsconfig is applied when it is not.
-
-**Solution**
-Either remove the dependency entirely, or add `"extends": "@tsconfig/recommended/tsconfig.json"` to `tsconfig.json` and verify the compilation still succeeds. The current `tsconfig.json` already enables `strict`, so removal is the simpler option.
-
-**Files**
-- `package.json`
-- `tsconfig.json`
-
----
-
-## Testing
-
-### [P3] Test timeout of 90 seconds in `vitest.config.mjs` is excessive
-
-**Problem**
-`vitest.config.mjs` sets `testTimeout: 90000` (90 seconds per test). The entire test suite currently completes in well under 10 seconds. An individual test should not take 90 seconds unless it performs real I/O over a network.
-
-**Impact**
-Slow or hanging tests will not be detected for up to 90 seconds per test, masking performance regressions and making developers wait unnecessarily for a hung test to time out.
-
-**Solution**
-Lower the timeout to a more appropriate value, e.g., `5000` ms (5 seconds). If specific tests need longer, override `timeout` on those individual tests with `test('...', { timeout: 30000 }, async () => { ... })`.
-
-**Files**
-- `vitest.config.mjs`
-
----
-
-## Documentation
-
-### [P3] No `CONTRIBUTING.md` file
-
-**Problem**
-The repository has no contribution guide. New contributors cannot find information on how to set up the development environment, run tests, or understand the PR and review process.
-
-**Impact**
-Higher barrier to contribution; inconsistent PR quality; maintainer fatigue from explaining the same process repeatedly.
-
-**Solution**
-Create `CONTRIBUTING.md` covering: development setup, how to run tests (`npx vitest run`), linting (`npm run lint`), snapshot updates (`npx vitest run --update-snapshots`), PR requirements, and coding conventions.
-
-**Files**
-- `CONTRIBUTING.md` *(new)*
-
----
-
-### [P3] No `CHANGELOG.md` or release notes format
-
-**Problem**
-The repository has no changelog. Users upgrading between versions cannot determine what changed, what was fixed, or what is breaking.
-
-**Impact**
-Increased support burden; users are reluctant to upgrade; semantic versioning promise is hard to verify.
-
-**Solution**
-Create a `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/) format and document it in the README. Consider using a tool like `conventional-changelog` to automate generation on release.
-
-**Files**
-- `CHANGELOG.md` *(new)*
-
----
-
-## Dependencies
-
-### [P2] Set up Dependabot for automated dependency updates
-
-**Problem**
-There is no `.github/dependabot.yml` configuration. Dependencies are only updated manually. Outdated dependencies (especially `pixelmatch` and `pngjs`) may contain security vulnerabilities that are never surfaced.
-
-**Impact**
-Security vulnerabilities in transitive dependencies go undetected. Manual update processes are slow and inconsistently applied.
-
-**Solution**
-Create `.github/dependabot.yml` with weekly update schedules for both `npm` packages and `github-actions`:
-
-```yaml
-version: 2
-updates:
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-```
-
-**Files**
-- `.github/dependabot.yml` *(new)*
-
----
-
-### [P3] Remove unused `ts-node` devDependency
-
-**Problem**
-`ts-node` is listed in `devDependencies` but is not referenced in any script, configuration file, or test in the repository. The project uses `vitest` with native TypeScript support.
-
-**Impact**
-Dead dependencies increase `node_modules` size, add unnecessary transitive dependencies (and their potential vulnerabilities), and mislead developers about the project's toolchain.
-
-**Solution**
-Run `npm uninstall ts-node` and verify the test suite still passes.
-
-**Files**
-- `package.json`
-- `package-lock.json`
-
----
-
-### [P3] Remove unused `@tsconfig/recommended` devDependency
-
-**Problem**
-`@tsconfig/recommended` appears in `devDependencies` but `tsconfig.json` does not extend it (see Architecture tasks).
-
-**Impact**
-Same impact as the `ts-node` issue — dead dependency adding unnecessary weight and potential vulnerability surface.
-
-**Solution**
-Run `npm uninstall @tsconfig/recommended` and verify the build still succeeds.
-
-**Files**
-- `package.json`
-- `package-lock.json`
-
----
-
-## DevOps / CI
-
-### [P2] CI workflow does not run Prettier format check
-
-**Problem**
-`test.yml` runs `npm test` which includes lint (ESLint) but has no step to verify code formatting with Prettier. Formatting violations go undetected in CI.
-
-**Impact**
-Unformatted code can be merged, leading to noisy diffs and formatting debates in code reviews.
-
-**Solution**
-Add a `npm run format:check` script that runs `prettier --check .` and include it in `pretest` or as a separate CI step:
-
-```json
-"format:check": "prettier --check .",
-"format": "prettier --write ."
-```
-
-Add `prettier` to `devDependencies` (it is currently only referenced in `.prettierrc` and `.prettierignore` but not installed as a project dependency).
-
-**Files**
-- `package.json`
-- `.github/workflows/test.yml`
-
----
-
-### [P3] `publish.yml` runs `npm run build` redundantly after `npm test`
-
-**Problem**
-`publish.yml` runs `npm test` (which internally runs `npm run clean && npm run build` via `pretest`) and then runs `npm run build` again immediately after. The second build deletes `./coverage` and `./test-results` produced by the test run.
-
-**Impact**
-The double-build is intentional (per the README) to ensure a clean `./out` for publishing. However, `npm test` running a full `prebuild → clean → tsc` cycle makes the total CI time unnecessarily long.
-
-**Solution**
-Document the rationale for the double build clearly in a comment in `publish.yml` so future maintainers do not remove it thinking it is a mistake. Alternatively, add a `build:clean` script that runs `npm run clean && tsc` without the full test overhead, and use that instead of the second `npm run build`.
-
-**Files**
-- `.github/workflows/publish.yml`
-
----
-
-### [P3] No branch protection or required status checks documented
-
-**Problem**
-There are no documented branch protection rules for `main`. CI runs exist but it is unclear if they are required before merging, or if force-pushes to `main` are allowed.
-
-**Impact**
-Accidental or malicious direct pushes to `main` can bypass CI entirely. Breaking changes can be merged without passing tests.
-
-**Solution**
-Enable branch protection on `main` in the GitHub repository settings: require PR reviews, require status checks to pass before merging, and disallow force pushes. Document this in `CONTRIBUTING.md`.
-
-**Files**
-- Repository settings (GitHub UI)
-- `CONTRIBUTING.md` *(new)*
-
----
-
 ## Docker & Deployment
 
 ### [P2] No multi-stage Docker build
@@ -297,23 +86,7 @@ CMD ["npm", "run", "test"]
 For a publishable package image, add a second stage that installs only production dependencies and copies only `./out`.
 
 **Files**
-- `dockerfile` (rename to `Dockerfile`)
-
----
-
-### [P3] No `HEALTHCHECK` instruction in Dockerfile
-
-**Problem**
-The Dockerfile has no `HEALTHCHECK` instruction. When the container is used inside an orchestrator (Kubernetes, Docker Swarm, ECS), there is no built-in way to detect whether the container has failed or become unresponsive.
-
-**Impact**
-Unhealthy containers will not be automatically restarted or replaced by orchestrators. This reduces reliability in production deployments.
-
-**Solution**
-Since this image only runs tests and exits, a `HEALTHCHECK` is not meaningful for the current use case. Document this limitation. If a server use-case is ever added, add an appropriate `HEALTHCHECK`.
-
-**Files**
-- `dockerfile` (rename to `Dockerfile`)
+- `Dockerfile`
 
 ---
 
@@ -340,58 +113,34 @@ services:
 
 ---
 
-## Developer Experience
+## Documentation
 
-### [P2] No `format` or `format:check` npm scripts for Prettier
+### [P3] No `CONTRIBUTING.md` file
 
 **Problem**
-The repository has `.prettierrc` and `.prettierignore` configuration files but no npm scripts to run Prettier. Developers must know to run `npx prettier --write .` manually, and CI does not enforce formatting.
+The repository has no contribution guide. New contributors cannot find information on how to set up the development environment, run tests, or understand the PR and review process.
 
 **Impact**
-Formatting inconsistencies accumulate over time; PRs contain noisy formatting diffs; new contributors are not guided toward the project's style.
+Higher barrier to contribution; inconsistent PR quality; maintainer fatigue from explaining the same process repeatedly.
 
 **Solution**
-Add Prettier as an explicit dev dependency and add scripts:
-
-```json
-"format": "prettier --write .",
-"format:check": "prettier --check ."
-```
-
-Include `format:check` in the CI pipeline (see DevOps task).
+Create `CONTRIBUTING.md` covering: development setup, how to run tests (`npx vitest run`), linting (`npm run lint`), snapshot updates (`npx vitest run -u`), PR requirements, and coding conventions.
 
 **Files**
-- `package.json`
+- `CONTRIBUTING.md` *(new)*
 
 ---
 
-### [P3] No `lint:fix` npm script
+### [P3] No `CHANGELOG.md` or release notes format
 
 **Problem**
-The `lint` script runs ESLint in check-only mode. There is no `lint:fix` script. Developers must know to run `npx eslint . --fix` manually to auto-fix issues.
-
-**Solution**
-Add a convenience script:
-
-```json
-"lint:fix": "eslint . --fix"
-```
-
-**Files**
-- `package.json`
-
----
-
-### [P3] `vitest.config.mjs` uses inconsistent indentation (2 spaces vs 4 spaces elsewhere)
-
-**Problem**
-`vitest.config.mjs` uses 2-space indentation while `.prettierrc` specifies `"tabWidth": 4` and all other configuration files use 4-space indentation.
+The repository has no changelog. Users upgrading between versions cannot determine what changed, what was fixed, or what is breaking.
 
 **Impact**
-Minor cosmetic inconsistency; will produce a Prettier format error once `format:check` is added to CI.
+Increased support burden; users are reluctant to upgrade; semantic versioning promise is hard to verify.
 
 **Solution**
-Re-format `vitest.config.mjs` with 4-space indentation, or run `prettier --write vitest.config.mjs`.
+Create a `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/) format and document it in the README. Consider using a tool like `conventional-changelog` to automate generation on release.
 
 **Files**
-- `vitest.config.mjs`
+- `CHANGELOG.md` *(new)*

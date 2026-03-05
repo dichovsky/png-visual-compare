@@ -1,32 +1,32 @@
 name: Tests on push
 on:
-  push:
-    branches-ignore:
-      - 'release/*'
+    push:
+        branches-ignore:
+            - 'release/*'
 permissions:
-  contents: read
+    contents: read
 jobs:
-  ubuntu:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Test on Ubuntu Use Node.js 24.x
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24.x
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - run: npm test
-  windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Test on Windows Use Node.js 22.x
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22.x
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - run: npm test
+    ubuntu:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - name: Test on Ubuntu Use Node.js 24.x
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24.x
+                  cache: 'npm'
+            - name: Install dependencies
+              run: npm ci
+            - run: npm test
+    windows:
+        runs-on: windows-latest
+        steps:
+            - uses: actions/checkout@v6
+            - name: Test on Windows Use Node.js 22.x
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 22.x
+                  cache: 'npm'
+            - name: Install dependencies
+              run: npm ci
+            - run: npm test

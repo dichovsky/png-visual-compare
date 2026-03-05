@@ -8,9 +8,7 @@ test(`compare different PNG files, threshold is specified`, async () => {
     const expected: string = resolve('./test-data/expected/ILTQq copy.png');
 
     const diffFilePath: string = resolve(
-        `./test-results/diffs/compare.png.diffs.threshold/${parse(actual).base}_${
-            parse(expected).base
-        }/diff_threshold.png`,
+        `./test-results/diffs/compare.png.diffs.threshold/${parse(actual).base}_${parse(expected).base}/diff_threshold.png`,
     );
 
     expect(existsSync(diffFilePath)).toBe(false);

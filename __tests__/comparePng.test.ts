@@ -83,7 +83,7 @@ test('should NOT create diff file when images are identical', () => {
 test('should compare different PNG files without creating diff file (mismatch)', () => {
     const actual = resolve('./test-data/actual/ILTQq.png');
     const expected = resolve('./test-data/expected/youtube-play-button.png');
-    
+
     const result: number = comparePng(actual, expected);
     expect(result).toBe(434926);
 });
@@ -122,4 +122,3 @@ test('should create diff file when directory already exists', () => {
     expect(result).toBe(434926);
     expect(existsSync(diffFilePath)).toBe(true);
 });
-

@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { parse } from 'node:path';
+import { parse, resolve } from 'node:path';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import { addColoredAreasToImage } from './addColoredAreasToImage';
@@ -89,7 +89,7 @@ export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: 
 
     // Save diff image
     if (pixelmatchResult > 0 && shouldCreateDiffFile) {
-        const diffFilePath = opts?.diffFilePath as string;
+        const diffFilePath = resolve(opts?.diffFilePath as string);
         mkdirSync(parse(diffFilePath).dir, { recursive: true });
         writeFileSync(diffFilePath, PNG.sync.write(diff));
     }
