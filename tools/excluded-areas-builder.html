@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Excluded Areas Builder</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: monospace;
+                background: #1a1a1a;
+                color: #e0e0e0;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            /* Toolbar */
+            #toolbar {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 8px 16px;
+                background: #2a2a2a;
+                border-bottom: 1px solid #3a3a3a;
+                flex-shrink: 0;
+            }
+
+            #toolbar h1 {
+                font-size: 14px;
+                font-weight: bold;
+                color: #fff;
+                margin-right: 4px;
+            }
+
+            button {
+                background: #3a3a3a;
+                color: #e0e0e0;
+                border: 1px solid #555;
+                padding: 4px 12px;
+                cursor: pointer;
+                font-family: monospace;
+                font-size: 12px;
+                border-radius: 3px;
+            }
+            button:hover {
+                background: #4a4a4a;
+            }
+            button:disabled {
+                opacity: 0.4;
+                cursor: default;
+            }
+            button:disabled:hover {
+                background: #3a3a3a;
+            }
+
+            #zoom-label {
+                font-size: 12px;
+                color: #aaa;
+                min-width: 42px;
+                text-align: center;
+            }
+
+            /* Main layout */
+            #main {
+                display: flex;
+                flex: 1;
+                overflow: hidden;
+            }
+
+            /* Canvas area */
+            #canvas-container {
+                flex: 1;
+                overflow: auto;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #111;
+                padding: 16px;
+            }
+
+            #canvas-container.has-image {
+                align-items: flex-start;
+                justify-content: flex-start;
+            }
+
+            /* Drop zone */
+            #drop-zone {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                border: 2px dashed #555;
+                border-radius: 8px;
+                padding: 60px 80px;
+                color: #888;
+                font-size: 14px;
+                text-align: center;
+                cursor: pointer;
+                gap: 12px;
+                transition:
+                    border-color 0.15s,
+                    color 0.15s;
+                user-select: none;
+            }
+            #drop-zone:hover,
+            #drop-zone.drag-over {
+                border-color: #888;
+                color: #bbb;
+            }
+            #drop-zone .sub {
+                font-size: 12px;
+                color: #666;
+            }
+
+            /* Image wrapper */
+            #image-wrapper {
+                position: relative;
+                display: none;
+                cursor: crosshair;
+                flex-shrink: 0;
+            }
+            #image-wrapper.visible {
+                display: inline-block;
+            }
+
+            #preview-img {
+                display: block;
+                user-select: none;
+                -webkit-user-drag: none;
+            }
+
+            #svg-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+            /* Sidebar */
+            #sidebar {
+                width: 290px;
+                background: #2a2a2a;
+                border-left: 1px solid #3a3a3a;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                flex-shrink: 0;
+            }
+
+            #sidebar-header {
+                padding: 10px 14px;
+                border-bottom: 1px solid #3a3a3a;
+                font-size: 13px;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            #areas-list {
+                flex: 1;
+                overflow-y: auto;
+                padding: 8px;
+            }
+
+            .area-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 6px 8px;
+                margin-bottom: 4px;
+                border-radius: 3px;
+                border: 1px solid #3a3a3a;
+                background: #333;
+                font-size: 11px;
+                cursor: pointer;
+            }
+            .area-item:hover {
+                border-color: #666;
+            }
+            .area-item.selected {
+                border-color: #4d9fff;
+                background: #1a3a5a;
+            }
+
+            .area-coords {
+                color: #aaa;
+            }
+
+            .delete-btn {
+                background: none;
+                border: none;
+                color: #666;
+                cursor: pointer;
+                padding: 1px 5px;
+                font-size: 15px;
+                line-height: 1;
+                flex-shrink: 0;
+            }
+            .delete-btn:hover {
+                color: #ff6b6b;
+                background: none;
+            }
+
+            /* JSON panel */
+            #json-panel {
+                border-top: 1px solid #3a3a3a;
+                padding: 10px;
+                flex-shrink: 0;
+            }
+
+            #json-panel-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 8px;
+            }
+            #json-panel-header span {
+                font-size: 12px;
+                font-weight: bold;
+            }
+
+            #json-output {
+                background: #111;
+                border: 1px solid #333;
+                padding: 8px;
+                font-size: 11px;
+                color: #8ec07c;
+                max-height: 180px;
+                overflow-y: auto;
+                border-radius: 3px;
+                white-space: pre;
+            }
+
+            #copy-btn {
+                font-size: 11px;
+                padding: 3px 10px;
+            }
+            #copy-btn.copied {
+                background: #2a5a2a;
+                border-color: #4a8a4a;
+                color: #8ec07c;
+            }
+
+            /* Footer hint */
+            #hint {
+                font-size: 11px;
+                color: #555;
+                padding: 5px 16px;
+                border-top: 1px solid #2a2a2a;
+                flex-shrink: 0;
+                background: #1a1a1a;
+            }
+
+            #empty-hint {
+                color: #666;
+                font-size: 12px;
+                padding: 12px 8px;
+            }
+
+            #file-input {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="toolbar">
+            <h1>PNG Area Builder</h1>
+            <button id="upload-btn">Upload Image</button>
+            <input type="file" id="file-input" accept="image/*" />
+            <span style="flex: 1"></span>
+            <button id="zoom-fit-btn" disabled>Fit</button>
+            <button id="zoom-out-btn" disabled>−</button>
+            <span id="zoom-label">—</span>
+            <button id="zoom-in-btn" disabled>+</button>
+        </div>
+
+        <div id="main">
+            <div id="canvas-container">
+                <div id="drop-zone">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                        <rect x="2" y="2" width="20" height="20" rx="2" />
+                        <path d="M2 8h20M8 2v20" />
+                    </svg>
+                    <div>Drop a PNG here or click to upload</div>
+                    <div class="sub">Then drag rectangles on the image to mark exclusion areas</div>
+                </div>
+                <div id="image-wrapper">
+                    <img id="preview-img" alt="preview" draggable="false" />
+                    <svg id="svg-overlay" xmlns="http://www.w3.org/2000/svg"></svg>
+                </div>
+            </div>
+
+            <div id="sidebar">
+                <div id="sidebar-header">
+                    <span>Excluded Areas (<span id="area-count">0</span>)</span>
+                    <button id="clear-all-btn" style="font-size: 11px; padding: 3px 8px" disabled>Clear all</button>
+                </div>
+                <div id="areas-list">
+                    <div id="empty-hint">Draw rectangles on the image to create excluded areas.</div>
+                </div>
+                <div id="json-panel">
+                    <div id="json-panel-header">
+                        <span>Area[] JSON</span>
+                        <button id="copy-btn">Copy</button>
+                    </div>
+                    <div id="json-output">[]</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="hint">
+            Draw: click &amp; drag &nbsp;|&nbsp; Delete: select + Del or × button &nbsp;|&nbsp; Zoom: Ctrl+scroll or toolbar buttons
+        </div>
+
+        <script>
+            // ── State ───────────────────────────────────────────────────────────────
+            let naturalW = 0,
+                naturalH = 0;
+            let zoom = 1;
+            let areas = []; // { id, x1, y1, x2, y2 }  — coords in original pixels
+            let selectedId = null;
+            let nextId = 1;
+
+            // Drawing state
+            let isDrawing = false;
+            let drawStart = null; // { x, y } in original pixel space
+            let previewRect = null; // live SVG rect element
+
+            // ── Element refs ────────────────────────────────────────────────────────
+            const fileInput = document.getElementById('file-input');
+            const uploadBtn = document.getElementById('upload-btn');
+            const dropZone = document.getElementById('drop-zone');
+            const canvasContainer = document.getElementById('canvas-container');
+            const imageWrapper = document.getElementById('image-wrapper');
+            const previewImg = document.getElementById('preview-img');
+            const svgOverlay = document.getElementById('svg-overlay');
+            const zoomFitBtn = document.getElementById('zoom-fit-btn');
+            const zoomInBtn = document.getElementById('zoom-in-btn');
+            const zoomOutBtn = document.getElementById('zoom-out-btn');
+            const zoomLabel = document.getElementById('zoom-label');
+            const areasList = document.getElementById('areas-list');
+            const emptyHint = document.getElementById('empty-hint');
+            const areaCount = document.getElementById('area-count');
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            const jsonOutput = document.getElementById('json-output');
+            const copyBtn = document.getElementById('copy-btn');
+
+            // ── File loading ─────────────────────────────────────────────────────────
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => loadFile(e.target.files[0]));
+
+            canvasContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
+            canvasContainer.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+            canvasContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) loadFile(file);
+            });
+
+            function loadFile(file) {
+                if (!file) return;
+                const url = URL.createObjectURL(file);
+                previewImg.onload = () => {
+                    naturalW = previewImg.naturalWidth;
+                    naturalH = previewImg.naturalHeight;
+                    areas = [];
+                    selectedId = null;
+                    nextId = 1;
+                    dropZone.style.display = 'none';
+                    imageWrapper.classList.add('visible');
+                    canvasContainer.classList.add('has-image');
+                    zoomFitBtn.disabled = false;
+                    zoomInBtn.disabled = false;
+                    zoomOutBtn.disabled = false;
+                    applyFitZoom();
+                    renderAll();
+                };
+                previewImg.src = url;
+            }
+
+            // ── Zoom ─────────────────────────────────────────────────────────────────
+            function applyFitZoom() {
+                const cw = canvasContainer.clientWidth - 32;
+                const ch = canvasContainer.clientHeight - 32;
+                zoom = Math.min(cw / naturalW, ch / naturalH, 1);
+                applyZoom();
+            }
+
+            function applyZoom() {
+                const w = Math.round(naturalW * zoom);
+                const h = Math.round(naturalH * zoom);
+                previewImg.style.width = w + 'px';
+                previewImg.style.height = h + 'px';
+                imageWrapper.style.width = w + 'px';
+                imageWrapper.style.height = h + 'px';
+                // SVG viewBox matches original pixel space; CSS size handles the scaling
+                svgOverlay.setAttribute('viewBox', `0 0 ${naturalW} ${naturalH}`);
+                zoomLabel.textContent = Math.round(zoom * 100) + '%';
+                renderRects();
+            }
+
+            zoomFitBtn.addEventListener('click', applyFitZoom);
+            zoomInBtn.addEventListener('click', () => {
+                zoom = Math.min(zoom * 1.25, 8);
+                applyZoom();
+            });
+            zoomOutBtn.addEventListener('click', () => {
+                zoom = Math.max(zoom / 1.25, 0.05);
+                applyZoom();
+            });
+
+            canvasContainer.addEventListener(
+                'wheel',
+                (e) => {
+                    if (!naturalW) return;
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+                        zoom = Math.min(Math.max(zoom * factor, 0.05), 8);
+                        applyZoom();
+                    }
+                },
+                { passive: false },
+            );
+
+            // ── Coordinate helpers ───────────────────────────────────────────────────
+            // Convert a mouse ClientX/Y to original-pixel SVG coordinates.
+            // The SVG viewBox is 0 0 naturalW naturalH and the element is naturalW*zoom × naturalH*zoom,
+            // so scale = 1/zoom in both axes.
+            function svgCoords(e) {
+                const rect = svgOverlay.getBoundingClientRect();
+                return {
+                    x: Math.round((e.clientX - rect.left) / zoom),
+                    y: Math.round((e.clientY - rect.top) / zoom),
+                };
+            }
+
+            function clamp(val, min, max) {
+                return Math.max(min, Math.min(max, val));
+            }
+
+            // ── Drawing ──────────────────────────────────────────────────────────────
+            svgOverlay.addEventListener('mousedown', (e) => {
+                if (e.button !== 0 || !naturalW) return;
+                e.preventDefault();
+
+                // Click on an existing rect → select it, don't start drawing
+                if (e.target.dataset.areaId) {
+                    selectArea(parseInt(e.target.dataset.areaId));
+                    return;
+                }
+
+                const pos = svgCoords(e);
+                drawStart = { x: clamp(pos.x, 0, naturalW), y: clamp(pos.y, 0, naturalH) };
+                isDrawing = true;
+                selectedId = null;
+
+                // Create live preview rect
+                previewRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                previewRect.setAttribute('fill', 'rgba(255,100,0,0.15)');
+                previewRect.setAttribute('stroke', '#ff6400');
+                previewRect.setAttribute('stroke-width', String(1 / zoom));
+                previewRect.setAttribute('stroke-dasharray', `${4 / zoom} ${4 / zoom}`);
+                previewRect.setAttribute('pointer-events', 'none');
+                previewRect.setAttribute('x', drawStart.x);
+                previewRect.setAttribute('y', drawStart.y);
+                previewRect.setAttribute('width', '0');
+                previewRect.setAttribute('height', '0');
+                svgOverlay.appendChild(previewRect);
+
+                renderRects(); // deselect highlight
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                const pos = svgCoords(e);
+                const cx = clamp(pos.x, 0, naturalW);
+                const cy = clamp(pos.y, 0, naturalH);
+                previewRect.setAttribute('x', Math.min(drawStart.x, cx));
+                previewRect.setAttribute('y', Math.min(drawStart.y, cy));
+                previewRect.setAttribute('width', Math.abs(cx - drawStart.x));
+                previewRect.setAttribute('height', Math.abs(cy - drawStart.y));
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (!isDrawing) return;
+                isDrawing = false;
+
+                const pos = svgCoords(e);
+                const cx = clamp(pos.x, 0, naturalW);
+                const cy = clamp(pos.y, 0, naturalH);
+
+                if (previewRect) {
+                    previewRect.remove();
+                    previewRect = null;
+                }
+
+                const x1 = Math.min(drawStart.x, cx);
+                const y1 = Math.min(drawStart.y, cy);
+                const x2 = Math.max(drawStart.x, cx);
+                const y2 = Math.max(drawStart.y, cy);
+
+                // Only commit if the rect has meaningful size (> 2px each axis)
+                if (x2 - x1 >= 2 && y2 - y1 >= 2) {
+                    areas.push({ id: nextId++, x1, y1, x2, y2 });
+                }
+
+                renderAll();
+            });
+
+            // ── Selection & deletion ─────────────────────────────────────────────────
+            function selectArea(id) {
+                selectedId = selectedId === id ? null : id;
+                renderAll();
+            }
+
+            function deleteArea(id) {
+                areas = areas.filter((a) => a.id !== id);
+                if (selectedId === id) selectedId = null;
+                renderAll();
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (document.activeElement.tagName === 'INPUT') return;
+                if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId !== null) {
+                    deleteArea(selectedId);
+                }
+                if (e.key === 'Escape') {
+                    selectedId = null;
+                    renderAll();
+                }
+            });
+
+            clearAllBtn.addEventListener('click', () => {
+                areas = [];
+                selectedId = null;
+                renderAll();
+            });
+
+            // ── Rendering ────────────────────────────────────────────────────────────
+            function renderRects() {
+                svgOverlay.querySelectorAll('.area-rect').forEach((el) => el.remove());
+                const sw = Math.max(1 / zoom, 0.5); // stroke width in SVG user-units (original pixels)
+
+                areas.forEach((area, idx) => {
+                    const selected = selectedId === area.id;
+                    const color = selected ? '#4d9fff' : '#ff6400';
+
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('class', 'area-rect');
+                    rect.setAttribute('x', area.x1);
+                    rect.setAttribute('y', area.y1);
+                    rect.setAttribute('width', area.x2 - area.x1);
+                    rect.setAttribute('height', area.y2 - area.y1);
+                    rect.setAttribute('fill', selected ? 'rgba(77,159,255,0.25)' : 'rgba(255,100,0,0.15)');
+                    rect.setAttribute('stroke', color);
+                    rect.setAttribute('stroke-width', sw);
+                    rect.setAttribute('data-area-id', area.id);
+                    rect.style.cursor = 'pointer';
+                    svgOverlay.appendChild(rect);
+
+                    // Label — positioned in the top-left corner of the rect
+                    const fontSize = Math.max(10 / zoom, 8);
+                    const padding = fontSize * 0.3;
+                    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    label.setAttribute('class', 'area-rect');
+                    label.setAttribute('x', area.x1 + padding);
+                    label.setAttribute('y', area.y1 + fontSize + padding);
+                    label.setAttribute('font-size', fontSize);
+                    label.setAttribute('font-family', 'monospace');
+                    label.setAttribute('fill', color);
+                    label.setAttribute('pointer-events', 'none');
+                    label.setAttribute('data-area-id', area.id);
+                    label.textContent = `#${idx + 1}`;
+                    svgOverlay.appendChild(label);
+                });
+            }
+
+            function renderSidebar() {
+                areaCount.textContent = areas.length;
+                clearAllBtn.disabled = areas.length === 0;
+
+                areasList.innerHTML = '';
+                if (areas.length === 0) {
+                    areasList.appendChild(emptyHint);
+                } else {
+                    areas.forEach((area, idx) => {
+                        const item = document.createElement('div');
+                        item.className = 'area-item' + (selectedId === area.id ? ' selected' : '');
+
+                        const info = document.createElement('span');
+                        info.innerHTML =
+                            `<strong style="color:#ccc">#${idx + 1}</strong>` +
+                            ` <span class="area-coords">(${area.x1},${area.y1}) → (${area.x2},${area.y2})</span>`;
+
+                        const del = document.createElement('button');
+                        del.className = 'delete-btn';
+                        del.title = 'Delete';
+                        del.textContent = '×';
+                        del.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            deleteArea(area.id);
+                        });
+
+                        item.appendChild(info);
+                        item.appendChild(del);
+                        item.addEventListener('click', () => selectArea(area.id));
+                        areasList.appendChild(item);
+                    });
+                }
+
+                jsonOutput.textContent = JSON.stringify(
+                    areas.map(({ x1, y1, x2, y2 }) => ({ x1, y1, x2, y2 })),
+                    null,
+                    2,
+                );
+            }
+
+            function renderAll() {
+                renderRects();
+                renderSidebar();
+            }
+
+            // ── Copy JSON ────────────────────────────────────────────────────────────
+            copyBtn.addEventListener('click', () => {
+                const json = JSON.stringify(
+                    areas.map(({ x1, y1, x2, y2 }) => ({ x1, y1, x2, y2 })),
+                    null,
+                    2,
+                );
+                navigator.clipboard.writeText(json).then(() => {
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy';
+                        copyBtn.classList.remove('copied');
+                    }, 1500);
+                });
+            });
+        </script>
+    </body>
+</html>

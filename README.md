@@ -25,6 +25,7 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
+- [Excluded Areas Builder](#excluded-areas-builder)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -135,6 +136,60 @@ type Color = {
 | ----------------------------- | ------------------------ | ----------------------------------------------------- |
 | `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions |
 | `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                |
+
+---
+
+## Excluded Areas Builder
+
+Defining `excludedAreas` coordinates by hand can be tedious. The **Excluded Areas Builder** is a browser-based visual tool included in this repository that lets you draw exclusion rectangles directly on your image and copy the resulting `Area[]` JSON with one click.
+
+### Launch
+
+```sh
+npm run tool:excluded-areas-builder
+```
+
+This opens `tools/excluded-areas-builder.html` in your default browser. No server or build step is required — the file runs entirely in the browser.
+
+### How to use
+
+**1. Load your image**
+
+Either click **Upload Image** in the toolbar or drag and drop any PNG (or other image format) onto the page.
+
+**2. Zoom to a comfortable level**
+
+- Click **Fit** to scale the image to fit the viewport (default on load).
+- Click **+** / **−** to zoom in or out in 25% steps.
+- Hold `Ctrl` (or `Cmd` on macOS) and scroll to zoom continuously.
+
+**3. Draw exclusion rectangles**
+
+Click and drag on the image to draw a rectangle. Release the mouse to commit it. Each committed rectangle is shown with an orange border and a `#N` label in its top-left corner matching the numbered list in the sidebar.
+
+**4. Select and delete rectangles**
+
+- Click a rectangle on the image or its entry in the sidebar to select it (turns blue).
+- Press `Delete` or `Backspace` to remove the selected rectangle, or click the **×** button next to any entry in the sidebar.
+- Click **Clear all** to remove every rectangle at once.
+- Press `Escape` to deselect without deleting.
+
+**5. Copy the JSON**
+
+The **Area[] JSON** panel in the sidebar updates live as you draw. Click **Copy** to copy the JSON to your clipboard, then paste it directly into your `comparePng` call:
+
+```typescript
+import { comparePng } from 'png-visual-compare';
+
+const mismatchedPixels = comparePng(img1, img2, {
+    excludedAreas: [
+        { x1: 120, y1: 45, x2: 340, y2: 210 },
+        { x1: 500, y1: 300, x2: 650, y2: 400 },
+    ],
+});
+```
+
+All coordinates are in original image pixels regardless of the current zoom level.
 
 ---
 
