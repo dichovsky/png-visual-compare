@@ -657,10 +657,10 @@
                         // Show a brief failure state if copying to clipboard fails
                         console.error('Failed to copy JSON to clipboard:', err);
                         copyBtn.textContent = 'Failed!';
-                        copyBtn.classList.add('copied');
+                        copyBtn.classList.add('copy-failed');
                         setTimeout(() => {
                             copyBtn.textContent = 'Copy';
-                            copyBtn.classList.remove('copied');
+                            copyBtn.classList.remove('copy-failed');
                         }, 1500);
                     });
             });
