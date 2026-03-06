@@ -43,7 +43,7 @@
         "build": "tsc --pretty --project tsconfig.json",
         "clean": "rimraf ./out ./coverage ./test-results",
         "docker:build": "docker build --compress -t test-png-visual-compare .",
-        "docker:run": "docker run --rm -it test-png-visual-compare",
+        "docker:run": "docker run --rm test-png-visual-compare",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "lint": "eslint .",
@@ -52,6 +52,7 @@
         "test:unit": "vitest run --coverage",
         "test": "npm run test:unit && npm run test:e2e",
         "test:docker": "npm run clean && npm run docker:build && npm run docker:run",
+        "pretest:e2e": "npx playwright install chromium",
         "test:e2e": "playwright test",
         "test:license": "npx --yes license-checker --production --onlyAllow \"ISC; MIT; MIT OR X11; BSD; Apache-2.0; Unlicense\"",
         "tool:excluded-areas-builder": "node -e \"const {execSync}=require('child_process');const cmd=process.platform==='win32'?'start':process.platform==='darwin'?'open':'xdg-open';execSync(cmd+' tools/excluded-areas-builder.html')\""
