@@ -8,7 +8,7 @@ describe('getPngData', () => {
     const validPngPath = path.resolve('./test-data/actual/youtube-play-button.png');
     const invalidPngPath = path.resolve(__dirname, '../test-assets/invalid.png');
     const validPngBuffer = readFileSync(validPngPath);
-    const invalidPngBuffer = 'invalid data';
+    const invalidPngBuffer = Buffer.from('invalid data');
 
     it('should return valid PngData for a valid PNG file path', () => {
         const result = getPngData(validPngPath, true);
@@ -40,6 +40,10 @@ describe('getPngData', () => {
         expect(result.png).toBeInstanceOf(PNG);
         expect(result.png.width).toBe(0);
         expect(result.png.height).toBe(0);
+    });
+
+    it('should throw an error for an invalid PNG buffer when throwErrorOnInvalidInputData is true', () => {
+        expect(() => getPngData(invalidPngBuffer, true)).toThrow(/^PNG buffer could not be read: .+$/);
     });
 
     it('should throw an error for an unknown input type when throwErrorOnInvalidInputData is true', () => {

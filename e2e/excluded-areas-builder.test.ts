@@ -3,6 +3,7 @@ import path from 'path';
 
 const HTML_PATH = path.resolve(__dirname, '../tools/excluded-areas-builder.html');
 const TEST_IMAGE = path.resolve(__dirname, '../test-data/actual/youtube-play-button.png');
+const TEST_IMAGE_2 = path.resolve(__dirname, '../test-data/actual/pnggrad16rgb.png');
 
 async function openPage(page: import('@playwright/test').Page) {
     await page.goto(`file://${HTML_PATH}`);
@@ -20,6 +21,17 @@ async function drawRect(page: import('@playwright/test').Page, offsetX1: number,
     await page.mouse.down();
     await page.mouse.move(box.x + offsetX2, box.y + offsetY2);
     await page.mouse.up();
+}
+
+/** Dispatches a WheelEvent on #canvas-container with ctrlKey set. */
+async function ctrlScroll(page: import('@playwright/test').Page, deltaY: number) {
+    const box = await page.locator('#canvas-container').boundingBox();
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.evaluate((dy: number) => {
+        document
+            .getElementById('canvas-container')!
+            .dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: dy, bubbles: true, cancelable: true }));
+    }, deltaY);
 }
 
 // ── Initial state ──────────────────────────────────────────────────────────
@@ -322,4 +334,188 @@ test('copy button shows "Failed!" then reverts when clipboard write fails', asyn
     await page.locator('#copy-btn').click();
     await expect(page.locator('#copy-btn')).toHaveText('Failed!');
     await expect(page.locator('#copy-btn')).toHaveText('Copy', { timeout: 3000 });
+});
+
+// ── Upload entry points ────────────────────────────────────────────────────
+
+test('clicking Upload Image button opens file chooser and loads image', async ({ page }) => {
+    await openPage(page);
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await page.locator('#upload-btn').click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(TEST_IMAGE);
+    await page.locator('#image-wrapper').waitFor({ state: 'visible' });
+});
+
+test('clicking drop zone opens file chooser and loads image', async ({ page }) => {
+    await openPage(page);
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await page.locator('#drop-zone').click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles(TEST_IMAGE);
+    await page.locator('#image-wrapper').waitFor({ state: 'visible' });
+});
+
+// ── Drag and drop ──────────────────────────────────────────────────────────
+
+test('dragging a file over the canvas adds drag-over class to drop zone', async ({ page }) => {
+    await openPage(page);
+    await page.dispatchEvent('#canvas-container', 'dragover');
+    await expect(page.locator('#drop-zone')).toHaveClass(/drag-over/);
+});
+
+test('dragging a file away from the canvas removes drag-over class', async ({ page }) => {
+    await openPage(page);
+    await page.dispatchEvent('#canvas-container', 'dragover');
+    await page.dispatchEvent('#canvas-container', 'dragleave');
+    await expect(page.locator('#drop-zone')).not.toHaveClass(/drag-over/);
+});
+
+test('dropping a non-image file does not load an image', async ({ page }) => {
+    await openPage(page);
+    await page.evaluate(() => {
+        const file = new File(['text content'], 'test.txt', { type: 'text/plain' });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document
+            .getElementById('canvas-container')!
+            .dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+    });
+    await expect(page.locator('#image-wrapper')).toBeHidden();
+});
+
+// ── Image re-loading ───────────────────────────────────────────────────────
+
+test('loading a new image resets all existing areas', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    await drawRect(page, 10, 10, 80, 60);
+    await expect(page.locator('#area-count')).toHaveText('1');
+    // Load a different image so the change event fires
+    await page.locator('#file-input').setInputFiles(TEST_IMAGE_2);
+    await page.locator('#image-wrapper').waitFor({ state: 'visible' });
+    await expect(page.locator('#area-count')).toHaveText('0');
+    await expect(page.locator('#empty-hint')).toBeVisible();
+    await expect(page.locator('#json-output')).toHaveText('[]');
+});
+
+// ── SVG rect selection ─────────────────────────────────────────────────────
+
+test('clicking an SVG rect selects the area', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    await drawRect(page, 10, 10, 80, 60);
+    await page.locator('#svg-overlay rect.area-rect').first().click();
+    await expect(page.locator('.area-item').first()).toHaveClass(/selected/);
+});
+
+test('clicking a selected SVG rect deselects the area', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    await drawRect(page, 10, 10, 80, 60);
+    await page.locator('#svg-overlay rect.area-rect').first().click(); // select
+    await page.locator('#svg-overlay rect.area-rect').first().click(); // deselect
+    await expect(page.locator('.area-item').first()).not.toHaveClass(/selected/);
+});
+
+// ── Drawing direction ──────────────────────────────────────────────────────
+
+test('drawing a rectangle from right-to-left produces correct x1 < x2 coordinates', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    await drawRect(page, 80, 60, 10, 10); // reversed
+    await expect(page.locator('#area-count')).toHaveText('1');
+    const json = await page.locator('#json-output').textContent();
+    const [area] = JSON.parse(json!);
+    expect(area.x1).toBeLessThan(area.x2);
+    expect(area.y1).toBeLessThan(area.y2);
+});
+
+// ── Drawing guards ─────────────────────────────────────────────────────────
+
+test('mousedown on SVG before image is loaded does not start drawing', async ({ page }) => {
+    await openPage(page);
+    await page.evaluate(() => {
+        document.getElementById('svg-overlay')!.dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true }));
+    });
+    await expect(page.locator('#area-count')).toHaveText('0');
+});
+
+test('right-clicking the SVG does not start drawing', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    const box = await page.locator('#svg-overlay').boundingBox();
+    await page.mouse.move(box!.x + 10, box!.y + 10);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(box!.x + 80, box!.y + 60);
+    await page.mouse.up({ button: 'right' });
+    await expect(page.locator('#area-count')).toHaveText('0');
+});
+
+// ── Keyboard guards ────────────────────────────────────────────────────────
+
+test('pressing Delete with no area selected does not change state', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    await drawRect(page, 10, 10, 80, 60);
+    // Do not select any area — selectedId is null
+    await page.keyboard.press('Delete');
+    await expect(page.locator('#area-count')).toHaveText('1');
+});
+
+test('pressing Delete while file input is focused does not delete a selected area', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    await drawRect(page, 10, 10, 80, 60);
+    await page.locator('.area-item').first().click(); // select
+    // #file-input is display:none and cannot receive focus; simulate by creating
+    // a temporary visible text input, focusing it, then dispatching the key event.
+    await page.evaluate(() => {
+        const tmp = Object.assign(document.createElement('input'), { type: 'text', id: '__tmp__' });
+        document.body.appendChild(tmp);
+        tmp.focus();
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+        tmp.remove();
+    });
+    await expect(page.locator('#area-count')).toHaveText('1');
+});
+
+// ── Ctrl+scroll zoom ───────────────────────────────────────────────────────
+
+test('Ctrl+scroll up zooms in', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    const before = await page.locator('#zoom-label').textContent();
+    await ctrlScroll(page, -120);
+    const after = await page.locator('#zoom-label').textContent();
+    const pct = (s: string) => parseInt(s!.replace('%', ''), 10);
+    expect(pct(after!)).toBeGreaterThan(pct(before!));
+});
+
+test('Ctrl+scroll down zooms out', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    await page.locator('#zoom-in-btn').click(); // zoom in first so there is room to zoom out
+    const before = await page.locator('#zoom-label').textContent();
+    await ctrlScroll(page, 120);
+    const after = await page.locator('#zoom-label').textContent();
+    const pct = (s: string) => parseInt(s!.replace('%', ''), 10);
+    expect(pct(after!)).toBeLessThan(pct(before!));
+});
+
+test('scrolling without Ctrl does not change zoom', async ({ page }) => {
+    await openPage(page);
+    await loadImage(page);
+    const before = await page.locator('#zoom-label').textContent();
+    const box = await page.locator('#canvas-container').boundingBox();
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.mouse.wheel(0, -120);
+    const after = await page.locator('#zoom-label').textContent();
+    expect(after).toBe(before);
+});
+
+test('Ctrl+scroll before image is loaded does not error', async ({ page }) => {
+    await openPage(page);
+    await ctrlScroll(page, -120);
+    await expect(page.locator('#zoom-label')).toHaveText('—');
 });
