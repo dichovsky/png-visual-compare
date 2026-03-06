@@ -289,3 +289,37 @@ test('fit button restores the zoom to the fit percentage', async ({ page }) => {
     await page.locator('#zoom-fit-btn').click();
     await expect(page.locator('#zoom-label')).toHaveText(fit!);
 });
+
+// ── Copy JSON ──────────────────────────────────────────────────────────────
+
+test('copy button shows "Copied!" then reverts on successful clipboard write', async ({ page }) => {
+    await page.addInitScript(() => {
+        Object.defineProperty(window.navigator, 'clipboard', {
+            value: { writeText: () => Promise.resolve() },
+            configurable: true,
+            writable: true,
+        });
+    });
+    await openPage(page);
+    await loadImage(page);
+    await drawRect(page, 10, 10, 80, 60);
+    await page.locator('#copy-btn').click();
+    await expect(page.locator('#copy-btn')).toHaveText('Copied!');
+    await expect(page.locator('#copy-btn')).toHaveText('Copy', { timeout: 3000 });
+});
+
+test('copy button shows "Failed!" then reverts when clipboard write fails', async ({ page }) => {
+    await page.addInitScript(() => {
+        Object.defineProperty(window.navigator, 'clipboard', {
+            value: { writeText: () => Promise.reject(new Error('clipboard mock')) },
+            configurable: true,
+            writable: true,
+        });
+    });
+    await openPage(page);
+    await loadImage(page);
+    await drawRect(page, 10, 10, 80, 60);
+    await page.locator('#copy-btn').click();
+    await expect(page.locator('#copy-btn')).toHaveText('Failed!');
+    await expect(page.locator('#copy-btn')).toHaveText('Copy', { timeout: 3000 });
+});
