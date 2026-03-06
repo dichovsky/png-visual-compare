@@ -388,6 +388,7 @@
                     zoomOutBtn.disabled = false;
                     applyFitZoom();
                     renderAll();
+                    URL.revokeObjectURL(url);
                 };
                 previewImg.src = url;
             }
@@ -642,14 +643,26 @@
                     null,
                     2,
                 );
-                navigator.clipboard.writeText(json).then(() => {
-                    copyBtn.textContent = 'Copied!';
-                    copyBtn.classList.add('copied');
-                    setTimeout(() => {
-                        copyBtn.textContent = 'Copy';
-                        copyBtn.classList.remove('copied');
-                    }, 1500);
-                });
+                navigator.clipboard
+                    .writeText(json)
+                    .then(() => {
+                        copyBtn.textContent = 'Copied!';
+                        copyBtn.classList.add('copied');
+                        setTimeout(() => {
+                            copyBtn.textContent = 'Copy';
+                            copyBtn.classList.remove('copied');
+                        }, 1500);
+                    })
+                    .catch((err) => {
+                        // Show a brief failure state if copying to clipboard fails
+                        console.error('Failed to copy JSON to clipboard:', err);
+                        copyBtn.textContent = 'Failed!';
+                        copyBtn.classList.add('copied');
+                        setTimeout(() => {
+                            copyBtn.textContent = 'Copy';
+                            copyBtn.classList.remove('copied');
+                        }, 1500);
+                    });
             });
         </script>
     </body>

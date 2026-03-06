@@ -20,7 +20,7 @@ jobs:
             - name: Install Playwright browsers
               run: npx playwright install --with-deps chromium
             - name: Run tests
-              run: npm run test
+              run: npm run test:all
     windows:
         runs-on: windows-latest
         steps:
@@ -35,4 +35,4 @@ jobs:
             - name: Install Playwright browsers
               run: npx playwright install --with-deps chromium
             - name: Run tests
-              run: npm run test
+              run: npm run test:all
