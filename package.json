@@ -26,15 +26,15 @@
     },
     "license": "MIT",
     "author": "Igor Magdich <magdich.igor@gmail.com>",
-    "main": "./out/index.js",
-    "types": "./out/index.d.ts",
+    "sideEffects": false,
     "exports": {
         ".": {
             "types": "./out/index.d.ts",
             "default": "./out/index.js"
         }
     },
-    "sideEffects": false,
+    "main": "./out/index.js",
+    "types": "./out/index.d.ts",
     "files": [
         "./out"
     ],
@@ -43,21 +43,27 @@
         "build": "tsc --pretty --project tsconfig.json",
         "clean": "rimraf ./out ./coverage ./test-results",
         "docker:build": "docker build --compress -t test-png-visual-compare .",
-        "docker:run": "docker run --rm -it test-png-visual-compare",
+        "docker:run": "docker run --rm test-png-visual-compare",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
-        "pretest": "npm run clean && npm run lint && npm run format:check && npm run test:license && npm run build",
-        "test": "vitest run --coverage",
+        "pretest:unit": "npm run clean && npm run lint && npm run format:check && npm run test:license && npm run build",
+        "test:unit": "vitest run --coverage",
+        "test": "npm run test:unit",
+        "test:all": "npm run test:unit && npm run test:e2e",
         "test:docker": "npm run clean && npm run docker:build && npm run docker:run",
-        "test:license": "npx --yes license-checker --production --onlyAllow \"ISC; MIT; MIT OR X11; BSD; Apache-2.0; Unlicense\""
+        "pretest:e2e": "npx playwright install chromium",
+        "test:e2e": "playwright test",
+        "test:license": "npx --yes license-checker --production --onlyAllow \"ISC; MIT; MIT OR X11; BSD; Apache-2.0; Unlicense\"",
+        "tool:excluded-areas-builder": "node -e \"const {execSync}=require('child_process');const cmd=process.platform==='win32'?'start':process.platform==='darwin'?'open':'xdg-open';execSync(cmd+' tools/excluded-areas-builder.html')\""
     },
     "dependencies": {
         "pixelmatch": "~7.1.0",
         "pngjs": "~7.0.0"
     },
     "devDependencies": {
+        "@playwright/test": "~1.58.2",
         "@types/node": "~25.3.3",
         "@types/pngjs": "~6.0.5",
         "@vitest/coverage-v8": "~4.0.18",

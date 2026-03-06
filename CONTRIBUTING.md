@@ -12,16 +12,19 @@ Node.js 20 or higher is required.
 
 ## Common commands
 
-| Command                | Description                                                |
-| ---------------------- | ---------------------------------------------------------- |
-| `npm test`             | Lint, format-check, build, and run all tests with coverage |
-| `npm run lint`         | Run ESLint                                                 |
-| `npm run lint:fix`     | Run ESLint with auto-fix                                   |
-| `npm run format`       | Format all files with Prettier                             |
-| `npm run format:check` | Check formatting without writing changes                   |
-| `npm run build`        | Compile TypeScript to `./out`                              |
+| Command                               | Description                                                      |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `npm test`                            | Lint, format-check, build, and run unit tests with 100% coverage |
+| `npm run test:e2e`                    | Run Playwright e2e tests for the Excluded Areas Builder tool     |
+| `npm run test:all`                    | Run unit tests followed by e2e tests                             |
+| `npm run lint`                        | Run ESLint                                                       |
+| `npm run lint:fix`                    | Run ESLint with auto-fix                                         |
+| `npm run format`                      | Format all files with Prettier                                   |
+| `npm run format:check`                | Check formatting without writing changes                         |
+| `npm run build`                       | Compile TypeScript to `./out`                                    |
+| `npm run tool:excluded-areas-builder` | Open the Excluded Areas Builder tool in the browser              |
 
-### Running a single test file
+### Running a single unit test file
 
 ```sh
 npx vitest run __tests__/comparePng.test.ts
@@ -33,22 +36,30 @@ npx vitest run __tests__/comparePng.test.ts
 npx vitest run -u
 ```
 
-### Running tests in Docker
+### Running e2e tests
 
 ```sh
-docker compose up
+npm run test:e2e
 ```
 
-Or using the npm scripts:
+Playwright downloads Chromium automatically on first run via the `pretest:e2e` hook. To run a specific e2e test by name:
+
+```sh
+npx playwright test --reporter=list -g "drawing a rectangle"
+```
+
+### Running tests in Docker
 
 ```sh
 npm run test:docker
 ```
 
+This builds the Docker image and runs both unit and e2e tests inside a container.
+
 ## Pull request guidelines
 
-- All tests must pass (`npm test`)
-- New functionality must be covered by tests (coverage thresholds: 90% lines/functions/statements, 75% branches)
+- All tests must pass (`npm run test:all`)
+- New functionality must be covered by tests (unit coverage threshold: 100% for all metrics)
 - No ESLint errors or Prettier formatting violations
 - Keep commits focused; one logical change per PR
 
