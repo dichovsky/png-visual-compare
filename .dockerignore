@@ -9,5 +9,3 @@ dockerfile
 Dockerfile
 *.md
 LICENSE
-.prettierrc
-.prettierignore
