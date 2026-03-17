@@ -48,14 +48,14 @@
         "format:check": "prettier --check .",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
-        "pretest:unit": "npm run clean && npm run lint && npm run format:check && npm run test:license && npm run build",
-        "test:unit": "vitest run --coverage",
         "test": "npm run test:unit",
         "test:all": "npm run test:unit && npm run test:e2e",
         "test:docker": "npm run clean && npm run docker:build && npm run docker:run",
         "pretest:e2e": "npx playwright install chromium",
         "test:e2e": "playwright test",
         "test:license": "npx --yes license-checker --production --onlyAllow \"ISC; MIT; MIT OR X11; BSD; Apache-2.0; Unlicense\"",
+        "pretest:unit": "npm run clean && npm run lint && npm run format:check && npm run test:license && npm run build",
+        "test:unit": "vitest run --coverage",
         "tool:excluded-areas-builder": "node -e \"const {execSync}=require('child_process');const cmd=process.platform==='win32'?'start':process.platform==='darwin'?'open':'xdg-open';execSync(cmd+' tools/excluded-areas-builder.html')\""
     },
     "dependencies": {
@@ -67,11 +67,11 @@
         "@types/node": "~25.5.0",
         "@types/pngjs": "~6.0.5",
         "@vitest/coverage-v8": "~4.1.0",
-        "eslint": "~10.0.2",
+        "eslint": "~10.0.3",
         "prettier": "~3.8.1",
         "rimraf": "~6.1.3",
         "typescript": "~5.9.3",
-        "typescript-eslint": "~8.57.0",
+        "typescript-eslint": "~8.57.1",
         "vitest": "~4.1.0"
     },
     "engines": {
