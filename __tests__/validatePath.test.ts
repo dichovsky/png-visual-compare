@@ -10,7 +10,9 @@ describe('validatePath', () => {
     });
 
     it('should return an absolute path unchanged (after resolve)', () => {
-        const abs = '/tmp/output/diff.png';
+        // Construct a guaranteed-absolute path using path.resolve so the test is
+        // platform-independent (avoids Unix-only /tmp/ prefix on Windows).
+        const abs = path.resolve('some', 'output', 'diff.png');
         expect(validatePath(abs)).toBe(abs);
     });
 
