@@ -42,6 +42,13 @@ describe('validateColor', () => {
     it('error message includes the channel name and value', () => {
         expect(() => validateColor({ r: 300, g: 0, b: 0 }, 'testColor')).toThrow('testColor.r must be an integer in [0, 255], got 300');
     });
+
+    it('should throw RangeError for a missing channel (e.g. b omitted)', () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect(() => validateColor({ r: 0, g: 0 } as any, 'color')).toThrow(RangeError);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect(() => validateColor({ r: 0, g: 0 } as any, 'color')).toThrow('color.b');
+    });
 });
 
 // Integration: comparePng should surface color validation errors

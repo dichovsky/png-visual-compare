@@ -30,8 +30,11 @@ describe('validatePath', () => {
         expect(path.isAbsolute(result)).toBe(true);
     });
 
-    it('should accept an empty string and return the resolved CWD', () => {
-        const result = validatePath('');
-        expect(path.isAbsolute(result)).toBe(true);
+    it('should throw for an empty string', () => {
+        expect(() => validatePath('')).toThrow('empty or whitespace only');
+    });
+
+    it('should throw for a whitespace-only string', () => {
+        expect(() => validatePath('   ')).toThrow('empty or whitespace only');
     });
 });

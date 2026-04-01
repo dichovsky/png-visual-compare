@@ -60,18 +60,32 @@ export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: 
     const throwErrorOnInvalidInputData: boolean = opts?.throwErrorOnInvalidInputData ?? true;
     const extendedAreaColor: Color = opts?.extendedAreaColor ?? DEFAULT_EXTENDED_AREA_COLOR;
     const excludedAreaColor: Color = opts?.excludedAreaColor ?? DEFAULT_EXCLUDED_AREA_COLOR;
-    const shouldCreateDiffFile: boolean = opts?.diffFilePath !== undefined;
-    // Validate diffFilePath eagerly (fail-fast) so injection is caught before any I/O
-    const validatedDiffFilePath: string | undefined = shouldCreateDiffFile ? validatePath(opts!.diffFilePath as string) : undefined;
-    const maxDimension: number = opts?.maxDimension ?? DEFAULT_MAX_DIMENSION;
+    // Resolve and validate diffFilePath eagerly (fail-fast) so injection is caught before any I/O
+    const rawDiffFilePath = opts?.diffFilePath;
+    let shouldCreateDiffFile = false;
+    let validatedDiffFilePath: string | undefined;
+    if (rawDiffFilePath !== undefined) {
+        if (typeof rawDiffFilePath !== 'string') {
+            throw new TypeError('opts.diffFilePath must be a string when provided');
+        }
+        shouldCreateDiffFile = true;
+        validatedDiffFilePath = validatePath(rawDiffFilePath);
+    }
+
+    // Validate maxDimension — must be a positive integer or Infinity
+    const rawMaxDimension = opts?.maxDimension ?? DEFAULT_MAX_DIMENSION;
+    if (rawMaxDimension !== Infinity && (!Number.isInteger(rawMaxDimension) || rawMaxDimension <= 0)) {
+        throw new TypeError('opts.maxDimension must be a positive integer or Infinity');
+    }
+    const maxDimension: number = rawMaxDimension;
 
     // Validate color options at the boundary before any pixel operations
     validateColor(extendedAreaColor, 'extendedAreaColor');
     validateColor(excludedAreaColor, 'excludedAreaColor');
 
-    // Get PNG data
-    const pngData1: PngData = getPngData(png1, throwErrorOnInvalidInputData);
-    const pngData2: PngData = getPngData(png2, throwErrorOnInvalidInputData);
+    // Get PNG data; maxDimension is checked inside getPngData before decoding (DoS guard)
+    const pngData1: PngData = getPngData(png1, throwErrorOnInvalidInputData, maxDimension);
+    const pngData2: PngData = getPngData(png2, throwErrorOnInvalidInputData, maxDimension);
 
     // Check if PNG data is valid
     if (!pngData1.isValid && !pngData2.isValid) {
@@ -83,13 +97,6 @@ export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: 
 
     const maxWidth: number = Math.max(width1, width2);
     const maxHeight: number = Math.max(height1, height2);
-
-    if (maxWidth > maxDimension || maxHeight > maxDimension) {
-        throw new Error(
-            `Image dimensions (${maxWidth}x${maxHeight}) exceed the maximum allowed size of ${maxDimension}px. ` +
-                `Set opts.maxDimension to increase the limit.`,
-        );
-    }
 
     const diff: PNG = new PNG({ width: maxWidth, height: maxHeight });
 

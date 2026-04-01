@@ -91,22 +91,80 @@ for (const testData of testDataArrayInvalidBoth) {
     });
 }
 
-// ── VUL-01: diffFilePath null byte injection ──────────────────────────────────
+// ── Option validation tests (data-driven, consistent with repo conventions) ───
 const validPng = resolve('./test-data/actual/youtube-play-button.png');
 
-test('should throw when diffFilePath contains a null byte', () => {
-    expect(() => comparePng(validPng, validPng, { diffFilePath: '/tmp/diff\0.png' })).toThrow('null bytes');
-});
+const testDataArrayOptionValidation: {
+    id: number;
+    name: string;
+    opts: Parameters<typeof comparePng>[2];
+    throws: true | false;
+    errorPattern?: string | RegExp;
+}[] = [
+    {
+        id: 1,
+        name: 'diffFilePath with null byte (VUL-01)',
+        opts: { diffFilePath: 'diff\0.png' },
+        throws: true,
+        errorPattern: 'null bytes',
+    },
+    {
+        id: 2,
+        name: 'diffFilePath non-string value',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        opts: { diffFilePath: 42 as any },
+        throws: true,
+        errorPattern: 'diffFilePath must be a string',
+    },
+    {
+        id: 3,
+        name: 'maxDimension too small for 920x512 test image (VUL-04)',
+        opts: { maxDimension: 100 },
+        throws: true,
+        errorPattern: 'exceed the maximum allowed size',
+    },
+    {
+        id: 4,
+        name: 'maxDimension NaN is rejected',
+        opts: { maxDimension: NaN },
+        throws: true,
+        errorPattern: 'maxDimension must be a positive integer or Infinity',
+    },
+    {
+        id: 5,
+        name: 'maxDimension negative integer is rejected',
+        opts: { maxDimension: -1 },
+        throws: true,
+        errorPattern: 'maxDimension must be a positive integer or Infinity',
+    },
+    {
+        id: 6,
+        name: 'maxDimension set high enough for test images (1024)',
+        opts: { maxDimension: 1024 },
+        throws: false,
+    },
+    {
+        id: 7,
+        name: 'maxDimension Infinity disables the limit',
+        opts: { maxDimension: Infinity },
+        throws: false,
+    },
+    {
+        id: 8,
+        name: 'default options accept normal test images',
+        opts: {},
+        throws: false,
+    },
+];
 
-// ── VUL-04: dimension limit ───────────────────────────────────────────────────
-test('should throw when image exceeds default maxDimension (920x512 image, limit 100)', () => {
-    expect(() => comparePng(validPng, validPng, { maxDimension: 100 })).toThrow('exceed the maximum allowed size');
-});
-
-test('should not throw when maxDimension is set high enough for the test images', () => {
-    expect(() => comparePng(validPng, validPng, { maxDimension: 1024 })).not.toThrow();
-});
-
-test('should not throw with default maxDimension for normal test images', () => {
-    expect(() => comparePng(validPng, validPng)).not.toThrow();
-});
+for (const testData of testDataArrayOptionValidation) {
+    if (testData.throws) {
+        test(`should throw for option validation: ${testData.name}`, () => {
+            expect(() => comparePng(validPng, validPng, testData.opts)).toThrow(testData.errorPattern ?? Error);
+        });
+    } else {
+        test(`should not throw for option validation: ${testData.name}`, () => {
+            expect(() => comparePng(validPng, validPng, testData.opts)).not.toThrow();
+        });
+    }
+}
