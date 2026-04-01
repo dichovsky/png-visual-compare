@@ -3,6 +3,10 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src blob:;"
+        />
         <title>Excluded Areas Builder</title>
         <style>
             * {
@@ -389,7 +393,6 @@
                     applyFitZoom();
                     renderAll();
                     URL.revokeObjectURL(url);
-                    URL.revokeObjectURL(url);
                 };
                 previewImg.src = url;
             }
@@ -605,9 +608,15 @@
                         item.className = 'area-item' + (selectedId === area.id ? ' selected' : '');
 
                         const info = document.createElement('span');
-                        info.innerHTML =
-                            `<strong style="color:#ccc">#${idx + 1}</strong>` +
-                            ` <span class="area-coords">(${area.x1},${area.y1}) → (${area.x2},${area.y2})</span>`;
+                        const strong = document.createElement('strong');
+                        strong.style.color = '#ccc';
+                        strong.textContent = '#' + (idx + 1);
+                        const coordSpan = document.createElement('span');
+                        coordSpan.className = 'area-coords';
+                        coordSpan.textContent = '(' + area.x1 + ',' + area.y1 + ') \u2192 (' + area.x2 + ',' + area.y2 + ')';
+                        info.appendChild(strong);
+                        info.appendChild(document.createTextNode(' '));
+                        info.appendChild(coordSpan);
 
                         const del = document.createElement('button');
                         del.className = 'delete-btn';
