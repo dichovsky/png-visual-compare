@@ -74,6 +74,14 @@ export type ComparePngOptions = {
      */
     excludedAreaColor?: Color;
     /**
+     * Maximum allowed width or height in pixels for either input image.
+     * An error is thrown if either dimension exceeds this limit, protecting against
+     * denial-of-service via crafted PNG headers with enormous declared dimensions.
+     * Set to `Infinity` to disable the limit entirely.
+     * @default 16384
+     */
+    maxDimension?: number;
+    /**
      * Options forwarded directly to [pixelmatch](https://github.com/mapbox/pixelmatch).
      * @default undefined
      */
