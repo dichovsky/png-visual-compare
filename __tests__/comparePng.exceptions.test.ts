@@ -90,3 +90,23 @@ for (const testData of testDataArrayInvalidBoth) {
         ).toThrow(Error);
     });
 }
+
+// ── VUL-01: diffFilePath null byte injection ──────────────────────────────────
+const validPng = resolve('./test-data/actual/youtube-play-button.png');
+
+test('should throw when diffFilePath contains a null byte', () => {
+    expect(() => comparePng(validPng, validPng, { diffFilePath: '/tmp/diff\0.png' })).toThrow('null bytes');
+});
+
+// ── VUL-04: dimension limit ───────────────────────────────────────────────────
+test('should throw when image exceeds default maxDimension (920x512 image, limit 100)', () => {
+    expect(() => comparePng(validPng, validPng, { maxDimension: 100 })).toThrow('exceed the maximum allowed size');
+});
+
+test('should not throw when maxDimension is set high enough for the test images', () => {
+    expect(() => comparePng(validPng, validPng, { maxDimension: 1024 })).not.toThrow();
+});
+
+test('should not throw with default maxDimension for normal test images', () => {
+    expect(() => comparePng(validPng, validPng)).not.toThrow();
+});

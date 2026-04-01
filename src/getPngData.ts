@@ -1,38 +1,47 @@
 import { readFileSync } from 'node:fs';
 import { PNG, type PNGWithMetadata } from 'pngjs';
 import type { PngData } from './types/png.data';
+import { validatePath } from './validatePath';
 
 export function getPngData(pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean): PngData {
     const invalidPng: PngData = { isValid: false, png: new PNG({ width: 0, height: 0 }) as PNGWithMetadata };
 
-    const tryParsePng = (buffer: Buffer, source: string): PngData => {
+    const tryParsePng = (buffer: Buffer): PngData => {
         try {
             return { isValid: true, png: PNG.sync.read(buffer) };
-        } catch (e) {
+        } catch {
             if (throwErrorOnInvalidInputData) {
-                const message = e instanceof Error ? e.message : 'Unknown error';
-                throw new Error(`${source} could not be read: ${message}`);
+                throw new Error('Invalid PNG input: the data could not be parsed');
             }
             return invalidPng;
         }
     };
 
     if (typeof pngSource === 'string') {
-        let png: Buffer<ArrayBufferLike>;
+        let resolvedPath: string;
         try {
-            png = readFileSync(pngSource);
+            resolvedPath = validatePath(pngSource);
         } catch (error) {
             if (throwErrorOnInvalidInputData) {
-                const message = error instanceof Error ? error.message : 'Unknown error';
-                throw new Error(`PNG file ${pngSource} could not be read: ${message}`);
+                throw error;
             }
             return invalidPng;
         }
-        return tryParsePng(png, `PNG file ${pngSource}`);
+
+        let png: Buffer<ArrayBufferLike>;
+        try {
+            png = readFileSync(resolvedPath);
+        } catch {
+            if (throwErrorOnInvalidInputData) {
+                throw new Error('Invalid PNG input: the file could not be read');
+            }
+            return invalidPng;
+        }
+        return tryParsePng(png);
     }
 
     if (Buffer.isBuffer(pngSource)) {
-        return tryParsePng(pngSource, 'PNG buffer');
+        return tryParsePng(pngSource);
     }
 
     if (throwErrorOnInvalidInputData) {

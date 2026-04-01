@@ -17,7 +17,7 @@ describe('getPngData', () => {
     });
 
     it('should throw an error for an invalid PNG file path when throwErrorOnInvalidInputData is true', () => {
-        expect(() => getPngData(invalidPngPath, true)).toThrow(new RegExp(`PNG file .+ could not be read: .+`));
+        expect(() => getPngData(invalidPngPath, true)).toThrow('Invalid PNG input: the file could not be read');
     });
 
     it('should return invalid PngData for an invalid PNG file path when throwErrorOnInvalidInputData is false', () => {
@@ -43,7 +43,18 @@ describe('getPngData', () => {
     });
 
     it('should throw an error for an invalid PNG buffer when throwErrorOnInvalidInputData is true', () => {
-        expect(() => getPngData(invalidPngBuffer, true)).toThrow(/^PNG buffer could not be read: .+$/);
+        expect(() => getPngData(invalidPngBuffer, true)).toThrow('Invalid PNG input: the data could not be parsed');
+    });
+
+    it('should throw an error for a path containing a null byte when throwErrorOnInvalidInputData is true', () => {
+        expect(() => getPngData('/tmp/evil\0.png', true)).toThrow('null bytes');
+    });
+
+    it('should return invalid PngData for a path containing a null byte when throwErrorOnInvalidInputData is false', () => {
+        const result = getPngData('/tmp/evil\0.png', false);
+        expect(result.isValid).toBe(false);
+        expect(result.png.width).toBe(0);
+        expect(result.png.height).toBe(0);
     });
 
     it('should throw an error for an unknown input type when throwErrorOnInvalidInputData is true', () => {
