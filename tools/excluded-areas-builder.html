@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src blob:;"
+            content="default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'sha256-KxcnPUdqXBjdkdeKLwhyZay5KzWqMjkj1zh6CBBTHpM='; style-src 'sha256-rxhPnDCcdJeCfOiyZXOP5TSV4njfY4rSCBARxyvfU3Q='; img-src blob:;"
         />
         <title>Excluded Areas Builder</title>
         <style>
@@ -273,6 +273,15 @@
             #file-input {
                 display: none;
             }
+
+            #toolbar-spacer {
+                flex: 1;
+            }
+
+            #clear-all-btn {
+                font-size: 11px;
+                padding: 3px 8px;
+            }
         </style>
     </head>
     <body>
@@ -280,7 +289,7 @@
             <h1>Excluded Areas Builder</h1>
             <button id="upload-btn">Upload Image</button>
             <input type="file" id="file-input" accept="image/*" />
-            <span style="flex: 1"></span>
+            <span id="toolbar-spacer"></span>
             <button id="zoom-fit-btn" disabled>Fit</button>
             <button id="zoom-out-btn" disabled>−</button>
             <span id="zoom-label">—</span>
@@ -306,7 +315,7 @@
             <div id="sidebar">
                 <div id="sidebar-header">
                     <span>Excluded Areas (<span id="area-count">0</span>)</span>
-                    <button id="clear-all-btn" style="font-size: 11px; padding: 3px 8px" disabled>Clear all</button>
+                    <button id="clear-all-btn" disabled>Clear all</button>
                 </div>
                 <div id="areas-list">
                     <div id="empty-hint">Draw rectangles on the image to create excluded areas.</div>
