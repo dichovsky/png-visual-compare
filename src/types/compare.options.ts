@@ -74,6 +74,33 @@ export type ComparePngOptions = {
      */
     excludedAreaColor?: Color;
     /**
+     * Maximum allowed width or height in pixels for either input image.
+     * An error is thrown if either dimension exceeds this limit, protecting against
+     * denial-of-service via crafted PNG headers with enormous declared dimensions.
+     * **This check always throws regardless of the `throwErrorOnInvalidInputData`
+     * setting**, because an oversized image is a security/resource-exhaustion signal
+     * rather than a routine "invalid input" condition.
+     * Set to `Infinity` to disable the limit entirely.
+     * @default 16384
+     */
+    maxDimension?: number;
+    /**
+     * When provided, `diffFilePath` must resolve to a path inside this directory.
+     * Any attempt to write outside it (e.g. via `../../etc/cron.d/`) throws an error.
+     * Use this in server-side contexts where `diffFilePath` may be caller-controlled
+     * to prevent path-traversal arbitrary file writes (VUL-01).
+     * @default undefined (no containment enforced)
+     */
+    diffOutputBaseDir?: string;
+    /**
+     * When provided, string input paths (`png1` / `png2`) must resolve to a path
+     * inside this directory. Any attempt to read outside it throws an error.
+     * Use this in server-side contexts where image paths may be caller-controlled
+     * to prevent path-traversal arbitrary file reads (VUL-02).
+     * @default undefined (no containment enforced)
+     */
+    inputBaseDir?: string;
+    /**
      * Options forwarded directly to [pixelmatch](https://github.com/mapbox/pixelmatch).
      * @default undefined
      */

@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { parse, resolve } from 'node:path';
+import { parse } from 'node:path';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import { addColoredAreasToImage } from './addColoredAreasToImage';
@@ -9,12 +9,21 @@ import { fillImageSizeDifference } from './fillImageSizeDifference';
 import { getPngData } from './getPngData';
 import type { Area, Color, ComparePngOptions } from './types';
 import { type PngData } from './types/png.data';
+import { validateColor } from './validateColor';
+import { validatePath } from './validatePath';
 
 /** Default colour applied to size-extended padding regions (green). */
 export const DEFAULT_EXTENDED_AREA_COLOR: Color = { r: 0, g: 255, b: 0 };
 
 /** Default colour applied to excluded areas before comparison (blue). */
 export const DEFAULT_EXCLUDED_AREA_COLOR: Color = { r: 0, g: 0, b: 255 };
+
+/**
+ * Default maximum image dimension (width or height) in pixels.
+ * Images exceeding this in either axis will throw an error to prevent
+ * denial-of-service via crafted PNG headers with enormous declared sizes.
+ */
+export const DEFAULT_MAX_DIMENSION = 16384;
 
 /**
  * Compares two PNG images pixel-by-pixel and returns the number of mismatched pixels.
@@ -51,11 +60,32 @@ export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: 
     const throwErrorOnInvalidInputData: boolean = opts?.throwErrorOnInvalidInputData ?? true;
     const extendedAreaColor: Color = opts?.extendedAreaColor ?? DEFAULT_EXTENDED_AREA_COLOR;
     const excludedAreaColor: Color = opts?.excludedAreaColor ?? DEFAULT_EXCLUDED_AREA_COLOR;
-    const shouldCreateDiffFile: boolean = opts?.diffFilePath !== undefined;
+    // Resolve and validate diffFilePath eagerly (fail-fast) so injection is caught before any I/O
+    const rawDiffFilePath = opts?.diffFilePath;
+    let shouldCreateDiffFile = false;
+    let validatedDiffFilePath: string | undefined;
+    if (rawDiffFilePath !== undefined) {
+        if (typeof rawDiffFilePath !== 'string') {
+            throw new TypeError('opts.diffFilePath must be a string when provided');
+        }
+        shouldCreateDiffFile = true;
+        validatedDiffFilePath = validatePath(rawDiffFilePath, opts?.diffOutputBaseDir);
+    }
 
-    // Get PNG data
-    const pngData1: PngData = getPngData(png1, throwErrorOnInvalidInputData);
-    const pngData2: PngData = getPngData(png2, throwErrorOnInvalidInputData);
+    // Validate maxDimension — must be a positive integer or Infinity
+    const rawMaxDimension = opts?.maxDimension ?? DEFAULT_MAX_DIMENSION;
+    if (rawMaxDimension !== Infinity && (!Number.isInteger(rawMaxDimension) || rawMaxDimension <= 0)) {
+        throw new TypeError('opts.maxDimension must be a positive integer or Infinity');
+    }
+    const maxDimension: number = rawMaxDimension;
+
+    // Validate color options at the boundary before any pixel operations
+    validateColor(extendedAreaColor, 'extendedAreaColor');
+    validateColor(excludedAreaColor, 'excludedAreaColor');
+
+    // Get PNG data; maxDimension is checked inside getPngData before decoding (DoS guard)
+    const pngData1: PngData = getPngData(png1, throwErrorOnInvalidInputData, maxDimension, opts?.inputBaseDir);
+    const pngData2: PngData = getPngData(png2, throwErrorOnInvalidInputData, maxDimension, opts?.inputBaseDir);
 
     // Check if PNG data is valid
     if (!pngData1.isValid && !pngData2.isValid) {
@@ -97,9 +127,8 @@ export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: 
 
     // Save diff image
     if (pixelmatchResult > 0 && shouldCreateDiffFile) {
-        const diffFilePath = resolve(opts?.diffFilePath as string);
-        mkdirSync(parse(diffFilePath).dir, { recursive: true });
-        writeFileSync(diffFilePath, PNG.sync.write(diff));
+        mkdirSync(parse(validatedDiffFilePath!).dir, { recursive: true });
+        writeFileSync(validatedDiffFilePath!, PNG.sync.write(diff));
     }
 
     return pixelmatchResult;
