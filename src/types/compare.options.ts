@@ -77,6 +77,9 @@ export type ComparePngOptions = {
      * Maximum allowed width or height in pixels for either input image.
      * An error is thrown if either dimension exceeds this limit, protecting against
      * denial-of-service via crafted PNG headers with enormous declared dimensions.
+     * **This check always throws regardless of the `throwErrorOnInvalidInputData`
+     * setting**, because an oversized image is a security/resource-exhaustion signal
+     * rather than a routine "invalid input" condition.
      * Set to `Infinity` to disable the limit entirely.
      * @default 16384
      */
