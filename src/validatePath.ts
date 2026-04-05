@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { resolve, sep } from 'node:path';
 
 /**
  * Validates and resolves a file path string.
@@ -8,21 +8,29 @@ import { resolve } from 'node:path';
  * suffix checks. After validation, resolves the path to an absolute path using
  * `path.resolve`.
  *
- * **Note:** This function is a minimal library-level guard. It does not enforce
- * containment to a base directory — callers in security-sensitive contexts
- * (e.g., server applications accepting user-supplied paths) are responsible for
- * restricting resolved paths to a permitted output directory.
+ * When `baseDir` is provided the resolved path must be located inside that
+ * directory (or equal to it). This enforces containment and closes path-traversal
+ * vulnerabilities in security-sensitive contexts (VUL-01, VUL-02).
  *
  * @param filePath - The file path string to validate.
+ * @param baseDir  - Optional directory the resolved path must reside within.
  * @returns The resolved absolute path.
- * @throws {Error} If the path is empty/whitespace-only or contains a null byte.
+ * @throws {Error} If the path is empty/whitespace-only, contains a null byte,
+ *   or (when `baseDir` is given) resolves outside that directory.
  */
-export function validatePath(filePath: string): string {
+export function validatePath(filePath: string, baseDir?: string): string {
     if (filePath.trim().length === 0) {
         throw new Error('Invalid file path: path must not be empty or whitespace only');
     }
     if (filePath.includes('\0')) {
         throw new Error('Invalid file path: path must not contain null bytes');
     }
-    return resolve(filePath);
+    const resolved = resolve(filePath);
+    if (baseDir !== undefined) {
+        const normalizedBase = resolve(baseDir);
+        if (resolved !== normalizedBase && !resolved.startsWith(normalizedBase + sep)) {
+            throw new Error(`Path traversal detected: "${resolved}" is outside the allowed directory "${normalizedBase}"`);
+        }
+    }
+    return resolved;
 }

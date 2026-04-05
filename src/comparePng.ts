@@ -69,7 +69,7 @@ export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: 
             throw new TypeError('opts.diffFilePath must be a string when provided');
         }
         shouldCreateDiffFile = true;
-        validatedDiffFilePath = validatePath(rawDiffFilePath);
+        validatedDiffFilePath = validatePath(rawDiffFilePath, opts?.diffOutputBaseDir);
     }
 
     // Validate maxDimension — must be a positive integer or Infinity
@@ -84,8 +84,8 @@ export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: 
     validateColor(excludedAreaColor, 'excludedAreaColor');
 
     // Get PNG data; maxDimension is checked inside getPngData before decoding (DoS guard)
-    const pngData1: PngData = getPngData(png1, throwErrorOnInvalidInputData, maxDimension);
-    const pngData2: PngData = getPngData(png2, throwErrorOnInvalidInputData, maxDimension);
+    const pngData1: PngData = getPngData(png1, throwErrorOnInvalidInputData, maxDimension, opts?.inputBaseDir);
+    const pngData2: PngData = getPngData(png2, throwErrorOnInvalidInputData, maxDimension, opts?.inputBaseDir);
 
     // Check if PNG data is valid
     if (!pngData1.isValid && !pngData2.isValid) {

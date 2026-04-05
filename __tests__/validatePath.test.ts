@@ -38,3 +38,38 @@ describe('validatePath', () => {
         expect(() => validatePath('   ')).toThrow('empty or whitespace only');
     });
 });
+
+describe('validatePath — baseDir containment (VUL-01, VUL-02)', () => {
+    const baseDir = path.resolve('test-output');
+
+    it('should accept a path that resolves inside baseDir', () => {
+        const filePath = path.join(baseDir, 'diff.png');
+        expect(validatePath(filePath, baseDir)).toBe(filePath);
+    });
+
+    it('should accept a path equal to baseDir itself', () => {
+        expect(validatePath(baseDir, baseDir)).toBe(baseDir);
+    });
+
+    it('should throw when path traverses above baseDir via dot-dot', () => {
+        const traversal = path.join(baseDir, '..', 'etc', 'passwd');
+        expect(() => validatePath(traversal, baseDir)).toThrow('Path traversal detected');
+    });
+
+    it('should throw when an absolute path outside baseDir is given', () => {
+        const outside = path.resolve('other-dir', 'file.png');
+        expect(() => validatePath(outside, baseDir)).toThrow('Path traversal detected');
+    });
+
+    it('should reject a path that shares baseDir as a prefix but is a sibling (prefix collision)', () => {
+        // e.g. baseDir = /foo/bar, path = /foo/bar-evil/file.png
+        // Without the sep check, startsWith would incorrectly allow this.
+        const sibling = baseDir + '-evil' + path.sep + 'file.png';
+        expect(() => validatePath(sibling, baseDir)).toThrow('Path traversal detected');
+    });
+
+    it('should not throw when baseDir is undefined (no containment enforced)', () => {
+        const anyPath = path.resolve('anywhere', 'file.png');
+        expect(() => validatePath(anyPath, undefined)).not.toThrow();
+    });
+});

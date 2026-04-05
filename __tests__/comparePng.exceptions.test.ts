@@ -155,6 +155,39 @@ const testDataArrayOptionValidation: {
         opts: {},
         throws: false,
     },
+    {
+        id: 9,
+        name: 'diffFilePath traverses above diffOutputBaseDir (VUL-01)',
+        opts: {
+            diffFilePath: resolve('./test-data/actual/../../../etc/passwd'),
+            diffOutputBaseDir: resolve('./test-data/actual'),
+        },
+        throws: true,
+        errorPattern: 'Path traversal detected',
+    },
+    {
+        id: 10,
+        name: 'diffFilePath inside diffOutputBaseDir is accepted',
+        // No actual diff written (images are identical), so just checking it does not throw.
+        opts: {
+            diffFilePath: resolve('./test-data/actual/diff.png'),
+            diffOutputBaseDir: resolve('./test-data/actual'),
+        },
+        throws: false,
+    },
+    {
+        id: 11,
+        name: 'inputBaseDir rejects png1 path outside allowed directory (VUL-02)',
+        opts: { inputBaseDir: resolve('./test-data/expected') },
+        throws: true,
+        errorPattern: 'Path traversal detected',
+    },
+    {
+        id: 12,
+        name: 'inputBaseDir accepts png paths inside allowed directory',
+        opts: { inputBaseDir: resolve('./test-data/actual') },
+        throws: false,
+    },
 ];
 
 for (const testData of testDataArrayOptionValidation) {

@@ -39,13 +39,18 @@ function assertDimensions(buffer: Buffer, maxDimension: number): void {
     }
 }
 
-export function getPngData(pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean, maxDimension?: number): PngData {
+export function getPngData(
+    pngSource: string | Buffer,
+    throwErrorOnInvalidInputData: boolean,
+    maxDimension?: number,
+    inputBaseDir?: string,
+): PngData {
     const invalidPng: PngData = { isValid: false, png: new PNG({ width: 0, height: 0 }) as PNGWithMetadata };
 
     if (typeof pngSource === 'string') {
         let resolvedPath: string;
         try {
-            resolvedPath = validatePath(pngSource);
+            resolvedPath = validatePath(pngSource, inputBaseDir);
         } catch (error) {
             if (throwErrorOnInvalidInputData) throw error;
             return invalidPng;
