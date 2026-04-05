@@ -55,6 +55,9 @@ const mismatchedPixels: number = comparePng(
         throwErrorOnInvalidInputData, // Throw on missing/invalid input. Default: true
         extendedAreaColor, // Color used for size-padding regions. Default: { r: 0, g: 255, b: 0 }
         excludedAreaColor, // Color used for excluded areas. Default: { r: 0, g: 0, b: 255 }
+        maxDimension, // Max allowed image width/height in px. Always throws if exceeded. Default: 16384
+        diffOutputBaseDir, // Restrict diffFilePath writes to this directory (path-traversal guard). Default: undefined
+        inputBaseDir, // Restrict png1/png2 reads to this directory (path-traversal guard). Default: undefined
         pixelmatchOptions, // Options forwarded to pixelmatch. Default: undefined
     },
 );
@@ -82,14 +85,17 @@ Compares two PNG images pixel-by-pixel and returns the number of mismatched pixe
 
 ### `ComparePngOptions`
 
-| Option                         | Type                | Default                  | Description                                                                                                                                              |
-| ------------------------------ | ------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `excludedAreas`                | `Area[]`            | `[]`                     | Rectangular regions to exclude from comparison (painted on both images before diffing, so they always match)                                             |
-| `diffFilePath`                 | `string`            | `undefined`              | File path for the diff PNG. Only written when `result > 0`                                                                                               |
-| `throwErrorOnInvalidInputData` | `boolean`           | `true`                   | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid |
-| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Fill colour for padded regions when images differ in size. Override when the default green clashes with your image content                               |
-| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill colour applied to `excludedAreas` on both images before comparison. Override when the default blue clashes with your image content                  |
-| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                  |
+| Option                         | Type                | Default                  | Description                                                                                                                                                                                                                          |
+| ------------------------------ | ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `excludedAreas`                | `Area[]`            | `[]`                     | Rectangular regions to exclude from comparison (painted on both images before diffing, so they always match)                                                                                                                         |
+| `diffFilePath`                 | `string`            | `undefined`              | File path for the diff PNG. Only written when `result > 0`                                                                                                                                                                           |
+| `throwErrorOnInvalidInputData` | `boolean`           | `true`                   | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid                                                                             |
+| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Fill colour for padded regions when images differ in size. Override when the default green clashes with your image content                                                                                                           |
+| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill colour applied to `excludedAreas` on both images before comparison. Override when the default blue clashes with your image content                                                                                              |
+| `maxDimension`                 | `number`            | `16384`                  | Maximum allowed width or height (px) for either input image. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Protects against DoS via crafted PNG headers               |
+| `diffOutputBaseDir`            | `string`            | `undefined`              | When set, `diffFilePath` must resolve to a path **inside** this directory. Any attempt to write outside it throws `"Path traversal detected"`. Use in server-side contexts where `diffFilePath` may be caller-controlled             |
+| `inputBaseDir`                 | `string`            | `undefined`              | When set, string input paths (`png1` / `png2`) must resolve to a path **inside** this directory. Any attempt to read outside it throws `"Path traversal detected"`. Use in server-side contexts where paths may be caller-controlled |
+| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                                                                                              |
 
 ---
 
@@ -132,10 +138,11 @@ type Color = {
 
 ### Exported constants
 
-| Constant                      | Value                    | Description                                           |
-| ----------------------------- | ------------------------ | ----------------------------------------------------- |
-| `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions |
-| `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                |
+| Constant                      | Value                    | Description                                                                                             |
+| ----------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions                                                   |
+| `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                                                                  |
+| `DEFAULT_MAX_DIMENSION`       | `16384`                  | Default maximum image dimension (px). Import this constant when you want to reference the default value |
 
 ---
 
