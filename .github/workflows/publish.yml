@@ -1,24 +1,31 @@
-name: Node.js Package
+name: Publish Package
 on:
     release:
-        types: [created]
+        types: [published]
+
 permissions:
     contents: read
+    id-token: write
+
+concurrency:
+    group: publish-${{ github.event.release.tag_name }}
+    cancel-in-progress: false
+
 jobs:
-    build:
-        runs-on: ubuntu-latest
+    publish:
+        if: ${{ !github.event.release.prerelease }}
+        runs-on: ubuntu-24.04
+        timeout-minutes: 30
         steps:
-            - uses: actions/checkout@v6
-            - uses: actions/setup-node@v6
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+            - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
               with:
-                  node-version: '22.x'
+                  node-version-file: .nvmrc
+                  cache: 'npm'
                   registry-url: 'https://registry.npmjs.org'
             - run: npm ci
-            - run: npm test
-            # Second build is intentional: npm test (via pretest) runs clean→build but also
-            # writes ./coverage and ./test-results. This build runs prebuild (clean→tsc) to
-            # delete those directories and produce a fresh ./out before publishing.
+            - run: npm audit --audit-level=high
             - run: npm run build
-            - run: npm publish
+            - run: npm publish --provenance
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
