@@ -33,9 +33,11 @@ The following rules apply to every item unless the item explicitly overrides the
 **Technical rationale:** This is the main maintainability hotspot in the library. Every new feature now requires editing the same function, which increases coupling and makes it hard to add async I/O, alternative sources, or new normalization stages without regression risk.
 
 **Files to modify:**
+
 - `src/comparePng.ts` — reduce to thin orchestrator (≤ 30 lines after refactor)
 
 **New files to create:**
+
 - `src/pipeline/types.ts` — `ComparisonContext` and nested types
 - `src/pipeline/resolveOptions.ts`
 - `src/pipeline/loadSources.ts`
@@ -44,17 +46,20 @@ The following rules apply to every item unless the item explicitly overrides the
 - `src/pipeline/persistDiff.ts`
 
 **Prescribed `ComparisonContext` shape** (define in `src/pipeline/types.ts`):
+
 ```ts
 type ComparisonContext = {
-  readonly options: ResolvedOptions;
-  readonly sources: LoadedSources;
-  readonly normalized: NormalizedImages;
-  readonly result: ComparisonResult;
+    readonly options: ResolvedOptions;
+    readonly sources: LoadedSources;
+    readonly normalized: NormalizedImages;
+    readonly result: ComparisonResult;
 };
 ```
+
 Each nested type is defined by the agent in the same file.
 
 **Prescribed stage function signatures:**
+
 ```ts
 resolveOptions(raw: ComparePngOptions | undefined): ResolvedOptions
 loadSources(png1: string | Buffer, png2: string | Buffer, opts: ResolvedOptions): LoadedSources
@@ -66,10 +71,12 @@ persistDiff(result: ComparisonResult, opts: ResolvedOptions): void
 **Constraint:** `normalizeImages` must return new objects — it must not mutate its inputs (resolves the mutable `pngData.png =` reassignment on the current line 111).
 
 **Tests:**
+
 - `__tests__/comparePng.test.ts` — no new tests; all existing tests must pass unchanged
 - New `__tests__/pipeline/` directory — one `describe` block per stage, each with ≥ 1 unit test using in-memory `Buffer`s and no file fixtures
 
 **Acceptance criteria:**
+
 - `comparePng.ts` contains ≤ 30 lines (orchestration only)
 - Each stage is unit-testable in isolation without file fixtures
 - Adding a new normalization step requires editing only the wiring in `comparePng.ts`
@@ -83,13 +90,15 @@ persistDiff(result: ComparisonResult, opts: ResolvedOptions): void
 **Technical rationale:** The current model encodes failure as fake success data. That weakens invariants, forces cross-function coordination through conventions, and makes it easy to accidentally process an invalid image as if it were real.
 
 **Prescribed union** (replace existing `PngData` in `src/types/png.data.ts`):
+
 ```ts
 export type LoadedPng =
-  | { readonly kind: 'valid'; readonly png: PNGWithMetadata }
-  | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };
+    | { readonly kind: 'valid'; readonly png: PNGWithMetadata }
+    | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };
 ```
 
 **Files to modify:**
+
 - `src/types/png.data.ts` — replace `PngData` with `LoadedPng`
 - `src/types/index.ts` — remove `PngData` export, add `LoadedPng` export
 - `src/index.ts` — remove `PngData` from public barrel (**BREAKING — semver-major**)
@@ -100,11 +109,13 @@ export type LoadedPng =
 - `CHANGELOG.md` — add `## [2.0.0]` section noting removal of `PngData`
 
 **Banned pattern** (agent must not produce this):
+
 ```
 // DO NOT add a PngData alias or isValid shim for backward compat
 ```
 
 **Acceptance criteria:**
+
 - No internal code depends on a fake `0×0` PNG to represent failure
 - Exhaustive `switch`/narrowing is used when handling load results
 - Public API no longer exports `PngData`
@@ -118,12 +129,14 @@ export type LoadedPng =
 **Technical rationale:** This leaves security-sensitive flow control entirely to developer discipline. As the codebase grows, it becomes easier to accidentally use raw caller-controlled strings in file I/O instead of validated paths.
 
 **New file to create:** `src/types/validated-path.ts`
+
 ```ts
 declare const __validatedPath: unique symbol;
 export type ValidatedPath = string & { readonly [__validatedPath]: never };
 ```
 
 **Files to modify:**
+
 - `src/validatePath.ts` — return type changes from `string` to `ValidatedPath`
 - `src/getPngData.ts` — `resolvedPath: ValidatedPath` (no cast needed after `validatePath` returns it)
 - `src/comparePng.ts` — `validatedDiffFilePath: ValidatedPath | undefined`
@@ -131,9 +144,11 @@ export type ValidatedPath = string & { readonly [__validatedPath]: never };
 **Do NOT** export `ValidatedPath` from `src/index.ts` — it is an internal implementation detail.
 
 **Test additions in `__tests__/comparePng.exceptions.test.ts`:**
+
 - `"validatePath result is accepted by getPngData without cast"` (compile-time only; add `@ts-expect-error` to prove raw string is rejected)
 
 **Acceptance criteria:**
+
 - Raw strings cannot be passed to validated-path-only internals without an explicit validation step
 - The public API remains ergonomic and backward compatible
 
@@ -148,14 +163,13 @@ export type ValidatedPath = string & { readonly [__validatedPath]: never };
 **File to modify:** `src/comparePng.ts`
 
 **Exact change:**
+
 ```ts
 // REMOVE:
 const diff: PNG = new PNG({ width: maxWidth, height: maxHeight });
 
 // REPLACE WITH:
-const diff: PNG | undefined = shouldCreateDiffFile
-  ? new PNG({ width: maxWidth, height: maxHeight })
-  : undefined;
+const diff: PNG | undefined = shouldCreateDiffFile ? new PNG({ width: maxWidth, height: maxHeight }) : undefined;
 
 // UPDATE pixelmatch call — third argument:
 // BEFORE: shouldCreateDiffFile ? diff.data : undefined
@@ -163,13 +177,15 @@ const diff: PNG | undefined = shouldCreateDiffFile
 ```
 
 **Test to add in `__tests__/comparePng.test.ts`** (add to `testDataArray`):
+
 - Name: `'compare-only mode does not write a diff file'`
-  - Create two identical `2×2` PNG buffers using `pngjs`
-  - Call `comparePng(buf1, buf2, { diffFilePath: '/tmp/should-not-exist.png' })`
-  - Assert the file was NOT created (`fs.existsSync`)
-  - Assert return value is `0`
+    - Create two identical `2×2` PNG buffers using `pngjs`
+    - Call `comparePng(buf1, buf2, { diffFilePath: '/tmp/should-not-exist.png' })`
+    - Assert the file was NOT created (`fs.existsSync`)
+    - Assert return value is `0`
 
 **Acceptance criteria:**
+
 - No diff PNG allocation occurs when `opts.diffFilePath` is absent
 - Existing compare-only behavior is unchanged
 - A test fails if a future refactor reintroduces unconditional diff allocation
@@ -202,6 +218,7 @@ Note on Windows: `realpathSync.native` returns UNC-prefixed paths (`\\?\`) for l
 **New test file:** `__tests__/validatePath.symlinks.test.ts`
 
 Required test cases (agent must implement all):
+
 - Symlink inside `baseDir` pointing to a file **outside** `baseDir` → rejected
 - Symlink inside `baseDir` pointing to a file **inside** `baseDir` → accepted
 - Lexical traversal (`../../etc`) → rejected (regression test)
@@ -213,6 +230,7 @@ Use `fs.symlinkSync` in `beforeEach`, clean up in `afterEach`.
 Add `if (process.platform === 'win32') return;` at the top of each test with a TODO comment for Windows symlink coverage.
 
 **Acceptance criteria:**
+
 - Symlink-based escapes are rejected for both read and write paths
 - Existing valid non-symlink paths continue to work
 - Tests cover lexical traversal and symlink traversal separately
@@ -226,6 +244,7 @@ Add `if (process.platform === 'win32') return;` at the top of each test with a T
 **Technical rationale:** The current DoS protection is incomplete. A crafted image can stay within the per-axis cap while still forcing excessive allocation during decode, extension, or diff creation.
 
 **New option to add to `ComparePngOptions`** (in `src/types/compare.options.ts`):
+
 ```ts
 /**
  * Maximum total pixel count (width × height) for a single input image after decoding,
@@ -237,6 +256,7 @@ maxPixels?: number;
 ```
 
 **New constant** (add to `src/comparePng.ts`):
+
 ```ts
 export const DEFAULT_MAX_PIXELS = 16_777_216; // 4096 × 4096
 ```
@@ -244,28 +264,36 @@ export const DEFAULT_MAX_PIXELS = 16_777_216; // 4096 × 4096
 **Two enforcement points** (both required):
 
 1. In `getPngData` (or `assertDimensions`): after `peekPngDimensions`, before `PNG.sync.read`:
-   ```ts
-   if (dims.width * dims.height > maxPixels)
-     throw new Error(`Image pixel count (${dims.width * dims.height}) exceeds the maximum allowed ${maxPixels} pixels. Set opts.maxPixels to increase the limit.`);
-   ```
+
+    ```ts
+    if (dims.width * dims.height > maxPixels)
+        throw new Error(
+            `Image pixel count (${dims.width * dims.height}) exceeds the maximum allowed ${maxPixels} pixels. Set opts.maxPixels to increase the limit.`,
+        );
+    ```
 
 2. In `comparePng.ts`, after `maxWidth`/`maxHeight` are computed, before diff allocation:
-   ```ts
-   if (maxWidth * maxHeight > maxPixels)
-     throw new Error(`Normalized canvas pixel count (${maxWidth * maxHeight}) exceeds the maximum allowed ${maxPixels} pixels. Set opts.maxPixels to increase the limit.`);
-   ```
+    ```ts
+    if (maxWidth * maxHeight > maxPixels)
+        throw new Error(
+            `Normalized canvas pixel count (${maxWidth * maxHeight}) exceeds the maximum allowed ${maxPixels} pixels. Set opts.maxPixels to increase the limit.`,
+        );
+    ```
 
 **Files to modify:**
+
 - `src/types/compare.options.ts` — add `maxPixels` option
 - `src/comparePng.ts` — add `DEFAULT_MAX_PIXELS`, validate option, add combined-canvas check
 - `src/getPngData.ts` — pass `maxPixels` to `assertDimensions`, add pixel-count check
 
 **Test additions in `__tests__/comparePng.exceptions.test.ts`:**
+
 - `"rejects image with dimension within maxDimension but pixel count exceeding maxPixels"` — create a `200×200` image, set `maxPixels: 100`, expect throw
 - `"rejects normalized canvas that exceeds maxPixels even when individual images do not"` — `200×1` actual + `1×200` expected, `maxPixels: 100`, expect throw on canvas check
 - `"accepts image at exactly maxPixels"` — `100×100` with `maxPixels: 10000`
 
 **Acceptance criteria:**
+
 - Oversized images are rejected based on total decoded size, not only per-axis size
 - Tests cover "allowed by maxDimension, rejected by maxPixels"
 - `maxPixels` is documented in `ComparePngOptions` TSDoc
@@ -283,10 +311,11 @@ export const DEFAULT_MAX_PIXELS = 16_777_216; // 4096 × 4096
 **New file:** `src/validateArea.ts`
 
 ```ts
-export function validateArea(area: Area, index: number): void
+export function validateArea(area: Area, index: number): void;
 ```
 
 Validation rules (agent must implement all):
+
 - `x1`, `y1`, `x2`, `y2` must all be `Number.isFinite`
 - `x1`, `y1`, `x2`, `y2` must all be integers (`Math.round(v) === v`)
 - `x1 <= x2`, else throw with message `` `excludedAreas[${index}]: x1 must be <= x2` ``
@@ -295,14 +324,16 @@ Validation rules (agent must implement all):
 
 **File to modify:** `src/comparePng.ts`  
 In the `excludedAreas` processing block, add before `addColoredAreasToImage`:
+
 ```ts
 excludedAreas.forEach((area, i) => validateArea(area, i));
 ```
 
 **Update `src/types/area.ts` TSDoc:**
-Add: *"All coordinates must be finite integers. `x1 <= x2`, `y1 <= y2`. Reversed coordinates are rejected at runtime — they are not auto-normalized."*
+Add: _"All coordinates must be finite integers. `x1 <= x2`, `y1 <= y2`. Reversed coordinates are rejected at runtime — they are not auto-normalized."_
 
 **Test additions in `__tests__/comparePng.exceptions.test.ts`:**
+
 - Float coordinate (`x1: 1.5`) → throw
 - NaN coordinate → throw
 - Infinity coordinate → throw
@@ -311,6 +342,7 @@ Add: *"All coordinates must be finite integers. `x1 <= x2`, `y1 <= y2`. Reversed
 - Valid area `{x1:0, y1:0, x2:10, y2:10}` → no throw (regression)
 
 **Acceptance criteria:**
+
 - Invalid area coordinates throw deterministic errors before image mutation
 - Valid areas keep existing inclusive-boundary behavior
 - Reversed-coordinate behavior is documented and tested
@@ -326,10 +358,11 @@ Add: *"All coordinates must be finite integers. `x1 <= x2`, `y1 <= y2`. Reversed
 **New file:** `src/validatePixelmatchOptions.ts`
 
 ```ts
-export function validatePixelmatchOptions(opts: PixelmatchOptions): void
+export function validatePixelmatchOptions(opts: PixelmatchOptions): void;
 ```
 
 Validation rules (agent must implement all):
+
 - `threshold`: if defined, must be a `number` in `[0, 1]` inclusive
 - `alpha`: if defined, must be a `number` in `[0, 1]` inclusive
 - `aaColor`: if defined, must be a tuple of exactly 3 integers each in `[0, 255]`
@@ -339,24 +372,25 @@ Validation rules (agent must implement all):
 - `diffMask`: if defined, must be `boolean`
 
 Include a private tuple helper:
+
 ```ts
 function validateColorTuple(name: string, value: unknown): void {
-  if (!Array.isArray(value) || value.length !== 3)
-    throw new Error(`${name} must be a tuple of 3 integers in [0, 255]`);
-  for (const ch of value) {
-    if (!Number.isInteger(ch) || ch < 0 || ch > 255)
-      throw new Error(`${name} channel values must be integers in [0, 255]`);
-  }
+    if (!Array.isArray(value) || value.length !== 3) throw new Error(`${name} must be a tuple of 3 integers in [0, 255]`);
+    for (const ch of value) {
+        if (!Number.isInteger(ch) || ch < 0 || ch > 255) throw new Error(`${name} channel values must be integers in [0, 255]`);
+    }
 }
 ```
 
 **File to modify:** `src/comparePng.ts`  
 After existing `validateColor` calls in the options-parsing block, add:
+
 ```ts
 if (opts?.pixelmatchOptions) validatePixelmatchOptions(opts.pixelmatchOptions);
 ```
 
 **Test additions in `__tests__/comparePng.pixelmatch-options.test.ts`:**
+
 - `threshold: -0.1` → throw
 - `threshold: 1.1` → throw
 - `threshold: 0.5` → no throw
@@ -367,6 +401,7 @@ if (opts?.pixelmatchOptions) validatePixelmatchOptions(opts.pixelmatchOptions);
 - `diffColor: [0, 0, -1]` → throw
 
 **Acceptance criteria:**
+
 - Invalid `pixelmatchOptions` fail with library-owned error messages
 - Valid options still reach `pixelmatch` unchanged semantically
 - Tests cover out-of-range numbers and malformed color tuples
@@ -380,28 +415,32 @@ if (opts?.pixelmatchOptions) validatePixelmatchOptions(opts.pixelmatchOptions);
 **Technical rationale:** This increases upgrade risk. If `pixelmatch` changes option names, types, or semantics, this library inherits that churn in its public surface even if the desired wrapper API should remain stable.
 
 **New file:** `src/adapters/toPixelmatchOptions.ts`
+
 ```ts
-export function toPixelmatchOptions(opts: PixelmatchOptions): PixelmatchRawOptions
+export function toPixelmatchOptions(opts: PixelmatchOptions): PixelmatchRawOptions;
 // where: type PixelmatchRawOptions = Parameters<typeof pixelmatch>[4]
 ```
 
 **Files to modify:**
+
 - `src/comparePng.ts` — replace direct `opts?.pixelmatchOptions` pass-through:
-  ```ts
-  // BEFORE: opts?.pixelmatchOptions
-  // AFTER:  opts?.pixelmatchOptions ? toPixelmatchOptions(opts.pixelmatchOptions) : undefined
-  ```
+    ```ts
+    // BEFORE: opts?.pixelmatchOptions
+    // AFTER:  opts?.pixelmatchOptions ? toPixelmatchOptions(opts.pixelmatchOptions) : undefined
+    ```
 - `src/types/compare.options.ts` — no shape change; update JSDoc to say:
-  *"These options are translated internally via an adapter. The public names are stable even if the underlying pixelmatch library changes."*
+  _"These options are translated internally via an adapter. The public names are stable even if the underlying pixelmatch library changes."_
 
 **Note:** Do NOT change the `PixelmatchOptions` public type shape in this item — that is a future concern.
 
 **New test file:** `__tests__/adapters/toPixelmatchOptions.test.ts`
+
 - All fields present → adapter output matches expected pixelmatch raw object
 - `undefined` → returns `undefined`
 - Partial (only `threshold`) → only `threshold` key in output, all others absent
 
 **Acceptance criteria:**
+
 - Public types no longer need to change just because `pixelmatch` internals change
 - A single adapter owns the translation to the external library
 - Tests cover adapter behavior independently from the main orchestration flow
@@ -417,14 +456,16 @@ export function toPixelmatchOptions(opts: PixelmatchOptions): PixelmatchRawOptio
 
 **Requires:** ARCH-01  
 **New file:** `src/ports/types.ts`
+
 ```ts
 export interface ImageSourcePort {
-  load(source: string | Buffer, opts: ResolvedOptions): LoadedPng;
+    load(source: string | Buffer, opts: ResolvedOptions): LoadedPng;
 }
 export interface DiffWriterPort {
-  write(path: ValidatedPath, data: Buffer): void;
+    write(path: ValidatedPath, data: Buffer): void;
 }
 ```
+
 No runtime code. Types only. No tests needed.
 
 ---
@@ -433,6 +474,7 @@ No runtime code. Types only. No tests needed.
 
 **Requires:** API-01a  
 **New files:**
+
 - `src/ports/fsImageSource.ts` — implements `ImageSourcePort` using existing `getPngData`
 - `src/ports/fsDiffWriter.ts` — implements `DiffWriterPort` using existing `writeFileSync`
 
@@ -441,6 +483,7 @@ No runtime code. Types only. No tests needed.
 All existing tests must pass unchanged.
 
 **Add one test** (new `describe` block in `__tests__/comparePng.test.ts`):
+
 - Inject a fake `DiffWriterPort` that records calls
 - Verify it is called on mismatch and not called on zero mismatch
 
@@ -450,13 +493,11 @@ All existing tests must pass unchanged.
 
 **Requires:** API-01b  
 **New file:** `src/comparePngAsync.ts`
+
 ```ts
-export async function comparePngAsync(
-  png1: string | Buffer,
-  png2: string | Buffer,
-  opts?: ComparePngOptions
-): Promise<number>
+export async function comparePngAsync(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): Promise<number>;
 ```
+
 Use `fs.promises.readFile` and `fs.promises.writeFile` internally.  
 Export from `src/index.ts`.
 
@@ -467,7 +508,8 @@ Must cover the same cases as `comparePng.test.ts`, but `await`ed.
 
 ### [API-01d] Documentation and backward-compat validation
 
-**Requires:** API-01c  
+**Requires:** API-01c
+
 - Add `comparePngAsync` to `README.md` with usage example
 - Add `CHANGELOG.md` entry under next minor version
 - Run full test suite; verify `comparePng` (sync) behavior is unchanged
@@ -482,18 +524,28 @@ Must cover the same cases as `comparePng.test.ts`, but `await`ed.
 **Technical rationale:** Consumers have no stable way to branch on failure mode besides parsing text. This becomes brittle as the library gains more validation and security checks.
 
 **New file:** `src/errors.ts`
+
 ```ts
 export class InvalidInputError extends Error {
-  readonly code = 'ERR_INVALID_PNG_INPUT' as const;
-  constructor(message: string) { super(message); this.name = 'InvalidInputError'; }
+    readonly code = 'ERR_INVALID_PNG_INPUT' as const;
+    constructor(message: string) {
+        super(message);
+        this.name = 'InvalidInputError';
+    }
 }
 export class PathValidationError extends Error {
-  readonly code = 'ERR_PATH_VALIDATION' as const;
-  constructor(message: string) { super(message); this.name = 'PathValidationError'; }
+    readonly code = 'ERR_PATH_VALIDATION' as const;
+    constructor(message: string) {
+        super(message);
+        this.name = 'PathValidationError';
+    }
 }
 export class ResourceLimitError extends Error {
-  readonly code = 'ERR_RESOURCE_LIMIT' as const;
-  constructor(message: string) { super(message); this.name = 'ResourceLimitError'; }
+    readonly code = 'ERR_RESOURCE_LIMIT' as const;
+    constructor(message: string) {
+        super(message);
+        this.name = 'ResourceLimitError';
+    }
 }
 ```
 
@@ -501,31 +553,34 @@ Export all three from `src/index.ts` (they are public API).
 
 **Complete throw-site migration inventory** (agent must update ALL):
 
-| File | Current throw | New error class |
-|---|---|---|
-| `src/validatePath.ts` | `"Invalid file path: path must not be empty..."` | `PathValidationError` |
-| `src/validatePath.ts` | `"Invalid file path: path must not contain null..."` | `PathValidationError` |
-| `src/validatePath.ts` | `"Path traversal detected..."` | `PathValidationError` |
-| `src/getPngData.ts` | `"Invalid PNG input: the source could not be loaded"` | `InvalidInputError` |
-| `src/getPngData.ts` | `"Invalid PNG input: the data could not be parsed"` | `InvalidInputError` |
-| `src/getPngData.ts` | `"Unknown PNG file input type"` | `InvalidInputError` |
-| `src/getPngData.ts` | dimension-exceeded message (`assertDimensions`) | `ResourceLimitError` |
-| `src/comparePng.ts` | `"Unknown PNG files input type"` | `InvalidInputError` |
-| `src/comparePng.ts` | `"opts.diffFilePath must be a string..."` | Keep as `TypeError` — API misuse |
-| `src/comparePng.ts` | `"opts.maxDimension must be a positive integer..."` | Keep as `TypeError` — API misuse |
-| `src/validateColor.ts` | any invalid color error | `InvalidInputError` |
+| File                   | Current throw                                         | New error class                  |
+| ---------------------- | ----------------------------------------------------- | -------------------------------- |
+| `src/validatePath.ts`  | `"Invalid file path: path must not be empty..."`      | `PathValidationError`            |
+| `src/validatePath.ts`  | `"Invalid file path: path must not contain null..."`  | `PathValidationError`            |
+| `src/validatePath.ts`  | `"Path traversal detected..."`                        | `PathValidationError`            |
+| `src/getPngData.ts`    | `"Invalid PNG input: the source could not be loaded"` | `InvalidInputError`              |
+| `src/getPngData.ts`    | `"Invalid PNG input: the data could not be parsed"`   | `InvalidInputError`              |
+| `src/getPngData.ts`    | `"Unknown PNG file input type"`                       | `InvalidInputError`              |
+| `src/getPngData.ts`    | dimension-exceeded message (`assertDimensions`)       | `ResourceLimitError`             |
+| `src/comparePng.ts`    | `"Unknown PNG files input type"`                      | `InvalidInputError`              |
+| `src/comparePng.ts`    | `"opts.diffFilePath must be a string..."`             | Keep as `TypeError` — API misuse |
+| `src/comparePng.ts`    | `"opts.maxDimension must be a positive integer..."`   | Keep as `TypeError` — API misuse |
+| `src/validateColor.ts` | any invalid color error                               | `InvalidInputError`              |
 
 **Test changes required:**
 All existing tests that use `.toThrow('message substring')` must **also** assert error type:
+
 ```ts
-expect(err).toBeInstanceOf(PathValidationError)
+expect(err).toBeInstanceOf(PathValidationError);
 ```
 
 **New test file:** `__tests__/errors.test.ts`
+
 - Each error class has correct `.name`, `.code`, and `.message`
 - `instanceof` checks work after thrown and caught
 
 **Acceptance criteria:**
+
 - Publicly reachable failures expose stable error codes
 - Tests assert codes/types, not only message substrings
 - Similar failure modes no longer rely on near-duplicate string literals
@@ -539,27 +594,30 @@ expect(err).toBeInstanceOf(PathValidationError)
 **Technical rationale:** Right now zero-size behavior is an implementation side effect, not a contract. That makes future refactors risky and leaves corner cases under-specified for consumers and maintainers.
 
 **Pre-decided policy:**
+
 - A decoded PNG with `width === 0` OR `height === 0` is rejected with `InvalidInputError('Invalid PNG input: image has zero dimensions')`
 - This check applies when `throwErrorOnInvalidInputData` is `true`
 - When `throwErrorOnInvalidInputData` is `false`, a zero-dimension PNG (not the invalid-sentinel path) is also rejected — zero dimensions are never valid, unlike missing files
 
 **File to modify:** `src/getPngData.ts`  
 After `PNG.sync.read` succeeds, add:
+
 ```ts
 if (result.width === 0 || result.height === 0) {
-  if (throwErrorOnInvalidInputData)
-    throw new InvalidInputError('Invalid PNG input: image has zero dimensions');
-  return { kind: 'invalid', reason: 'decode' }; // TYPE-01 union
+    if (throwErrorOnInvalidInputData) throw new InvalidInputError('Invalid PNG input: image has zero dimensions');
+    return { kind: 'invalid', reason: 'decode' }; // TYPE-01 union
 }
 ```
 
 **Test additions in `__tests__/comparePng.exceptions.test.ts`:**
+
 - `"throws InvalidInputError for a valid-but-zero-dimension PNG buffer"`:
   Construct `new PNG({width:0, height:0})`, write to `Buffer`, pass to `comparePng` — expect throw
 - `"with throwErrorOnInvalidInputData=false, zero-dimension PNG is treated as invalid"`:
   One zero-dimension + one valid → should not throw; both zero-dimension → throws dual-invalid error
 
 **Acceptance criteria:**
+
 - Zero-dimension behavior is documented and tested as an explicit contract
 - Internal invalid-input handling no longer depends on accidental zero-size semantics
 - `comparePng` behavior is deterministic across all zero-size edge cases
@@ -584,15 +642,18 @@ Human step: run a timing script against `addColoredAreasToImage` with a `4096×4
 **Files to modify:** `src/addColoredAreasToImage.ts`, `src/fillImageSizeDifference.ts`
 
 **Exact change:** Replace `drawPixelOnBuff(image.data, pos, color)` with:
+
 ```ts
-image.data[pos]     = color.r;
+image.data[pos] = color.r;
 image.data[pos + 1] = color.g;
 image.data[pos + 2] = color.b;
 image.data[pos + 3] = 255;
 ```
+
 Remove `import` of `drawPixelOnBuff` in both files if no other callers remain.
 
 **Acceptance criteria:**
+
 - All existing snapshot tests pass byte-for-byte (`npx vitest run --update-snapshots` must produce **zero** snapshot changes)
 - Large-area painting is measurably faster than the baseline from PERF-02a
 - Bounds handling remains explicit and test-covered
@@ -608,6 +669,7 @@ Remove `import` of `drawPixelOnBuff` in both files if no other callers remain.
 **This item requires profiling with heap snapshots** (V8 inspector, clinic.js, or `--expose-gc` manual measurement) before any code change can be justified or verified. An AI agent cannot meaningfully "measure peak memory" and make a sound trade-off decision.
 
 When the spike output exists, the resulting Story must specify:
+
 - Whether to reuse buffers in `extendImage` (modify in-place vs. new allocation)
 - Whether to defer `extendImage` until after `excludedArea` painting
 - Exact before/after memory figures as the AC threshold
@@ -615,6 +677,7 @@ When the spike output exists, the resulting Story must specify:
 Only then is the item agent-executable.
 
 **Acceptance criteria (after spike):**
+
 - Peak memory usage for different-size comparisons is measured and improved
 - Existing results remain byte-for-byte compatible
 - The chosen strategy is documented with tradeoffs and constraints
@@ -634,16 +697,19 @@ Only then is the item agent-executable.
 Implement exactly these three test cases using in-memory PNG `Buffer`s (create minimal valid PNG buffers with `pngjs` — no file fixtures):
 
 **Test 1:** `"does not write diff file when pixelmatch returns 0"`
+
 - Create two identical `2×2` PNG buffers
 - Call `comparePng(buf1, buf2, { diffFilePath: '/tmp/should-not-exist.png' })`
 - Assert the file was NOT created (`fs.existsSync`)
 - Assert return value is `0`
 
 **Test 2:** `"throws when both inputs are invalid"`
+
 - Pass two garbage `Buffer`s with `throwErrorOnInvalidInputData: true`
 - Assert thrown error is `instanceof InvalidInputError` (after RELI-03); until then assert message includes `'Unknown PNG'`
 
 **Test 3:** `"excludedAreas validation runs before image mutation"`
+
 - Pass valid PNG buffers and `excludedAreas: [{x1: NaN, y1: 0, x2: 10, y2: 10}]`
 - Assert throw before any comparison occurs
 - Verify by checking that no diff file was created
@@ -655,16 +721,17 @@ Implement exactly these three test cases using in-memory PNG `Buffer`s (create m
 **Requires:** API-01b (ports wired)
 
 When unblocked, the agent should:
+
 - Create `__tests__/comparePng.ports.test.ts`
 - Inject a fake `ImageSourcePort` that records `load()` calls
 - Inject a fake `DiffWriterPort` that records `write()` calls
 - Verify: no diff write on zero mismatch, `load` called exactly twice, normalization stage called after load
 
 **Acceptance criteria (TEST-01a):**
+
 - Core orchestration decision logic can be tested without touching disk
 - All three test cases are implemented and pass
 - Integration tests in existing files remain for real PNG decoding/comparison behavior
-
 
 ---
 
@@ -672,22 +739,22 @@ When unblocked, the agent should:
 
 The following sequence ensures each item is unblocked, self-contained, and the test suite stays green after every merge:
 
-| Sprint | Item(s) | Why This Order |
-|--------|---------|----------------|
-| 1 | **RELI-03** | Establishes structured error classes used by all subsequent items |
-| 1 | **PERF-01** | Zero-dependency, high-value, one-file change |
-| 1 | **TYPE-02** | Zero-dependency, type-only, no behavior change |
-| 2 | **SECU-01** | RELI-03 errors available; isolated to `validatePath.ts` |
-| 2 | **SECU-02** | RELI-03 errors available; isolated to options parsing |
-| 2 | **RELI-01** | RELI-03 errors available; isolated to new `validateArea.ts` |
-| 3 | **RELI-02** | Builds on validated-boundary pattern from RELI-01 |
-| 3 | **TYPE-03** | Formalizes RELI-02 adapter; immediate follow-on |
-| 3 | **TEST-01a** | No unresolved dependencies; exercises items from sprints 1–2 |
-| 4 | **ARCH-01** | Large refactor; foundation for API-01 and TEST-01b |
-| 4 | **TYPE-01** | Cleaner after ARCH-01 resolves mutable field |
-| 5 | **RELI-04** | Requires TYPE-01 union |
-| 5 | **API-01a/b** | Requires ARCH-01 pipeline stages |
-| 6 | **API-01c/d** | Requires API-01a/b |
-| 6 | **TEST-01b** | Requires API-01b ports |
-| Backlog | **PERF-02b** | Requires human spike (PERF-02a) first |
-| Backlog | **PERF-03** | Requires human spike first |
+| Sprint  | Item(s)       | Why This Order                                                    |
+| ------- | ------------- | ----------------------------------------------------------------- |
+| 1       | **RELI-03**   | Establishes structured error classes used by all subsequent items |
+| 1       | **PERF-01**   | Zero-dependency, high-value, one-file change                      |
+| 1       | **TYPE-02**   | Zero-dependency, type-only, no behavior change                    |
+| 2       | **SECU-01**   | RELI-03 errors available; isolated to `validatePath.ts`           |
+| 2       | **SECU-02**   | RELI-03 errors available; isolated to options parsing             |
+| 2       | **RELI-01**   | RELI-03 errors available; isolated to new `validateArea.ts`       |
+| 3       | **RELI-02**   | Builds on validated-boundary pattern from RELI-01                 |
+| 3       | **TYPE-03**   | Formalizes RELI-02 adapter; immediate follow-on                   |
+| 3       | **TEST-01a**  | No unresolved dependencies; exercises items from sprints 1–2      |
+| 4       | **ARCH-01**   | Large refactor; foundation for API-01 and TEST-01b                |
+| 4       | **TYPE-01**   | Cleaner after ARCH-01 resolves mutable field                      |
+| 5       | **RELI-04**   | Requires TYPE-01 union                                            |
+| 5       | **API-01a/b** | Requires ARCH-01 pipeline stages                                  |
+| 6       | **API-01c/d** | Requires API-01a/b                                                |
+| 6       | **TEST-01b**  | Requires API-01b ports                                            |
+| Backlog | **PERF-02b**  | Requires human spike (PERF-02a) first                             |
+| Backlog | **PERF-03**   | Requires human spike first                                        |
