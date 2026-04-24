@@ -1,4 +1,49 @@
-import { relative, resolve } from 'node:path';
+import { lstatSync, realpathSync, statSync } from 'node:fs';
+import { isAbsolute, parse, relative, resolve } from 'node:path';
+import { PathValidationError } from './errors';
+import type { ValidatedPath } from './types/validated-path';
+
+export type ValidatePathMode = 'input' | 'output';
+
+function isContained(baseDir: string, targetPath: string): boolean {
+    const rel = relative(baseDir, targetPath);
+    return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
+function realpathNative(targetPath: string, missingBaseDirMessage?: string): string {
+    try {
+        return realpathSync.native(targetPath);
+    } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code === 'ELOOP') {
+            throw new PathValidationError('Path validation failed: symlink loop detected');
+        }
+        if (missingBaseDirMessage !== undefined) {
+            throw new PathValidationError(missingBaseDirMessage);
+        }
+        throw error;
+    }
+}
+
+function realpathExistingPath(targetPath: string): string {
+    let currentPath = targetPath;
+    const { root } = parse(targetPath);
+
+    while (true) {
+        try {
+            return realpathNative(currentPath);
+        } catch (error) {
+            const code = (error as NodeJS.ErrnoException).code;
+            if (code !== 'ENOENT' && code !== 'ENOTDIR') {
+                throw error;
+            }
+            if (currentPath === root) {
+                throw error;
+            }
+            currentPath = parse(currentPath).dir;
+        }
+    }
+}
 
 /**
  * Validates and resolves a file path string.
@@ -9,37 +54,61 @@ import { relative, resolve } from 'node:path';
  * `path.resolve`.
  *
  * When `baseDir` is provided the resolved path must be located inside that
- * directory (or equal to it). Containment is checked via `path.relative` rather
- * than a string prefix test, which correctly handles case-insensitive filesystems
- * and sibling-directory names that share a common prefix (e.g. `/safe/dir` vs
- * `/safe/dir-evil`).
- *
- * Note: this check operates on the lexical path only. Symlinks are not resolved
- * here; callers that require symlink-safe containment should `fs.realpathSync`
- * both paths before calling this function.
+ * directory after resolving symlinks. For input paths the target itself is
+ * resolved; for output paths the parent directory is resolved and the original
+ * filename is re-attached after containment is checked.
  *
  * @param filePath - The file path string to validate.
  * @param baseDir  - Optional directory the resolved path must reside within.
+ * @param mode     - Whether the path is used for reading or writing.
  * @returns The resolved absolute path.
  * @throws {Error} If the path is empty/whitespace-only, contains a null byte,
  *   or (when `baseDir` is given) resolves outside that directory.
  */
-export function validatePath(filePath: string, baseDir?: string): string {
+export function validatePath(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPath {
     if (filePath.trim().length === 0) {
-        throw new Error('Invalid file path: path must not be empty or whitespace only');
+        throw new PathValidationError('Invalid file path: path must not be empty or whitespace only');
     }
     if (filePath.includes('\0')) {
-        throw new Error('Invalid file path: path must not contain null bytes');
+        throw new PathValidationError('Invalid file path: path must not contain null bytes');
     }
+
     const resolved = resolve(filePath);
-    if (baseDir !== undefined) {
-        const normalizedBase = resolve(baseDir);
-        // path.relative returns a path starting with '..' when `resolved` is above
-        // or beside `normalizedBase`; that condition means escape.
-        const rel = relative(normalizedBase, resolved);
-        if (rel.startsWith('..')) {
-            throw new Error(`Path traversal detected: "${resolved}" is outside the allowed directory "${normalizedBase}"`);
+    if (mode === 'output') {
+        try {
+            const fileStats = lstatSync(resolved);
+            if (fileStats.isSymbolicLink()) {
+                throw new PathValidationError('Invalid file path: output path must not be an existing symlink');
+            }
+            if (statSync(resolved).isDirectory()) {
+                throw new PathValidationError('Invalid file path: output path must not be an existing directory');
+            }
+        } catch (error) {
+            const code = (error as NodeJS.ErrnoException).code;
+            if (!(error instanceof PathValidationError) && code !== 'ENOENT' && code !== 'ENOTDIR') {
+                throw error;
+            }
+            if (error instanceof PathValidationError) {
+                throw error;
+            }
         }
     }
-    return resolved;
+    if (baseDir !== undefined) {
+        const normalizedBaseDir = resolve(baseDir);
+        if (!isContained(normalizedBaseDir, resolved)) {
+            throw new PathValidationError(`Path traversal detected: "${resolved}" is outside the allowed directory "${normalizedBaseDir}"`);
+        }
+
+        const realBaseDir = realpathNative(normalizedBaseDir, 'Path validation failed: base directory does not exist or is not accessible');
+        const realTargetPath =
+            mode === 'input'
+                ? realpathNative(resolved)
+                : resolve(realpathExistingPath(parse(resolved).dir), relative(parse(resolved).dir, resolved));
+
+        if (!isContained(realBaseDir, realTargetPath)) {
+            throw new PathValidationError(`Path traversal detected: "${resolved}" is outside the allowed directory "${realBaseDir}"`);
+        }
+    }
+
+    return resolved as ValidatedPath;
 }

@@ -85,6 +85,13 @@ export type ComparePngOptions = {
      */
     maxDimension?: number;
     /**
+     * Maximum total pixel count (width × height) for a single decoded input image
+     * and for the normalized comparison canvas.
+     * Set to `Infinity` to disable the limit entirely.
+     * @default 16_777_216
+     */
+    maxPixels?: number;
+    /**
      * When provided, `diffFilePath` must resolve to a path inside this directory.
      * Any attempt to write outside it (e.g. via `../../etc/cron.d/`) throws an error.
      * Use this in server-side contexts where `diffFilePath` may be caller-controlled
@@ -101,7 +108,8 @@ export type ComparePngOptions = {
      */
     inputBaseDir?: string;
     /**
-     * Options forwarded directly to [pixelmatch](https://github.com/mapbox/pixelmatch).
+     * Options translated internally via an adapter to [pixelmatch](https://github.com/mapbox/pixelmatch).
+     * The public option names remain stable even if the underlying pixelmatch library changes.
      * @default undefined
      */
     pixelmatchOptions?: PixelmatchOptions;

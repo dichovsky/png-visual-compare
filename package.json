@@ -44,6 +44,8 @@
         "clean": "rimraf ./out ./coverage ./test-results",
         "docker:build": "docker build --compress -t test-png-visual-compare .",
         "docker:run": "docker run --rm test-png-visual-compare",
+        "postcodemap": "npm run format",
+        "codemap": "node ./scripts/generate-codemap.mjs",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "lint": "eslint .",

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `DEFAULT_EXCLUDED_AREA_COLOR` and `DEFAULT_EXTENDED_AREA_COLOR` exported constants so callers
   can inspect or reference the built-in fill colours.
+- `comparePngAsync` for Promise-based comparisons using async filesystem I/O.
 - `excludedAreaColor` and `extendedAreaColor` options in `ComparePngOptions` to override the
   default fill colours when they clash with image content.
 - `docker-compose.yml` for running tests with a single `docker compose up` command.
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - BREAKING: package support is now limited to macOS and Linux; `npm install` is blocked on Windows
   via the package `os` field, and CI now validates Ubuntu and macOS instead of Windows.
+- `ComparePngOptions` now documents and enforces `maxPixels`, and `DEFAULT_MAX_PIXELS` is exported.
 - `diffFilePath` is now resolved to an absolute path via `path.resolve` before use, preventing
   accidental relative-path writes.
 - Test timeout lowered from 90 s to 30 s in `vitest.config.mjs`.
@@ -40,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Unused `ts-node` and `@tsconfig/recommended` dev dependencies.
+- BREAKING: removed the public `PngData` export in favor of the discriminated internal `LoadedPng` result union.
 
 ## [4.1.0] - 2025-06-27
 

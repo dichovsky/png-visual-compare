@@ -4,4 +4,5 @@ import * as Index from '../src/index';
 test('index.ts should export modules', () => {
     expect(Index).toBeDefined();
     expect(Index.comparePng).toBeDefined();
+    expect(Index.comparePngAsync).toBeDefined();
 });
