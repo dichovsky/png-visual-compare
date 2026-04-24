@@ -1,5 +1,5 @@
 import { lstatSync, realpathSync, statSync } from 'node:fs';
-import { isAbsolute, parse, relative, resolve } from 'node:path';
+import { isAbsolute, parse, relative, resolve, sep } from 'node:path';
 import { PathValidationError } from './errors';
 import type { ValidatedPath } from './types/validated-path';
 
@@ -7,7 +7,7 @@ export type ValidatePathMode = 'input' | 'output';
 
 function isContained(baseDir: string, targetPath: string): boolean {
     const rel = relative(baseDir, targetPath);
-    return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+    return rel === '' || (!(rel === '..' || rel.startsWith('..' + sep)) && !isAbsolute(rel));
 }
 
 function realpathNative(targetPath: string, missingBaseDirMessage?: string): string {

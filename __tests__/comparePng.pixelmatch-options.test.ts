@@ -119,6 +119,14 @@ const testDataArrayPixelmatchValidation: {
         throws: true,
         message: 'pixelmatchOptions must be an object when provided',
     },
+    {
+        id: 11,
+        name: 'pixelmatchOptions array is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pixelmatchOptions: [] as any,
+        throws: true,
+        message: 'pixelmatchOptions must be an object when provided',
+    },
 ];
 
 for (const testData of testDataArrayPixelmatchValidation) {

@@ -25,7 +25,7 @@ function validateColorTuple(name: string, value: unknown): void {
 }
 
 export function validatePixelmatchOptions(opts: PixelmatchOptions): void {
-    if (typeof opts !== 'object' || opts === null) {
+    if (typeof opts !== 'object' || opts === null || Array.isArray(opts)) {
         throw new InvalidInputError('pixelmatchOptions must be an object when provided');
     }
     validateUnitInterval('pixelmatchOptions.threshold', opts.threshold);

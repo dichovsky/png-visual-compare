@@ -94,4 +94,11 @@ describe('validatePath — baseDir containment (VUL-01, VUL-02)', () => {
         const anyPath = path.resolve('anywhere', 'file.png');
         expect(() => validatePath(anyPath, undefined)).not.toThrow();
     });
+
+    it('should accept a path whose segment starts with ".." but is inside baseDir (e.g. "..a/file.png")', () => {
+        // path.relative returns '..a/file.png' which starts with '..' as a string
+        // but is NOT a traversal segment — the fix ensures we check '..' + sep, not just '..'
+        const filePath = path.join(baseDir, '..a', 'file.png');
+        expect(validatePath(filePath, baseDir, 'output')).toBe(filePath);
+    });
 });
