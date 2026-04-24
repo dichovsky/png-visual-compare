@@ -13,7 +13,7 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 
 **Key Benefits:**
 
-- ✨ **Zero Native Binaries** — Pure JavaScript, works everywhere
+- ✨ **Zero Native Binaries** — Pure JavaScript for supported macOS and Linux environments
 - 🖼️ **File or Buffer** — Accept absolute file paths or raw `Buffer` inputs
 - 🔍 **Pixel-Level Accuracy** — Powered by [pixelmatch](https://github.com/mapbox/pixelmatch)
 - 🎭 **Exclusion Zones** — Skip regions during comparison with `excludedAreas`
@@ -37,6 +37,8 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 npm install -D png-visual-compare
 ```
 
+> **Platform Requirement:** macOS or Linux only. Windows is not supported.
+>
 > **Node.js Requirement:** Node.js 20 or higher is required.
 
 ---
@@ -156,7 +158,7 @@ Defining `excludedAreas` coordinates by hand can be tedious. The **Excluded Area
 npm run tool:excluded-areas-builder
 ```
 
-This opens `tools/excluded-areas-builder.html` in your default browser. No server or build step is required — the file runs entirely in the browser.
+This opens `tools/excluded-areas-builder.html` in your default browser on macOS or Linux. No server or build step is required — the file runs entirely in the browser.
 
 ### How to use
 

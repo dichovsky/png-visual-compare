@@ -10,6 +10,8 @@ npm install
 
 Node.js 20 or higher is required.
 
+Development and local tooling are supported on macOS and Linux only. Windows is not supported.
+
 ## Common commands
 
 | Command                               | Description                                                      |
