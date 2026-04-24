@@ -87,3 +87,17 @@ position = (image.width * y + x) * 4; // R=[pos], G=[pos+1], B=[pos+2], A=[pos+3
 - **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense` — enforced by `npm run test:license` (part of `pretest`)
 - **Only `./out` is published** to npm (controlled by `"files": ["./out"]`)
 - The CI publish workflow runs `npm test` then `npm run build` again — the double build is intentional to produce a clean `./out` after coverage/test-results are deleted
+
+## Mistake Logging
+
+Log one compact event per mistake (20-40 tokens, no filler):
+
+```text
+Ctx:
+Err:
+Cause:
+Fix:
+Rule:
+```
+
+Store project-specific mistakes in `.claude/memory/` (session files are gitignored — see `.claude/memory/README.md`); generalizable rules in global memory.
