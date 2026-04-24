@@ -100,4 +100,4 @@ Fix:
 Rule:
 ```
 
-Store project-specific mistakes in `.claude/memory`; generalizable rules in global memory.
+Store project-specific mistakes in `.claude/memory/` (session files are gitignored — see `.claude/memory/README.md`); generalizable rules in global memory.

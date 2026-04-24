@@ -107,3 +107,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Claude agent memory (session logs are local; only README is committed)
+.claude/memory/*.md
+!.claude/memory/README.md
