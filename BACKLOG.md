@@ -289,9 +289,9 @@ export function validateArea(area: Area, index: number): void
 Validation rules (agent must implement all):
 - `x1`, `y1`, `x2`, `y2` must all be `Number.isFinite`
 - `x1`, `y1`, `x2`, `y2` must all be integers (`Math.round(v) === v`)
-- `x1 <= x2`, else throw `Error(\`excludedAreas[\${index}]: x1 must be <= x2\`)`
-- `y1 <= y2`, else throw `Error(\`excludedAreas[\${index}]: y1 must be <= y2\`)`
-- On NaN/Infinity/float: throw `Error(\`excludedAreas[\${index}]: coordinates must be finite integers\`)`
+- `x1 <= x2`, else throw with message `` `excludedAreas[${index}]: x1 must be <= x2` ``
+- `y1 <= y2`, else throw with message `` `excludedAreas[${index}]: y1 must be <= y2` ``
+- On NaN/Infinity/float: throw with message `` `excludedAreas[${index}]: coordinates must be finite integers` ``
 
 **File to modify:** `src/comparePng.ts`  
 In the `excludedAreas` processing block, add before `addColoredAreasToImage`:
