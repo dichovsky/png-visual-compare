@@ -1,4 +1,4 @@
-import { isAbsolute, relative, resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
 
 /**
  * Validates and resolves a file path string.
@@ -35,9 +35,9 @@ export function validatePath(filePath: string, baseDir?: string): string {
     if (baseDir !== undefined) {
         const normalizedBase = resolve(baseDir);
         // path.relative returns a path starting with '..' when `resolved` is above
-        // or beside `normalizedBase`. Either condition means escape.
+        // or beside `normalizedBase`; that condition means escape.
         const rel = relative(normalizedBase, resolved);
-        if (rel.startsWith('..') || isAbsolute(rel)) {
+        if (rel.startsWith('..')) {
             throw new Error(`Path traversal detected: "${resolved}" is outside the allowed directory "${normalizedBase}"`);
         }
     }

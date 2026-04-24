@@ -56,7 +56,7 @@
         "test:license": "npx --yes license-checker --production --onlyAllow \"ISC; MIT; MIT OR X11; BSD; Apache-2.0; Unlicense\"",
         "pretest:unit": "npm run clean && npm run lint && npm run format:check && npm run test:license && npm run build",
         "test:unit": "vitest run --coverage",
-        "tool:excluded-areas-builder": "node -e \"const { execFileSync } = require('node:child_process'); if (process.platform === 'darwin') { execFileSync('open', ['tools/excluded-areas-builder.html']); } else if (process.platform === 'linux') { execFileSync('xdg-open', ['tools/excluded-areas-builder.html']); } else { throw new Error('Unsupported platform: development tooling is only supported on macOS and Linux'); }\""
+        "tool:excluded-areas-builder": "node -e \"const { execFileSync } = require('node:child_process'); if (process.platform === 'darwin') { execFileSync('open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else if (process.platform === 'linux') { execFileSync('xdg-open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else { throw new Error('Unsupported platform: development tooling is only supported on macOS and Linux'); }\""
     },
     "dependencies": {
         "pixelmatch": "~7.1.0",
