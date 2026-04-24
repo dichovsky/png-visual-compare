@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- BREAKING: package support is now limited to macOS and Linux; `npm install` is blocked on Windows
+  via the package `os` field, and CI now validates Ubuntu and macOS instead of Windows.
 - `diffFilePath` is now resolved to an absolute path via `path.resolve` before use, preventing
   accidental relative-path writes.
 - Test timeout lowered from 90 s to 30 s in `vitest.config.mjs`.

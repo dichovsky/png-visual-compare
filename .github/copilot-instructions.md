@@ -244,10 +244,10 @@ Current coverage is 100% across all source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches)
 
-| Job     | OS             | Node |
-| ------- | -------------- | ---- |
-| ubuntu  | ubuntu-latest  | 24.x |
-| windows | windows-latest | 22.x |
+| Job    | OS            | Node |
+| ------ | ------------- | ---- |
+| ubuntu | ubuntu-latest | 24.x |
+| macos  | macos-latest  | 20.x |
 
 Each job: `npm ci` → `npm test` (which runs the full `pretest` + vitest pipeline).
 
