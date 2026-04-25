@@ -8,8 +8,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run build          # compile TypeScript → ./out via tsconfig.prod.json (runs clean first via prebuild)
 npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
-npm run test           # full suite: clean → lint → format:check → license check → build → vitest --coverage
+npm run typecheck      # typecheck the full repo via tsconfig.json (src, tests, e2e, configs)
+npm run test           # unit-test gate: clean → lint → format:check → license check → typecheck → vitest --coverage
+npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder
+npm run test:all       # npm run test && npm run test:e2e
 npm run test:license   # check all production dependency licenses are in the approved list
+npm run codemap        # regenerate CODEMAP.md via scripts/generate-codemap.mjs
 npm run format         # format files with Prettier
 npm run format:check   # validate formatting with Prettier
 ```
@@ -42,33 +46,35 @@ npx vitest run --update-snapshots
 
 ## Architecture
 
-This is a single-function npm library. The entire public API is one named export: `comparePng` from `src/comparePng.ts`, re-exported through `src/index.ts`.
+This repository now has two public runtime APIs:
 
-**Production dependencies:** `pixelmatch` (pixel comparison engine) and `pngjs` (synchronous PNG read/write).
+- `comparePng(...)` — sync orchestration
+- `comparePngAsync(...)` — async filesystem-backed orchestration
+
+Both APIs share the same pipeline:
+
+1. `resolveOptions`
+2. `loadSources` / `loadSourcesAsync`
+3. `normalizeImages`
+4. `runComparison`
+5. `persistDiff`
+
+`comparePng.ts` should remain orchestration-only. Detailed architecture lives in `docs/ARCHITECTURE.md`.
 
 ### Source layout
 
 ```
 src/
-  index.ts                    # public barrel: exports comparePng + all types
-  comparePng.ts               # main function (the entire public API)
-  getPngData.ts               # reads file path or Buffer → PngData
-  extendImage.ts              # pads a PNG canvas to a larger size
-  fillImageSizeDifference.ts  # colours the padded region green (0,255,0)
-  addColoredAreasToImage.ts   # paints rectangular areas with a solid colour
-  drawPixelOnBuff.ts          # writes a single RGBA pixel into a raw buffer
+  index.ts                    # exports comparePng, comparePngAsync, errors, constants, and public types
+  comparePng.ts               # sync orchestrator
+  comparePngAsync.ts          # async orchestrator
+  pipeline/                   # option resolution, loading, normalization, comparison, diff persistence
+  ports/                      # sync/async filesystem adapters and test seams
+  adapters/                   # public-to-external library boundaries
+  getPngData.ts               # decodes image sources into LoadedPng
+  validate*.ts                # path, area, color, and pixelmatch option validation
   types/                      # one type per file; collected in types/index.ts
 ```
-
-### `comparePng` data flow
-
-1. Parse options (`excludedAreas`, `throwErrorOnInvalidInputData`, `extendedAreaColor`, `excludedAreaColor`, `diffFilePath`)
-2. `getPngData()` on each input — if both are invalid, always throws; if one is invalid with `throwError=false`, treats it as a 0×0 PNG
-3. If `excludedAreas` is set: paint those regions with `excludedAreaColor` on both images (default blue, they always match)
-4. If images differ in size: extend both to `max(w1,w2) × max(h1,h2)`, paint padded area with `extendedAreaColor` (default green, always counts as diff)
-5. Run `pixelmatch()` → returns mismatch count
-6. If `mismatchCount > 0` and `diffFilePath` is set: write diff PNG (parent dirs created automatically)
-7. Return mismatch count (0 = identical)
 
 ### Pixel address formula (used throughout)
 
@@ -83,10 +89,10 @@ position = (image.width * y + x) * 4; // R=[pos], G=[pos+1], B=[pos+2], A=[pos+3
 - **Snapshot tests** in `comparePng.diffs.test.ts` and `comparePng.pixelmatch-options.test.ts` use `toMatchSnapshot()` on raw diff PNG buffers; snapshots are committed in `__tests__/__snapshots__/`
 - **One type per file** in `src/types/`; imports within `src/` use extensionless relative paths
 - **No test helper modules** — each test file is self-contained
-- **Coverage thresholds**: 90% lines/functions/statements, 75% branches (currently 100%); `src/types/**/*` is excluded
-- **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense` — enforced by `npm run test:license` (part of `pretest`)
+- **Coverage thresholds**: 100% lines/functions/statements/branches; `src/types/**/*` is excluded
+- **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense` — enforced by `npm run test:license` (part of `npm test`)
 - **Only `./out` is published** to npm (controlled by `"files": ["./out"]`)
-- The CI publish workflow runs `npm test` then `npm run build` again — the double build is intentional to produce a clean `./out` after coverage/test-results are deleted
+- **TypeScript config split**: use `tsconfig.json` for dev-wide no-emit typechecking and `tsconfig.prod.json` for emitted package builds
 
 ## Mistake Logging
 

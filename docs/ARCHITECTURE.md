@@ -248,11 +248,16 @@ The ports isolate file I/O from orchestration so tests can validate decision log
 
 ## Package/build architecture
 
-- TypeScript sources in `src/`
-- compiled output in `out/`
+- `tsconfig.json` is the repo-wide development config:
+    - `noEmit: true`
+    - includes repository TypeScript such as `src/`, `__tests__/`, `e2e/`, and root config files
+    - includes DOM libs so browser-facing Playwright tests typecheck in editors and CI
+- `tsconfig.prod.json` extends the dev config and restores emitted library build settings for `src/ -> out`
+- `npm run typecheck` validates the full repository via `tsconfig.json`
+- `npm run build` emits the published package via `tsconfig.prod.json`
 - package export surface is only `"."`
 - only `out/` is published to npm
-- helper/testing scripts can compile independently of the library build
+- `npm run codemap` regenerates `CODEMAP.md` from the current source tree and package metadata
 
 ## Agent-relevant invariants
 
