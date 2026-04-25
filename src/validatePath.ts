@@ -46,24 +46,31 @@ function realpathExistingPath(targetPath: string): string {
 }
 
 /**
- * Validates and resolves a file path string.
+ * Validates and resolves a file path string with optional directory containment checks.
  *
- * Rejects empty/whitespace-only paths and paths containing null bytes.
- * Null bytes are injection vectors in C-based filesystem APIs that can bypass
- * suffix checks. After validation, resolves the path to an absolute path using
- * `path.resolve`.
+ * **Basic validation (always applied):**
+ * - Rejects empty, whitespace-only, or null-byte-containing paths
+ * - Rejects existing symlinks in output mode (to prevent using a symlink as a target)
+ * - Rejects existing directories in output mode
  *
- * When `baseDir` is provided the resolved path must be located inside that
- * directory after resolving symlinks. For input paths the target itself is
- * resolved; for output paths the parent directory is resolved and the original
- * filename is re-attached after containment is checked.
+ * **Symlink handling notes:**
+ * - Output mode: blocks writing to an **existing** symlink (TOCTOU race: a symlink could be
+ *   created by another process between this check and the actual write)
+ * - Input mode: follows symlinks and verifies the final target is inside `baseDir`
+ * - Symlink loops are always detected and rejected regardless of mode
  *
- * @param filePath - The file path string to validate.
- * @param baseDir  - Optional directory the resolved path must reside within.
- * @param mode     - Whether the path is used for reading or writing.
- * @returns The resolved absolute path.
- * @throws {Error} If the path is empty/whitespace-only, contains a null byte,
- *   or (when `baseDir` is given) resolves outside that directory.
+ * **Containment checks (when `baseDir` is provided):**
+ * - Resolves both the target and `baseDir` through symlinks to their canonical paths
+ * - Verifies the target resides inside `baseDir` after symlink resolution
+ * - For output paths: resolves the parent directory then re-attaches the filename
+ *   (allows writing new files in a writable directory even if the file doesn't exist yet)
+ *
+ * @param filePath - The file path string to validate
+ * @param baseDir  - Optional directory; when set, the resolved path must reside within it
+ * @param mode     - 'input' (enforce symlink containment) or 'output' (reject existing symlinks)
+ * @returns The resolved absolute path as a `ValidatedPath` opaque type
+ * @throws {PathValidationError} If path is invalid, contains a traversal attempt,
+ *   or violates mode-specific checks (existing symlink in output mode, etc.)
  */
 export function validatePath(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPath {
     if (filePath.trim().length === 0) {

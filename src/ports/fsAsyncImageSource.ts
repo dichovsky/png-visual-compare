@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { InvalidInputError, PathValidationError, ResourceLimitError } from '../errors';
 import { getPngData } from '../getPngData';
 import { validatePath } from '../validatePath';
 import type { AsyncImageSourcePort } from './asyncTypes';
+import { handleFileReadError, handlePathValidationError, handlePngDecodeError } from './validateImageSourceLoad';
 
 export const fsAsyncImageSource: AsyncImageSourcePort = {
     async load(source, opts) {
@@ -11,43 +11,27 @@ export const fsAsyncImageSource: AsyncImageSourcePort = {
             try {
                 validatedPath = validatePath(source, opts.inputBaseDir, 'input');
             } catch (error) {
-                if (error instanceof PathValidationError && opts.inputBaseDir !== undefined) {
-                    throw error;
-                }
-                if (opts.throwErrorOnInvalidInputData) {
-                    const code = (error as NodeJS.ErrnoException).code;
-                    if (code === 'ENOENT' || code === 'EACCES' || code === 'ENOTDIR') {
-                        throw new InvalidInputError('Invalid PNG input: the source could not be loaded');
-                    }
-                    throw error;
-                }
-                return { kind: 'invalid', reason: 'path' };
+                const result = handlePathValidationError(error, opts);
+                if (result) return result;
+                throw error;
             }
 
             let buffer;
             try {
                 buffer = await readFile(validatedPath);
             } catch (error) {
-                if (error instanceof ResourceLimitError) {
-                    throw error;
-                }
-                if (opts.throwErrorOnInvalidInputData) {
-                    throw new InvalidInputError('Invalid PNG input: the source could not be loaded');
-                }
-                return { kind: 'invalid', reason: 'path' };
+                const result = handleFileReadError(error, opts);
+                if (result) return result;
+                throw error;
             }
 
             if (opts.throwErrorOnInvalidInputData) {
                 try {
                     return getPngData(buffer, true, opts.maxDimension, opts.maxPixels);
                 } catch (error) {
-                    if (error instanceof ResourceLimitError) {
-                        throw error;
-                    }
-                    if (error instanceof InvalidInputError && error.message === 'Invalid PNG input: image has zero dimensions') {
-                        throw error;
-                    }
-                    throw new InvalidInputError('Invalid PNG input: the source could not be loaded');
+                    const result = handlePngDecodeError(error, opts);
+                    if (result) return result;
+                    throw error;
                 }
             }
 
