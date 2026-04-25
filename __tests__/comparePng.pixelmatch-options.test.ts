@@ -127,6 +127,14 @@ const testDataArrayPixelmatchValidation: {
         throws: true,
         message: 'pixelmatchOptions must be an object when provided',
     },
+    {
+        id: 12,
+        name: 'diffColor bigint channel is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pixelmatchOptions: { diffColor: [0, 0, BigInt(1)] as any },
+        throws: true,
+        message: 'pixelmatchOptions.diffColor channel values must be integers in [0, 255]',
+    },
 ];
 
 for (const testData of testDataArrayPixelmatchValidation) {

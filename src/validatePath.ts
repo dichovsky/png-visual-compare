@@ -71,6 +71,8 @@ function realpathExistingPath(targetPath: string): string {
  * @returns The resolved absolute path as a `ValidatedPath` opaque type
  * @throws {PathValidationError} If path is invalid, contains a traversal attempt,
  *   or violates mode-specific checks (existing symlink in output mode, etc.)
+ * @throws {Error} Re-throws underlying filesystem errors that are not normalized into
+ *   `PathValidationError` (for example inaccessible targets during direct resolution).
  */
 export function validatePath(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPath {
     if (filePath.trim().length === 0) {

@@ -7,7 +7,11 @@ export function validateArea(area: Area, index: number): void {
     }
     const { x1, y1, x2, y2 } = area;
 
-    if (![x1, y1, x2, y2].every((coordinate) => Number.isFinite(coordinate) && Math.round(coordinate) === coordinate)) {
+    if (
+        ![x1, y1, x2, y2].every(
+            (coordinate) => typeof coordinate === 'number' && Number.isFinite(coordinate) && Math.round(coordinate) === coordinate,
+        )
+    ) {
         throw new InvalidInputError(`excludedAreas[${index}]: coordinates must be finite integers`);
     }
     if (x1 > x2) {

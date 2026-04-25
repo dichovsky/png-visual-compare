@@ -333,6 +333,15 @@ const testDataArrayOptionValidation: {
         errorPattern: 'excludedAreas[0]: area must be an object with x1, y1, x2, y2 coordinates',
         errorClass: InvalidInputError,
     },
+    {
+        id: 26,
+        name: 'excludedAreas bigint coordinate is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        opts: { excludedAreas: [{ x1: BigInt(0), y1: 0, x2: 10, y2: 10 }] as any },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: coordinates must be finite integers',
+        errorClass: InvalidInputError,
+    },
 ];
 
 for (const testData of testDataArrayOptionValidation) {

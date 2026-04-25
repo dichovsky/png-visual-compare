@@ -18,7 +18,7 @@ function validateColorTuple(name: string, value: unknown): void {
         throw new InvalidInputError(`${name} must be a tuple of 3 integers in [0, 255]`);
     }
     for (const channel of value) {
-        if (!Number.isInteger(channel) || channel < 0 || channel > 255) {
+        if (typeof channel !== 'number' || !Number.isFinite(channel) || !Number.isInteger(channel) || channel < 0 || channel > 255) {
             throw new InvalidInputError(`${name} channel values must be integers in [0, 255]`);
         }
     }

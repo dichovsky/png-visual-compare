@@ -30,13 +30,8 @@ export function handlePathValidationError(error: unknown, opts: ResolvedOptions)
  * Returns an invalid LoadedPng if read fails and throwError is false.
  *
  * @throws {InvalidInputError} If file read fails and throwError is true.
- * @throws {ResourceLimitError} Always rethrows resource limit errors.
  */
 export function handleFileReadError(error: unknown, opts: ResolvedOptions): LoadedPng | undefined {
-    if (error instanceof ResourceLimitError) {
-        throw error;
-    }
-
     if (opts.throwErrorOnInvalidInputData) {
         throw new InvalidInputError('Invalid PNG input: the source could not be loaded');
     }
@@ -49,7 +44,7 @@ export function handleFileReadError(error: unknown, opts: ResolvedOptions): Load
  * Returns an invalid LoadedPng if decode fails and throwError is false.
  *
  * @throws {InvalidInputError} If PNG decode fails and throwError is true (unless zero dimensions).
- * @throws {ResourceLimitError} Always rethrows resource limit errors.
+ * @throws {ResourceLimitError} Re-throws resource limit errors from PNG decoding.
  */
 export function handlePngDecodeError(error: unknown, opts: ResolvedOptions): LoadedPng | undefined {
     if (error instanceof ResourceLimitError) {
