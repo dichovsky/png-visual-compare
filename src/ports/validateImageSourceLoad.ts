@@ -7,7 +7,7 @@ import type { ResolvedOptions } from '../pipeline/types';
  * Returns an invalid LoadedPng if path validation fails and throwError is false.
  *
  * @throws {InvalidInputError} If path validation fails with ENOENT, EACCES, or ENOTDIR and throwError is true.
- * @throws {PathValidationError} If inputBaseDir is set and path traversal is detected.
+ * @throws {PathValidationError} If `inputBaseDir` is set and path validation raises any security-boundary failure.
  */
 export function handlePathValidationError(error: unknown, opts: ResolvedOptions): LoadedPng {
     if (error instanceof PathValidationError && opts.inputBaseDir !== undefined) {

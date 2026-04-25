@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { PNG } from 'pngjs';
+import { getPersistableDiff } from './pipeline/persistDiff';
 import { resolveOptions } from './pipeline/resolveOptions';
 import { normalizeImages } from './pipeline/normalizeImages';
 import { runComparison } from './pipeline/runComparison';
@@ -28,9 +29,10 @@ export async function comparePngAsync(png1: string | Buffer, png2: string | Buff
     const sources = await loadSourcesAsync(png1, png2, options);
     const normalized = normalizeImages(sources, options);
     const result = runComparison(normalized, options);
+    const persistableDiff = getPersistableDiff(result, options);
 
-    if (result.mismatchedPixels > 0 && options.shouldCreateDiffFile && result.diff && options.diffFilePath) {
-        await fsAsyncDiffWriter.write(options.diffFilePath, PNG.sync.write(result.diff));
+    if (persistableDiff) {
+        await fsAsyncDiffWriter.write(persistableDiff.diffFilePath, PNG.sync.write(persistableDiff.diff));
     }
 
     return result.mismatchedPixels;

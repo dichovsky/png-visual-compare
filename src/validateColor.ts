@@ -17,6 +17,10 @@ import { InvalidInputError } from './errors';
  * @throws {InvalidInputError} If any channel is not a finite integer in [0, 255].
  */
 export function validateColor(color: Color, name: string): void {
+    if (typeof color !== 'object' || color === null) {
+        throw new InvalidInputError(`${name} must be an object with integer r, g, b channels`);
+    }
+
     for (const channel of ['r', 'g', 'b'] as const) {
         const value = color[channel];
         if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 255) {

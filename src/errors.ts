@@ -30,8 +30,10 @@ export class InvalidInputError extends Error {
  * - Symlink loops or invalid symlink usage
  * - Empty, whitespace-only, or null-byte-containing paths
  *
- * This error is **NOT** recoverable; it always indicates a security or configuration issue
- * and cannot be downgraded via `throwErrorOnInvalidInputData`.
+ * This error is always re-thrown for security-boundary failures such as traversal checks,
+ * symlink issues, and constrained-base-directory validation. Simpler local path-shape
+ * validation failures may still be downgraded by callers when no base-directory security
+ * boundary is being enforced.
  *
  * @example
  * ```ts

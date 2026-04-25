@@ -59,6 +59,14 @@ describe('validateColor', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expectInvalidInputError(() => validateColor({ r: 0, g: 0 } as any, 'color'), 'color.b');
     });
+
+    it('should throw InvalidInputError for null', () => {
+        expectInvalidInputError(() => validateColor(null as never, 'color'), 'color must be an object');
+    });
+
+    it('should throw InvalidInputError for a primitive', () => {
+        expectInvalidInputError(() => validateColor(42 as never, 'color'), 'color must be an object');
+    });
 });
 
 // Integration: comparePng should surface color validation errors

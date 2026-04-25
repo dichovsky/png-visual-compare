@@ -14,6 +14,9 @@ export function resolveOptions(raw: ComparePngOptions | undefined): ResolvedOpti
         throw new InvalidInputError('opts.excludedAreas must be an array when provided');
     }
     const throwErrorOnInvalidInputData = raw?.throwErrorOnInvalidInputData ?? true;
+    if (raw?.throwErrorOnInvalidInputData !== undefined && typeof raw.throwErrorOnInvalidInputData !== 'boolean') {
+        throw new TypeError('opts.throwErrorOnInvalidInputData must be a boolean when provided');
+    }
     const extendedAreaColor = raw?.extendedAreaColor ?? DEFAULT_EXTENDED_AREA_COLOR;
     const excludedAreaColor = raw?.excludedAreaColor ?? DEFAULT_EXCLUDED_AREA_COLOR;
     const rawDiffFilePath = raw?.diffFilePath;

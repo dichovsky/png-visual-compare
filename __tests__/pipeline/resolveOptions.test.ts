@@ -17,4 +17,10 @@ describe('resolveOptions', () => {
             maxPixels: DEFAULT_MAX_PIXELS,
         });
     });
+
+    test('rejects non-boolean throwErrorOnInvalidInputData values', () => {
+        expect(() => resolveOptions({ throwErrorOnInvalidInputData: 'false' as never })).toThrow(
+            'opts.throwErrorOnInvalidInputData must be a boolean when provided',
+        );
+    });
 });
