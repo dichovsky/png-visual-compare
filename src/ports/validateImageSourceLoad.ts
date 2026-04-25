@@ -9,7 +9,7 @@ import type { ResolvedOptions } from '../pipeline/types';
  * @throws {InvalidInputError} If path validation fails with ENOENT, EACCES, or ENOTDIR and throwError is true.
  * @throws {PathValidationError} If inputBaseDir is set and path traversal is detected.
  */
-export function handlePathValidationError(error: unknown, opts: ResolvedOptions): LoadedPng | undefined {
+export function handlePathValidationError(error: unknown, opts: ResolvedOptions): LoadedPng {
     if (error instanceof PathValidationError && opts.inputBaseDir !== undefined) {
         throw error;
     }
@@ -31,7 +31,7 @@ export function handlePathValidationError(error: unknown, opts: ResolvedOptions)
  *
  * @throws {InvalidInputError} If file read fails and throwError is true.
  */
-export function handleFileReadError(error: unknown, opts: ResolvedOptions): LoadedPng | undefined {
+export function handleFileReadError(_error: unknown, opts: ResolvedOptions): LoadedPng {
     if (opts.throwErrorOnInvalidInputData) {
         throw new InvalidInputError('Invalid PNG input: the source could not be loaded');
     }
@@ -46,7 +46,7 @@ export function handleFileReadError(error: unknown, opts: ResolvedOptions): Load
  * @throws {InvalidInputError} If PNG decode fails and throwError is true (unless zero dimensions).
  * @throws {ResourceLimitError} Re-throws resource limit errors from PNG decoding.
  */
-export function handlePngDecodeError(error: unknown, opts: ResolvedOptions): LoadedPng | undefined {
+export function handlePngDecodeError(error: unknown, opts: ResolvedOptions): LoadedPng {
     if (error instanceof ResourceLimitError) {
         throw error;
     }

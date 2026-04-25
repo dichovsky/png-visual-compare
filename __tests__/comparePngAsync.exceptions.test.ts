@@ -345,6 +345,14 @@ const testDataArrayOptionValidation: {
         errorPattern: 'excludedAreas[0]: coordinates must be finite integers',
         errorClass: InvalidInputError,
     },
+    {
+        id: 27,
+        name: 'maxPixels NaN is rejected',
+        opts: { maxPixels: NaN },
+        throws: true,
+        errorPattern: 'maxPixels must be a positive integer or Infinity',
+        errorClass: TypeError,
+    },
 ];
 
 for (const testData of testDataArrayOptionValidation) {

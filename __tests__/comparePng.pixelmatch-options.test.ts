@@ -135,6 +135,20 @@ const testDataArrayPixelmatchValidation: {
         throws: true,
         message: 'pixelmatchOptions.diffColor channel values must be integers in [0, 255]',
     },
+    {
+        id: 13,
+        name: 'includeAA non-boolean is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pixelmatchOptions: { includeAA: 'yes' as any },
+        throws: true,
+        message: 'pixelmatchOptions.includeAA must be a boolean',
+    },
+    {
+        id: 14,
+        name: 'diffColorAlt valid tuple',
+        pixelmatchOptions: { diffColorAlt: [12, 34, 56] },
+        throws: false,
+    },
 ];
 
 for (const testData of testDataArrayPixelmatchValidation) {

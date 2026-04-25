@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
-import { describe, expect, it } from 'vitest';
+import { PNG } from 'pngjs';
+import { describe, expect, it, vi } from 'vitest';
 import { InvalidInputError, PathValidationError } from '../src';
 import { getPngData } from '../src/getPngData';
 
@@ -34,6 +35,14 @@ describe('getPngData', () => {
         expectErrorType(() => getPngData(invalidPngPath, true), InvalidInputError, 'Invalid PNG input: the source could not be loaded');
     });
 
+    it('should map validatePath ENOTDIR failures to InvalidInputError when throwErrorOnInvalidInputData is true', () => {
+        expectErrorType(
+            () => getPngData(path.join(validPngPath, 'child.png'), true, undefined, undefined, path.dirname(validPngPath)),
+            InvalidInputError,
+            'Invalid PNG input: the source could not be loaded',
+        );
+    });
+
     it('should return an invalid LoadedPng for an invalid PNG file path when throwErrorOnInvalidInputData is false', () => {
         const result = getPngData(invalidPngPath, false);
         expect(result).toEqual({ kind: 'invalid', reason: 'path' });
@@ -54,6 +63,16 @@ describe('getPngData', () => {
 
     it('should throw an error for an invalid PNG buffer when throwErrorOnInvalidInputData is true', () => {
         expectErrorType(() => getPngData(invalidPngBuffer, true), InvalidInputError, 'Invalid PNG input: the data could not be parsed');
+    });
+
+    it('should preserve zero-dimension InvalidInputError for string-path sources', () => {
+        const readSpy = vi.spyOn(PNG.sync, 'read').mockImplementationOnce(() => new PNG({ width: 0, height: 0 }));
+
+        try {
+            expectErrorType(() => getPngData(validPngPath, true), InvalidInputError, 'Invalid PNG input: image has zero dimensions');
+        } finally {
+            readSpy.mockRestore();
+        }
     });
 
     it('should throw an error for a path containing a null byte when throwErrorOnInvalidInputData is true', () => {

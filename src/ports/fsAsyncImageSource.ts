@@ -11,27 +11,21 @@ export const fsAsyncImageSource: AsyncImageSourcePort = {
             try {
                 validatedPath = validatePath(source, opts.inputBaseDir, 'input');
             } catch (error) {
-                const result = handlePathValidationError(error, opts);
-                if (result) return result;
-                throw error;
+                return handlePathValidationError(error, opts);
             }
 
             let buffer;
             try {
                 buffer = await readFile(validatedPath);
             } catch (error) {
-                const result = handleFileReadError(error, opts);
-                if (result) return result;
-                throw error;
+                return handleFileReadError(error, opts);
             }
 
             if (opts.throwErrorOnInvalidInputData) {
                 try {
                     return getPngData(buffer, true, opts.maxDimension, opts.maxPixels);
                 } catch (error) {
-                    const result = handlePngDecodeError(error, opts);
-                    if (result) return result;
-                    throw error;
+                    return handlePngDecodeError(error, opts);
                 }
             }
 
