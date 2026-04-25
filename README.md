@@ -44,9 +44,11 @@ npm install -D png-visual-compare
 
 ---
 
-## Migration Guide
+## Migration Guide to v6.0.0
 
-Recent backlog work introduced one intentional semver-major API change plus stricter runtime validation.
+1. Replace `PngData` imports with `LoadedPng`.
+2. Recheck any caller-supplied `excludedAreas`, `pixelmatchOptions`, `diffFilePath`, `inputBaseDir`, and `diffOutputBaseDir`.
+3. If your code already uses async filesystem orchestration, switch to `comparePngAsync`.
 
 ### 1. Replace `PngData` with `LoadedPng`
 
