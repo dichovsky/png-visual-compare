@@ -109,7 +109,7 @@ const mismatchedPixels: number = comparePng(
         maxPixels, // Max allowed decoded pixel count per image/canvas. Default: 16777216
         diffOutputBaseDir, // Restrict diffFilePath writes to this directory (path-traversal guard). Default: undefined
         inputBaseDir, // Restrict png1/png2 reads to this directory (path-traversal guard). Default: undefined
-        pixelmatchOptions, // Options forwarded to pixelmatch. Default: undefined
+        pixelmatchOptions, // Public PixelmatchOptions validated and adapted for pixelmatch. Default: undefined
     },
 );
 
