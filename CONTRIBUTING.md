@@ -23,7 +23,7 @@ Development and local tooling are supported on macOS and Linux only. Windows is 
 | `npm run lint:fix`                    | Run ESLint with auto-fix                                         |
 | `npm run format`                      | Format all files with Prettier                                   |
 | `npm run format:check`                | Check formatting without writing changes                         |
-| `npm run build`                       | Compile TypeScript to `./out`                                    |
+| `npm run build`                       | Compile TypeScript to `./out` using `tsconfig.prod.json`         |
 | `npm run tool:excluded-areas-builder` | Open the Excluded Areas Builder tool in the browser              |
 
 ### Running a single unit test file

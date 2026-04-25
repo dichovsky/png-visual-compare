@@ -3,7 +3,7 @@
 ## Commands
 
 ```sh
-npm run build          # compile TypeScript → ./out (runs clean first via prebuild)
+npm run build          # compile TypeScript → ./out via tsconfig.prod.json (runs clean first via prebuild)
 npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
 npm run test           # full suite: clean → lint → format:check → license check → build → vitest --coverage

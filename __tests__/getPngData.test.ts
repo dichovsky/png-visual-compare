@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { InvalidInputError, PathValidationError } from '../src';
 import { getPngData } from '../src/getPngData';
 
-function expectErrorType(fn: () => void, errorClass: typeof Error, message?: string): void {
+type ErrorClass = abstract new (...args: never[]) => Error;
+
+function expectErrorType(fn: () => void, errorClass: ErrorClass, message?: string): void {
     try {
         fn();
         throw new Error('Expected function to throw');
@@ -66,7 +68,9 @@ describe('getPngData', () => {
     });
 
     it('should preserve zero-dimension InvalidInputError for string-path sources', () => {
-        const readSpy = vi.spyOn(PNG.sync, 'read').mockImplementationOnce(() => new PNG({ width: 0, height: 0 }));
+        const readSpy = vi
+            .spyOn(PNG.sync, 'read')
+            .mockImplementationOnce(() => new PNG({ width: 0, height: 0 }) as ReturnType<typeof PNG.sync.read>);
 
         try {
             expectErrorType(() => getPngData(validPngPath, true), InvalidInputError, 'Invalid PNG input: image has zero dimensions');

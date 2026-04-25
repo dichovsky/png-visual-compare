@@ -40,25 +40,27 @@
     ],
     "scripts": {
         "prebuild": "npm run clean",
-        "build": "tsc --pretty --project tsconfig.json",
+        "build": "tsc --pretty --project tsconfig.prod.json",
         "clean": "rimraf ./out ./coverage ./test-results",
+        "codemap": "node ./scripts/generate-codemap.mjs",
+        "postcodemap": "npm run format",
         "docker:build": "docker build --compress -t test-png-visual-compare .",
         "docker:run": "docker run --rm test-png-visual-compare",
-        "postcodemap": "npm run format",
-        "codemap": "node ./scripts/generate-codemap.mjs",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
+        "prepublishOnly": "npm test && npm run build",
         "test": "npm run test:unit",
         "test:all": "npm run test:unit && npm run test:e2e",
         "test:docker": "npm run clean && npm run docker:build && npm run docker:run",
         "pretest:e2e": "npx playwright install chromium",
         "test:e2e": "playwright test",
         "test:license": "npx --yes license-checker --production --onlyAllow \"ISC; MIT; MIT OR X11; BSD; Apache-2.0; Unlicense\"",
-        "pretest:unit": "npm run clean && npm run lint && npm run format:check && npm run test:license && npm run build",
+        "pretest:unit": "npm run clean && npm run lint && npm run format:check && npm run test:license && npm run typecheck",
         "test:unit": "vitest run --coverage",
-        "tool:excluded-areas-builder": "node -e \"const { execFileSync } = require('node:child_process'); if (process.platform === 'darwin') { execFileSync('open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else if (process.platform === 'linux') { execFileSync('xdg-open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else { throw new Error('Unsupported platform: development tooling is only supported on macOS and Linux'); }\""
+        "tool:excluded-areas-builder": "node -e \"const { execFileSync } = require('node:child_process'); if (process.platform === 'darwin') { execFileSync('open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else if (process.platform === 'linux') { execFileSync('xdg-open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else { throw new Error('Unsupported platform: development tooling is only supported on macOS and Linux'); }\"",
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "pixelmatch": "~7.1.0",
@@ -76,11 +78,11 @@
         "typescript-eslint": "~8.59.0",
         "vitest": "~4.1.5"
     },
+    "engines": {
+        "node": ">=20"
+    },
     "os": [
         "darwin",
         "linux"
-    ],
-    "engines": {
-        "node": ">=20"
-    }
+    ]
 }

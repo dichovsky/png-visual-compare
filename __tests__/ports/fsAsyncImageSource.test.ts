@@ -46,7 +46,9 @@ describe('fsAsyncImageSource', () => {
         rmSync(rootDir, { recursive: true, force: true });
         mkdirSync(rootDir, { recursive: true });
         writeFileSync(validPath, createPngBuffer(1, 1));
-        const readSpy = vi.spyOn(PNG.sync, 'read').mockImplementationOnce(() => new PNG({ width: 0, height: 0 }));
+        const readSpy = vi
+            .spyOn(PNG.sync, 'read')
+            .mockImplementationOnce(() => new PNG({ width: 0, height: 0 }) as ReturnType<typeof PNG.sync.read>);
 
         try {
             await expect(fsAsyncImageSource.load(validPath, resolveOptions({}))).rejects.toThrow(

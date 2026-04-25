@@ -15,6 +15,11 @@ describe('normalizeImages', () => {
             excludedAreas: [{ x1: 0, y1: 0, x2: 0, y2: 0 }],
         });
         const sources = loadSources(PNG.sync.write(firstPng), PNG.sync.write(secondPng), opts);
+        expect(sources.first.kind).toBe('valid');
+        expect(sources.second.kind).toBe('valid');
+        if (sources.first.kind !== 'valid' || sources.second.kind !== 'valid') {
+            throw new Error('Expected valid sources');
+        }
         const firstOriginalPixel = Array.from(sources.first.png.data.subarray(0, 4));
 
         const normalized = normalizeImages(sources, opts);

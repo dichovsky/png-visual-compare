@@ -5,6 +5,8 @@ import { comparePngAsync, InvalidInputError, PathValidationError, ResourceLimitE
 import type { ValidatedPath } from '../src/types/validated-path';
 import { validatePath } from '../src/validatePath';
 
+type ErrorClass = abstract new (...args: never[]) => Error;
+
 function createPngBuffer(width: number, height: number): Buffer {
     const png = new PNG({ width, height, fill: true });
     for (let i = 0; i < png.data.length; i += 4) {
@@ -14,7 +16,7 @@ function createPngBuffer(width: number, height: number): Buffer {
     return PNG.sync.write(png);
 }
 
-async function expectThrownAs(fn: () => Promise<void>, errorClass: typeof Error, message?: string): Promise<void> {
+async function expectThrownAs(fn: () => Promise<unknown>, errorClass: ErrorClass, message?: string): Promise<void> {
     try {
         await fn();
         throw new Error('Expected function to throw');
@@ -131,7 +133,7 @@ const testDataArrayOptionValidation: {
     opts: Parameters<typeof comparePngAsync>[2];
     throws: true | false;
     errorPattern?: string;
-    errorClass?: typeof Error;
+    errorClass?: ErrorClass;
 }[] = [
     {
         id: 1,
@@ -415,7 +417,9 @@ test('[async] validatePath result is accepted by validated-path-only internals w
 });
 
 test('[async] throws InvalidInputError for a valid-but-zero-dimension PNG buffer', async () => {
-    const readSpy = vi.spyOn(PNG.sync, 'read').mockImplementationOnce(() => new PNG({ width: 0, height: 0 }));
+    const readSpy = vi
+        .spyOn(PNG.sync, 'read')
+        .mockImplementationOnce(() => new PNG({ width: 0, height: 0 }) as ReturnType<typeof PNG.sync.read>);
 
     try {
         await expectThrownAs(
@@ -435,9 +439,9 @@ test('[async] with throwErrorOnInvalidInputData=false, zero-dimension PNG is tre
     const readSpy = vi.spyOn(PNG.sync, 'read').mockImplementation((buffer, options) => {
         readCount += 1;
         if (readCount === 1 || readCount === 3 || readCount === 4) {
-            return new PNG({ width: 0, height: 0 });
+            return new PNG({ width: 0, height: 0 }) as ReturnType<typeof PNG.sync.read>;
         }
-        return originalRead.call(PNG.sync, buffer, options);
+        return originalRead.call(PNG.sync, buffer, options) as ReturnType<typeof PNG.sync.read>;
     });
 
     try {
