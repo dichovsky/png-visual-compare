@@ -1,135 +1,30 @@
 import { Buffer } from 'node:buffer';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { parse } from 'node:path';
-import pixelmatch from 'pixelmatch';
-import { PNG } from 'pngjs';
-import { addColoredAreasToImage } from './addColoredAreasToImage';
-import { extendImage } from './extendImage';
-import { fillImageSizeDifference } from './fillImageSizeDifference';
-import { getPngData } from './getPngData';
-import type { Area, Color, ComparePngOptions } from './types';
-import { type PngData } from './types/png.data';
-import { validateColor } from './validateColor';
-import { validatePath } from './validatePath';
+import type { ComparePngOptions } from './types';
+import { loadSources } from './pipeline/loadSources';
+import { normalizeImages } from './pipeline/normalizeImages';
+import { persistDiff } from './pipeline/persistDiff';
+import { resolveOptions } from './pipeline/resolveOptions';
+import { runComparison } from './pipeline/runComparison';
+import type { ComparisonPorts } from './ports/types';
+export { DEFAULT_EXCLUDED_AREA_COLOR, DEFAULT_EXTENDED_AREA_COLOR, DEFAULT_MAX_DIMENSION, DEFAULT_MAX_PIXELS } from './defaults';
 
-/** Default colour applied to size-extended padding regions (green). */
-export const DEFAULT_EXTENDED_AREA_COLOR: Color = { r: 0, g: 255, b: 0 };
+type ComparePngInput = string | Buffer;
 
-/** Default colour applied to excluded areas before comparison (blue). */
-export const DEFAULT_EXCLUDED_AREA_COLOR: Color = { r: 0, g: 0, b: 255 };
+export function comparePngWithPorts(
+    png1: ComparePngInput,
+    png2: ComparePngInput,
+    opts: ComparePngOptions | undefined,
+    ports?: ComparisonPorts,
+): number {
+    const options = { ...resolveOptions(opts), imageSourcePort: ports?.imageSource, diffWriterPort: ports?.diffWriter };
+    const sources = loadSources(png1, png2, options);
+    const normalized = normalizeImages(sources, options);
+    const result = runComparison(normalized, options);
+    persistDiff(result, options);
+    return result.mismatchedPixels;
+}
 
-/**
- * Default maximum image dimension (width or height) in pixels.
- * Images exceeding this in either axis will throw an error to prevent
- * denial-of-service via crafted PNG headers with enormous declared sizes.
- */
-export const DEFAULT_MAX_DIMENSION = 16384;
-
-/**
- * Compares two PNG images pixel-by-pixel and returns the number of mismatched pixels.
- *
- * Both inputs can be file paths or raw `Buffer` instances. Images of different sizes are handled
- * by expanding the smaller one to match the larger canvas — the padded region is painted with
- * `opts.extendedAreaColor` (defaults to `DEFAULT_EXTENDED_AREA_COLOR`: green `(0, 255, 0)`) so it
- * always shows as a difference.
- *
- * Rectangular areas listed in `opts.excludedAreas` are painted with `opts.excludedAreaColor`
- * (defaults to `DEFAULT_EXCLUDED_AREA_COLOR`: blue `(0, 0, 255)`) on both images before
- * comparison, making them always match.
- *
- * A diff PNG is written to `opts.diffFilePath` only when there are mismatched pixels (`result > 0`)
- * and `diffFilePath` is provided. The target directory is created automatically.
- *
- * @param png1 - First PNG: absolute file path or `Buffer` containing PNG data.
- * @param png2 - Second PNG: absolute file path or `Buffer` containing PNG data.
- * @param opts - Optional comparison options (excluded areas, diff output path, pixelmatch settings).
- * @returns Number of mismatched pixels (`0` means the images are identical).
- *
- * @example
- * ```ts
- * const mismatch = comparePng('actual.png', 'expected.png', {
- *   diffFilePath: 'diff.png',
- *   pixelmatchOptions: { threshold: 0.1 },
- * });
- * expect(mismatch).toBe(0);
- * ```
- */
-export function comparePng(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): number {
-    // Default values
-    const excludedAreas: Area[] = opts?.excludedAreas ?? [];
-    const throwErrorOnInvalidInputData: boolean = opts?.throwErrorOnInvalidInputData ?? true;
-    const extendedAreaColor: Color = opts?.extendedAreaColor ?? DEFAULT_EXTENDED_AREA_COLOR;
-    const excludedAreaColor: Color = opts?.excludedAreaColor ?? DEFAULT_EXCLUDED_AREA_COLOR;
-    // Resolve and validate diffFilePath eagerly (fail-fast) so injection is caught before any I/O
-    const rawDiffFilePath = opts?.diffFilePath;
-    let shouldCreateDiffFile = false;
-    let validatedDiffFilePath: string | undefined;
-    if (rawDiffFilePath !== undefined) {
-        if (typeof rawDiffFilePath !== 'string') {
-            throw new TypeError('opts.diffFilePath must be a string when provided');
-        }
-        shouldCreateDiffFile = true;
-        validatedDiffFilePath = validatePath(rawDiffFilePath, opts?.diffOutputBaseDir);
-    }
-
-    // Validate maxDimension — must be a positive integer or Infinity
-    const rawMaxDimension = opts?.maxDimension ?? DEFAULT_MAX_DIMENSION;
-    if (rawMaxDimension !== Infinity && (!Number.isInteger(rawMaxDimension) || rawMaxDimension <= 0)) {
-        throw new TypeError('opts.maxDimension must be a positive integer or Infinity');
-    }
-    const maxDimension: number = rawMaxDimension;
-
-    // Validate color options at the boundary before any pixel operations
-    validateColor(extendedAreaColor, 'extendedAreaColor');
-    validateColor(excludedAreaColor, 'excludedAreaColor');
-
-    // Get PNG data; maxDimension is checked inside getPngData before decoding (DoS guard)
-    const pngData1: PngData = getPngData(png1, throwErrorOnInvalidInputData, maxDimension, opts?.inputBaseDir);
-    const pngData2: PngData = getPngData(png2, throwErrorOnInvalidInputData, maxDimension, opts?.inputBaseDir);
-
-    // Check if PNG data is valid
-    if (!pngData1.isValid && !pngData2.isValid) {
-        throw new Error('Unknown PNG files input type');
-    }
-
-    const { width: width1, height: height1 } = pngData1.png;
-    const { width: width2, height: height2 } = pngData2.png;
-
-    const maxWidth: number = Math.max(width1, width2);
-    const maxHeight: number = Math.max(height1, height2);
-
-    const diff: PNG = new PNG({ width: maxWidth, height: maxHeight });
-
-    // Add excluded areas to images
-    if (excludedAreas.length > 0) {
-        addColoredAreasToImage(pngData1.png, excludedAreas, excludedAreaColor);
-        addColoredAreasToImage(pngData2.png, excludedAreas, excludedAreaColor);
-    }
-
-    // Extend images if they have different sizes
-    if (height1 !== height2 || width1 !== width2) {
-        pngData1.png = extendImage(pngData1.png, maxWidth, maxHeight);
-        pngData2.png = extendImage(pngData2.png, maxWidth, maxHeight);
-
-        fillImageSizeDifference(pngData1.png, width1, height1, extendedAreaColor);
-        fillImageSizeDifference(pngData2.png, width2, height2, extendedAreaColor);
-    }
-
-    // Compare images
-    const pixelmatchResult: number = pixelmatch(
-        pngData1.png.data,
-        pngData2.png.data,
-        shouldCreateDiffFile ? diff.data : undefined,
-        maxWidth,
-        maxHeight,
-        opts?.pixelmatchOptions,
-    );
-
-    // Save diff image
-    if (pixelmatchResult > 0 && shouldCreateDiffFile) {
-        mkdirSync(parse(validatedDiffFilePath!).dir, { recursive: true });
-        writeFileSync(validatedDiffFilePath!, PNG.sync.write(diff));
-    }
-
-    return pixelmatchResult;
+/** Compare two PNG inputs and return the mismatched pixel count. */
+export function comparePng(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): number {
+    return comparePngWithPorts(png1, png2, opts);
 }

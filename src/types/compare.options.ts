@@ -81,27 +81,86 @@ export type ComparePngOptions = {
      * setting**, because an oversized image is a security/resource-exhaustion signal
      * rather than a routine "invalid input" condition.
      * Set to `Infinity` to disable the limit entirely.
+     *
      * @default 16384
+     * @example
+     * ```ts
+     * // Stricter limit for web contexts
+     * comparePng('img1.png', 'img2.png', { maxDimension: 4096 })
+     *
+     * // Disable limit (not recommended for user-controlled inputs)
+     * comparePng('img1.png', 'img2.png', { maxDimension: Infinity })
+     * ```
      */
     maxDimension?: number;
     /**
-     * When provided, `diffFilePath` must resolve to a path inside this directory.
-     * Any attempt to write outside it (e.g. via `../../etc/cron.d/`) throws an error.
-     * Use this in server-side contexts where `diffFilePath` may be caller-controlled
-     * to prevent path-traversal arbitrary file writes (VUL-01).
+     * Maximum total pixel count (width × height) for a single decoded input image
+     * and for the normalized comparison canvas.
+     * Complements `maxDimension` by catching large-but-axis-valid images
+     * (e.g., 1 × 16,777,216 pixels) that would still exhaust memory.
+     * Set to `Infinity` to disable the limit entirely.
+     *
+     * @default 16_777_216 (256 megapixels, ~1 GB decompressed at 4 bytes/pixel)
+     * @example
+     * ```ts
+     * // For web/mobile use cases with strict memory budgets
+     * const opts = { maxPixels: 50_000_000 }; // 50 megapixels
+     * comparePng(userImage1, userImage2, opts);
+     *
+     * // For server-side batch processing with more headroom
+     * const opts = { maxPixels: 100_000_000 }; // 100 megapixels
+     * comparePng(serverImage1, serverImage2, opts);
+     * ```
+     */
+    maxPixels?: number;
+    /**
+     * When provided, `diffFilePath` must resolve to a path inside this directory
+     * (validated after symlink resolution). Any attempt to write outside it throws
+     * a `PathValidationError`. Use in server-side contexts where `diffFilePath`
+     * is caller-controlled to prevent arbitrary file writes via path traversal
+     * (VUL-01: `../../etc/passwd`).
+     *
+     * **Note:** This check is point-in-time; a race condition could allow a symlink
+     * to be created after validation. For critical security contexts, use OS-level
+     * chroot/jails or filesystem ACLs for defense-in-depth.
+     *
      * @default undefined (no containment enforced)
+     * @example
+     * ```ts
+     * // User uploads a diff path; restrict writes to /uploads
+     * const userPath = req.body.diffPath; // Could be '../../etc/bad'
+     * comparePng(img1, img2, {
+     *   diffFilePath: userPath,
+     *   diffOutputBaseDir: '/uploads'
+     * });
+     * ```
      */
     diffOutputBaseDir?: string;
     /**
      * When provided, string input paths (`png1` / `png2`) must resolve to a path
-     * inside this directory. Any attempt to read outside it throws an error.
-     * Use this in server-side contexts where image paths may be caller-controlled
-     * to prevent path-traversal arbitrary file reads (VUL-02).
+     * inside this directory (validated after symlink resolution). Any attempt to read
+     * outside it throws a `PathValidationError`. Use in server-side contexts where
+     * image paths are caller-controlled to prevent arbitrary file reads via path
+     * traversal (VUL-02: reading `/etc/passwd` as a PNG).
+     *
+     * **Note:** This check is point-in-time; a race condition could allow a symlink
+     * to be created after validation. For critical security contexts, use OS-level
+     * chroot/jails or filesystem ACLs for defense-in-depth.
+     *
      * @default undefined (no containment enforced)
+     * @example
+     * ```ts
+     * // User provides image paths; restrict reads to /images
+     * const img1 = req.body.image1; // Could be '../../etc/bad'
+     * comparePng(img1, '/images/baseline.png', {
+     *   inputBaseDir: '/images'
+     * });
+     * ```
      */
     inputBaseDir?: string;
     /**
-     * Options forwarded directly to [pixelmatch](https://github.com/mapbox/pixelmatch).
+     * Options translated internally via an adapter to [pixelmatch](https://github.com/mapbox/pixelmatch).
+     * The public option names remain stable even if the underlying pixelmatch library changes.
      * @default undefined
      */
     pixelmatchOptions?: PixelmatchOptions;

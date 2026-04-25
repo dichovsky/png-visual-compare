@@ -1,4 +1,5 @@
 import type { PNGWithMetadata } from 'pngjs';
 
-/** Internal wrapper around a decoded PNG, carrying a validity flag alongside the image data. */
-export type PngData = { isValid: boolean; png: PNGWithMetadata };
+export type LoadedPng =
+    | { readonly kind: 'valid'; readonly png: PNGWithMetadata }
+    | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };

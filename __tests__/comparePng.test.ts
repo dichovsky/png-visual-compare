@@ -1,7 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync } from 'fs';
 import { resolve } from 'path';
-import { expect, test } from 'vitest';
+import { PNG } from 'pngjs';
+import { describe, expect, test } from 'vitest';
 import { Area, Color, DEFAULT_EXCLUDED_AREA_COLOR, DEFAULT_EXTENDED_AREA_COLOR, comparePng } from '../src';
+import { comparePngWithPorts } from '../src/comparePng';
+import type { DiffWriterPort } from '../src/ports/types';
 
 const testDataArray: {
     id: number;
@@ -63,6 +66,43 @@ for (const testData of testDataArray) {
         });
 
         expect(result).toBe(0);
+    });
+}
+
+const testDataArrayNoDiffWrite: {
+    id: number;
+    name: string;
+    actual: Buffer;
+    expected: Buffer;
+    diffFilePath: string;
+}[] = [
+    {
+        id: 1,
+        name: 'compare-only mode does not write a diff file',
+        actual: (() => {
+            const png = new PNG({ width: 2, height: 2, fill: true });
+            png.data.fill(255);
+            return PNG.sync.write(png);
+        })(),
+        expected: (() => {
+            const png = new PNG({ width: 2, height: 2, fill: true });
+            png.data.fill(255);
+            return PNG.sync.write(png);
+        })(),
+        diffFilePath: resolve('./test-results/compare-only-no-diff/diff.png'),
+    },
+];
+
+for (const testData of testDataArrayNoDiffWrite) {
+    test(testData.name, () => {
+        if (existsSync(testData.diffFilePath)) {
+            unlinkSync(testData.diffFilePath);
+        }
+
+        const result = comparePng(testData.actual, testData.expected, { diffFilePath: testData.diffFilePath });
+
+        expect(result).toBe(0);
+        expect(existsSync(testData.diffFilePath)).toBe(false);
     });
 }
 
@@ -175,4 +215,50 @@ test('should accept custom extendedAreaColor for size-differing images', () => {
     expect(resultDefault).toBeGreaterThan(0);
     expect(resultCustomColor).toBeGreaterThan(0);
     expect(resultDefault).not.toBe(resultCustomColor);
+});
+
+describe('comparePng internal port injection', () => {
+    test('calls the injected diff writer on mismatch', () => {
+        const first = new PNG({ width: 1, height: 1, fill: true });
+        const second = new PNG({ width: 1, height: 1, fill: true });
+        first.data.set(Buffer.from([255, 0, 0, 255]));
+        second.data.set(Buffer.from([0, 0, 255, 255]));
+        const writes: Buffer[] = [];
+        const diffWriter: DiffWriterPort = {
+            write(_path, data) {
+                writes.push(data);
+            },
+        };
+
+        const result = comparePngWithPorts(
+            PNG.sync.write(first),
+            PNG.sync.write(second),
+            { diffFilePath: resolve('./test-results/internal-port/diff.png') },
+            { imageSource: { load: (source) => ({ kind: 'valid', png: PNG.sync.read(source as Buffer) }) }, diffWriter },
+        );
+
+        expect(result).toBeGreaterThan(0);
+        expect(writes).toHaveLength(1);
+    });
+
+    test('does not call the injected diff writer when there is no mismatch', () => {
+        const png = new PNG({ width: 1, height: 1, fill: true });
+        png.data.set(Buffer.from([255, 0, 0, 255]));
+        const writes: Buffer[] = [];
+        const diffWriter: DiffWriterPort = {
+            write(_path, data) {
+                writes.push(data);
+            },
+        };
+
+        const result = comparePngWithPorts(
+            PNG.sync.write(png),
+            PNG.sync.write(png),
+            { diffFilePath: resolve('./test-results/internal-port/no-diff.png') },
+            { imageSource: { load: (source) => ({ kind: 'valid', png: PNG.sync.read(source as Buffer) }) }, diffWriter },
+        );
+
+        expect(result).toBe(0);
+        expect(writes).toHaveLength(0);
+    });
 });

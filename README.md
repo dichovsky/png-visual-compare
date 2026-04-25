@@ -23,6 +23,7 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 ## Table of Contents
 
 - [Installation](#installation)
+- [Migration Guide](#migration-guide)
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
 - [Excluded Areas Builder](#excluded-areas-builder)
@@ -43,10 +44,57 @@ npm install -D png-visual-compare
 
 ---
 
+## Migration Guide to v6.0.0
+
+1. Replace `PngData` imports with `LoadedPng`.
+2. Recheck any caller-supplied `excludedAreas`, `pixelmatchOptions`, `diffFilePath`, `inputBaseDir`, and `diffOutputBaseDir`.
+3. If your code already uses async filesystem orchestration, switch to `comparePngAsync`.
+
+### 1. Replace `PngData` with `LoadedPng`
+
+`PngData` is no longer exported. If you imported it from the package, switch to `LoadedPng`:
+
+```typescript
+// Before
+import type { PngData } from 'png-visual-compare';
+
+// After
+import type { LoadedPng } from 'png-visual-compare';
+```
+
+### 2. Expect stricter option validation
+
+The library now fails fast for malformed option data instead of relying on downstream behavior:
+
+- `excludedAreas` must be an array of finite integer rectangles with `x1 <= x2` and `y1 <= y2`
+- `pixelmatchOptions` must be an object with validated numeric/boolean/tuple fields
+- `diffFilePath`, `inputBaseDir`, and `diffOutputBaseDir` must be strings when provided
+- `diffFilePath` now rejects existing directories and existing symlinks in output mode
+
+### 3. Security/resource limits still throw in permissive mode
+
+`throwErrorOnInvalidInputData: false` only downgrades ordinary invalid-image inputs. Security and resource-boundary checks still throw:
+
+- `inputBaseDir` / `diffOutputBaseDir` containment violations
+- symlink traversal and invalid output target checks
+- `maxDimension` / `maxPixels` limits
+
+### 4. Use `comparePngAsync` for promise-based I/O
+
+If your integration already uses async filesystem orchestration, prefer:
+
+```typescript
+import { comparePngAsync } from 'png-visual-compare';
+```
+
+It preserves the same comparison semantics as `comparePng`, but performs file-backed reads/writes asynchronously.
+
+---
+
 ## Quick Start
 
 ```typescript
-import { comparePng } from 'png-visual-compare';
+import { comparePng, comparePngAsync } from 'png-visual-compare';
 
 const mismatchedPixels: number = comparePng(
     img1, // First PNG: absolute file path or Buffer
@@ -58,13 +106,18 @@ const mismatchedPixels: number = comparePng(
         extendedAreaColor, // Color used for size-padding regions. Default: { r: 0, g: 255, b: 0 }
         excludedAreaColor, // Color used for excluded areas. Default: { r: 0, g: 0, b: 255 }
         maxDimension, // Max allowed image width/height in px. Always throws if exceeded. Default: 16384
+        maxPixels, // Max allowed decoded pixel count per image/canvas. Default: 16777216
         diffOutputBaseDir, // Restrict diffFilePath writes to this directory (path-traversal guard). Default: undefined
         inputBaseDir, // Restrict png1/png2 reads to this directory (path-traversal guard). Default: undefined
-        pixelmatchOptions, // Options forwarded to pixelmatch. Default: undefined
+        pixelmatchOptions, // Public PixelmatchOptions validated and adapted for pixelmatch. Default: undefined
     },
 );
 
 expect(mismatchedPixels).toBe(0);
+
+const asyncMismatchedPixels = await comparePngAsync(img1, img2, { diffFilePath: './diff.png' });
+
+expect(asyncMismatchedPixels).toBe(0);
 ```
 
 ---
@@ -85,6 +138,13 @@ Compares two PNG images pixel-by-pixel and returns the number of mismatched pixe
 
 ---
 
+### `comparePngAsync(png1, png2, opts?): Promise<number>`
+
+Async equivalent of `comparePng`. It performs the same comparison flow, but uses `fs.promises`
+for file-backed reads and diff writes.
+
+---
+
 ### `ComparePngOptions`
 
 | Option                         | Type                | Default                  | Description                                                                                                                                                                                                                          |
@@ -95,6 +155,7 @@ Compares two PNG images pixel-by-pixel and returns the number of mismatched pixe
 | `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Fill colour for padded regions when images differ in size. Override when the default green clashes with your image content                                                                                                           |
 | `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill colour applied to `excludedAreas` on both images before comparison. Override when the default blue clashes with your image content                                                                                              |
 | `maxDimension`                 | `number`            | `16384`                  | Maximum allowed width or height (px) for either input image. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Protects against DoS via crafted PNG headers               |
+| `maxPixels`                    | `number`            | `16777216`               | Maximum decoded pixel count for a single input image and for the normalized comparison canvas. Set to `Infinity` to disable. Protects against large-but-axis-valid PNGs that would still exhaust memory                              |
 | `diffOutputBaseDir`            | `string`            | `undefined`              | When set, `diffFilePath` must resolve to a path **inside** this directory. Any attempt to write outside it throws `"Path traversal detected"`. Use in server-side contexts where `diffFilePath` may be caller-controlled             |
 | `inputBaseDir`                 | `string`            | `undefined`              | When set, string input paths (`png1` / `png2`) must resolve to a path **inside** this directory. Any attempt to read outside it throws `"Path traversal detected"`. Use in server-side contexts where paths may be caller-controlled |
 | `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                                                                                              |
@@ -145,6 +206,7 @@ type Color = {
 | `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions                                                   |
 | `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                                                                  |
 | `DEFAULT_MAX_DIMENSION`       | `16384`                  | Default maximum image dimension (px). Import this constant when you want to reference the default value |
+| `DEFAULT_MAX_PIXELS`          | `16777216`               | Default maximum decoded pixel count for one image or the normalized comparison canvas                   |
 
 ---
 

@@ -20,7 +20,7 @@ The following rules apply to every item unless the item explicitly overrides the
 - **One type per file** in `src/types/`; collected by `src/types/index.ts`
 - **Data-driven test pattern**: new test cases are added to `testDataArray` in the relevant test file, not as standalone `test()` calls
 - **No test helper modules** — each test file is self-contained
-- **Coverage thresholds** (enforced by vitest): 90 % lines/functions/statements, 75 % branches
+- **Coverage thresholds** (enforced by vitest): 100 % lines/functions/statements/branches
 - **New production dependencies** require advisory database review and license approval (`ISC`, `MIT`, `BSD`, `Apache-2.0`, `Unlicense`)
 - **Structured errors** (`RELI-03`) are the approved error base once that item lands; until then use plain `Error` with a `// TODO: use structured error after RELI-03` comment
 
@@ -106,7 +106,7 @@ export type LoadedPng =
 - `src/pipeline/loadSources.ts` (after ARCH-01) or `src/comparePng.ts` — branch on `kind: 'valid' | 'invalid'`
 - `__tests__/getPngData.test.ts` — update all assertions to use `.kind === 'valid' | 'invalid'`
 - `__tests__/comparePng.exceptions.test.ts` — update any assertions checking `isValid`
-- `CHANGELOG.md` — add `## [2.0.0]` section noting removal of `PngData`
+- `CHANGELOG.md` — add a semver-major release note documenting removal of `PngData`
 
 **Banned pattern** (agent must not produce this):
 

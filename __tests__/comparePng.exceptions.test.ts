@@ -1,7 +1,36 @@
 import { resolve } from 'path';
 import { PNG } from 'pngjs';
-import { expect, test } from 'vitest';
-import { comparePng } from '../src';
+import { expect, test, vi } from 'vitest';
+import { comparePng, InvalidInputError, PathValidationError, ResourceLimitError } from '../src';
+import type { ValidatedPath } from '../src/types/validated-path';
+import { validatePath } from '../src/validatePath';
+
+type ErrorClass = abstract new (...args: never[]) => Error;
+
+function createPngBuffer(width: number, height: number): Buffer {
+    const png = new PNG({ width, height, fill: true });
+    for (let i = 0; i < png.data.length; i += 4) {
+        png.data[i] = 255;
+        png.data[i + 3] = 255;
+    }
+    return PNG.sync.write(png);
+}
+
+function expectThrownAs(fn: () => void, errorClass: ErrorClass, message?: string): void {
+    try {
+        fn();
+        throw new Error('Expected function to throw');
+    } catch (error) {
+        expect(error).toBeInstanceOf(errorClass);
+        if (message) {
+            expect((error as Error).message).toContain(message);
+        }
+    }
+}
+
+function acceptValidatedPath(path: ValidatedPath): void {
+    void path;
+}
 
 const testDataArrayInvalidSingle: { id: number; name: string; actual: string; expected: string }[] = [
     {
@@ -32,11 +61,11 @@ const testDataArrayInvalidSingle: { id: number; name: string; actual: string; ex
 
 for (const testData of testDataArrayInvalidSingle) {
     test(`should throw error if ${testData.name}`, async () => {
-        expect(() => comparePng(testData.actual, testData.expected, { throwErrorOnInvalidInputData: true })).toThrow(Error);
+        expectThrownAs(() => comparePng(testData.actual, testData.expected, { throwErrorOnInvalidInputData: true }), InvalidInputError);
     });
 
     test(`should throw error if ${testData.name}, default props`, async () => {
-        expect(() => comparePng(testData.actual, testData.expected)).toThrow(Error);
+        expectThrownAs(() => comparePng(testData.actual, testData.expected), InvalidInputError);
     });
 
     test(`should NOT throw error if ${testData.name}, throwErrorOnInvalidInputData is disabled`, async () => {
@@ -83,15 +112,16 @@ const testDataArrayInvalidBoth: {
 
 for (const testData of testDataArrayInvalidBoth) {
     test(`should NOT throw error if ${testData.name}`, async () => {
-        expect(() =>
-            comparePng(testData.actual, testData.expected, {
-                throwErrorOnInvalidInputData: testData.throwErrorOnInvalidInputData,
-            }),
-        ).toThrow(Error);
+        expectThrownAs(
+            () =>
+                comparePng(testData.actual, testData.expected, {
+                    throwErrorOnInvalidInputData: testData.throwErrorOnInvalidInputData,
+                }),
+            InvalidInputError,
+        );
     });
 }
 
-// ── Option validation tests (data-driven, consistent with repo conventions) ───
 const validPng = resolve('./test-data/actual/youtube-play-button.png');
 
 const testDataArrayOptionValidation: {
@@ -99,7 +129,8 @@ const testDataArrayOptionValidation: {
     name: string;
     opts: Parameters<typeof comparePng>[2];
     throws: true | false;
-    errorPattern?: string | RegExp;
+    errorPattern?: string;
+    errorClass?: ErrorClass;
 }[] = [
     {
         id: 1,
@@ -107,6 +138,7 @@ const testDataArrayOptionValidation: {
         opts: { diffFilePath: 'diff\0.png' },
         throws: true,
         errorPattern: 'null bytes',
+        errorClass: PathValidationError,
     },
     {
         id: 2,
@@ -115,6 +147,7 @@ const testDataArrayOptionValidation: {
         opts: { diffFilePath: 42 as any },
         throws: true,
         errorPattern: 'diffFilePath must be a string',
+        errorClass: TypeError,
     },
     {
         id: 3,
@@ -122,6 +155,7 @@ const testDataArrayOptionValidation: {
         opts: { maxDimension: 100 },
         throws: true,
         errorPattern: 'exceed the maximum allowed size',
+        errorClass: ResourceLimitError,
     },
     {
         id: 4,
@@ -129,6 +163,7 @@ const testDataArrayOptionValidation: {
         opts: { maxDimension: NaN },
         throws: true,
         errorPattern: 'maxDimension must be a positive integer or Infinity',
+        errorClass: TypeError,
     },
     {
         id: 5,
@@ -136,6 +171,7 @@ const testDataArrayOptionValidation: {
         opts: { maxDimension: -1 },
         throws: true,
         errorPattern: 'maxDimension must be a positive integer or Infinity',
+        errorClass: TypeError,
     },
     {
         id: 6,
@@ -164,11 +200,11 @@ const testDataArrayOptionValidation: {
         },
         throws: true,
         errorPattern: 'Path traversal detected',
+        errorClass: PathValidationError,
     },
     {
         id: 10,
         name: 'diffFilePath inside diffOutputBaseDir is accepted',
-        // No actual diff written (images are identical), so just checking it does not throw.
         opts: {
             diffFilePath: resolve('./test-data/actual/diff.png'),
             diffOutputBaseDir: resolve('./test-data/actual'),
@@ -177,23 +213,151 @@ const testDataArrayOptionValidation: {
     },
     {
         id: 11,
+        name: 'diffFilePath cannot be an existing directory',
+        opts: {
+            diffFilePath: resolve('./test-data/actual'),
+            diffOutputBaseDir: resolve('./test-data'),
+        },
+        throws: true,
+        errorPattern: 'output path must not be an existing directory',
+        errorClass: PathValidationError,
+    },
+    {
+        id: 12,
+        name: 'diffOutputBaseDir non-string value',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        opts: { diffOutputBaseDir: 42 as any },
+        throws: true,
+        errorPattern: 'diffOutputBaseDir must be a string',
+        errorClass: TypeError,
+    },
+    {
+        id: 13,
+        name: 'inputBaseDir non-string value',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        opts: { inputBaseDir: 42 as any },
+        throws: true,
+        errorPattern: 'inputBaseDir must be a string',
+        errorClass: TypeError,
+    },
+    {
+        id: 14,
         name: 'inputBaseDir rejects png1 path outside allowed directory (VUL-02)',
         opts: { inputBaseDir: resolve('./test-data/expected') },
         throws: true,
         errorPattern: 'Path traversal detected',
+        errorClass: PathValidationError,
     },
     {
-        id: 12,
+        id: 15,
+        name: 'inputBaseDir rejects png1 path outside allowed directory even when invalid inputs are tolerated',
+        opts: { inputBaseDir: resolve('./test-data/expected'), throwErrorOnInvalidInputData: false },
+        throws: true,
+        errorPattern: 'Path traversal detected',
+        errorClass: PathValidationError,
+    },
+    {
+        id: 16,
         name: 'inputBaseDir accepts png paths inside allowed directory',
         opts: { inputBaseDir: resolve('./test-data/actual') },
         throws: false,
+    },
+    {
+        id: 17,
+        name: 'excludedAreas float coordinate is rejected',
+        opts: { excludedAreas: [{ x1: 1.5, y1: 0, x2: 10, y2: 10 }] },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: coordinates must be finite integers',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 18,
+        name: 'excludedAreas NaN coordinate is rejected',
+        opts: { excludedAreas: [{ x1: Number.NaN, y1: 0, x2: 10, y2: 10 }] },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: coordinates must be finite integers',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 19,
+        name: 'excludedAreas Infinity coordinate is rejected',
+        opts: { excludedAreas: [{ x1: Number.POSITIVE_INFINITY, y1: 0, x2: 10, y2: 10 }] },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: coordinates must be finite integers',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 20,
+        name: 'excludedAreas reversed x coordinate is rejected',
+        opts: { excludedAreas: [{ x1: 10, y1: 0, x2: 5, y2: 10 }] },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: x1 must be <= x2',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 21,
+        name: 'excludedAreas reversed y coordinate is rejected',
+        opts: { excludedAreas: [{ x1: 0, y1: 10, x2: 10, y2: 5 }] },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: y1 must be <= y2',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 22,
+        name: 'excludedAreas valid rectangle is accepted',
+        opts: { excludedAreas: [{ x1: 0, y1: 0, x2: 10, y2: 10 }] },
+        throws: false,
+    },
+    {
+        id: 23,
+        name: 'excludedAreas must be an array when provided',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        opts: { excludedAreas: 'nope' as any },
+        throws: true,
+        errorPattern: 'opts.excludedAreas must be an array when provided',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 24,
+        name: 'excludedAreas null is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        opts: { excludedAreas: null as any },
+        throws: true,
+        errorPattern: 'opts.excludedAreas must be an array when provided',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 25,
+        name: 'excludedAreas null entry is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        opts: { excludedAreas: [null] as any },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: area must be an object with x1, y1, x2, y2 coordinates',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 26,
+        name: 'excludedAreas bigint coordinate is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        opts: { excludedAreas: [{ x1: BigInt(0), y1: 0, x2: 10, y2: 10 }] as any },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: coordinates must be finite integers',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 27,
+        name: 'maxPixels NaN is rejected',
+        opts: { maxPixels: NaN },
+        throws: true,
+        errorPattern: 'maxPixels must be a positive integer or Infinity',
+        errorClass: TypeError,
     },
 ];
 
 for (const testData of testDataArrayOptionValidation) {
     if (testData.throws) {
         test(`should throw for option validation: ${testData.name}`, () => {
-            expect(() => comparePng(validPng, validPng, testData.opts)).toThrow(testData.errorPattern ?? Error);
+            expectThrownAs(() => comparePng(validPng, validPng, testData.opts), testData.errorClass ?? Error, testData.errorPattern);
         });
     } else {
         test(`should not throw for option validation: ${testData.name}`, () => {
@@ -201,3 +365,82 @@ for (const testData of testDataArrayOptionValidation) {
         });
     }
 }
+
+const testDataArrayMaxPixels = [
+    {
+        id: 1,
+        name: 'rejects image with dimension within maxDimension but pixel count exceeding maxPixels',
+        actual: createPngBuffer(200, 200),
+        expected: createPngBuffer(200, 200),
+        opts: { maxDimension: 1000, maxPixels: 100 },
+        errorPattern: 'Image pixel count (40000) exceeds the maximum allowed 100 pixels',
+    },
+    {
+        id: 2,
+        name: 'rejects normalized canvas that exceeds maxPixels even when individual images do not',
+        actual: createPngBuffer(100, 1),
+        expected: createPngBuffer(1, 100),
+        opts: { maxDimension: 1000, maxPixels: 100 },
+        errorPattern: 'Normalized canvas pixel count (10000) exceeds the maximum allowed 100 pixels',
+    },
+];
+
+for (const testData of testDataArrayMaxPixels) {
+    test(testData.name, () => {
+        expectThrownAs(() => comparePng(testData.actual, testData.expected, testData.opts), ResourceLimitError, testData.errorPattern);
+    });
+}
+
+test('accepts image at exactly maxPixels', () => {
+    const png = createPngBuffer(100, 100);
+
+    expect(() => comparePng(png, png, { maxPixels: 10000 })).not.toThrow();
+});
+
+test('validatePath result is accepted by validated-path-only internals without a cast', () => {
+    const validatedPath = validatePath(validPng);
+
+    acceptValidatedPath(validatedPath);
+    // @ts-expect-error raw strings are not assignable to ValidatedPath.
+    acceptValidatedPath(validPng);
+});
+
+test('throws InvalidInputError for a valid-but-zero-dimension PNG buffer', () => {
+    const readSpy = vi
+        .spyOn(PNG.sync, 'read')
+        .mockImplementationOnce(() => new PNG({ width: 0, height: 0 }) as ReturnType<typeof PNG.sync.read>);
+
+    try {
+        expectThrownAs(
+            () => comparePng(Buffer.alloc(24), createPngBuffer(1, 1)),
+            InvalidInputError,
+            'Invalid PNG input: image has zero dimensions',
+        );
+    } finally {
+        readSpy.mockRestore();
+    }
+});
+
+test('with throwErrorOnInvalidInputData=false, zero-dimension PNG is treated as invalid', () => {
+    const validPngBuffer = createPngBuffer(1, 1);
+    const originalRead = PNG.sync.read;
+    let readCount = 0;
+    const readSpy = vi.spyOn(PNG.sync, 'read').mockImplementation((buffer, options) => {
+        readCount += 1;
+        if (readCount === 1 || readCount === 3 || readCount === 4) {
+            return new PNG({ width: 0, height: 0 }) as ReturnType<typeof PNG.sync.read>;
+        }
+        return originalRead.call(PNG.sync, buffer, options) as ReturnType<typeof PNG.sync.read>;
+    });
+
+    try {
+        expect(() => comparePng(Buffer.alloc(24), validPngBuffer, { throwErrorOnInvalidInputData: false })).not.toThrow();
+        expectThrownAs(
+            () => comparePng(Buffer.alloc(24), Buffer.alloc(24), { throwErrorOnInvalidInputData: false }),
+            InvalidInputError,
+            'Unknown PNG files input type',
+        );
+    } finally {
+        readSpy.mockRestore();
+    }
+});

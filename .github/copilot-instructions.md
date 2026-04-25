@@ -3,12 +3,16 @@
 ## Commands
 
 ```sh
-npm run build          # compile TypeScript → ./out (runs clean first via prebuild)
+npm run build          # compile TypeScript → ./out via tsconfig.prod.json (runs clean first via prebuild)
 npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
-npm run test           # full suite: clean → lint → format:check → license check → build → vitest --coverage
+npm run typecheck      # typecheck the full repo via tsconfig.json (src, tests, e2e, configs)
+npm run test           # unit-test gate: clean → lint → format:check → license check → typecheck → vitest --coverage
+npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder
+npm run test:all       # npm run test && npm run test:e2e
 npm run test:license   # check all production dependency licenses are in the approved list
 npm run test:docker    # clean → docker build → docker run (runs the full test suite in Docker)
+npm run codemap        # regenerate CODEMAP.md via scripts/generate-codemap.mjs
 npm run format         # format files with Prettier
 npm run format:check   # validate formatting with Prettier
 ```
@@ -31,20 +35,20 @@ Run tests and watch for changes during development:
 npx vitest --reporter=verbose
 ```
 
-> `npm run test` triggers `pretest` (clean → lint → format:check → license check → build) before vitest runs.
+> `npm run test` triggers `pretest:unit` (clean → lint → format:check → license check → typecheck) before vitest runs.
 > To iterate quickly during development, use `npx vitest run` directly to skip those steps.
 
 ---
 
 ## Project Overview
 
-This is a **single-function npm library**. The entire public API surface is one named export:
+This is a small PNG comparison library with two public runtime entrypoints:
 
 ```ts
-import { comparePng } from 'png-visual-compare';
+import { comparePng, comparePngAsync } from 'png-visual-compare';
 ```
 
-Everything in the codebase resolves to `comparePng` in `src/comparePng.ts`, re-exported through `src/index.ts`.
+Both public APIs share the same internal pipeline and export surface from `src/index.ts`.
 
 **Production dependencies (2 total):**
 
@@ -57,9 +61,13 @@ Everything in the codebase resolves to `comparePng` in `src/comparePng.ts`, re-e
 
 ```
 src/
-  index.ts                        # public barrel: exports comparePng + all types
-  comparePng.ts                   # main function (the entire public API)
-  getPngData.ts                   # reads file path or Buffer → PngData
+  index.ts                        # exports comparePng, comparePngAsync, errors, constants, and public types
+  comparePng.ts                   # sync orchestrator
+  comparePngAsync.ts              # async orchestrator
+  pipeline/                       # option resolution, loading, normalization, comparison, diff persistence
+  ports/                          # sync/async filesystem adapters and test seams
+  adapters/                       # public-to-external library boundaries
+  getPngData.ts                   # reads file path or Buffer → LoadedPng
   extendImage.ts                  # pads a PNG canvas to a larger size
   fillImageSizeDifference.ts      # colours the padded region green (0,255,0)
   addColoredAreasToImage.ts       # paints rectangular areas with a solid colour
@@ -69,7 +77,7 @@ src/
     area.ts                       # Area (x1,y1,x2,y2 rectangle)
     color.ts                      # Color (r,g,b — internal only)
     compare.options.ts            # ComparePngOptions, PixelmatchOptions (public)
-    png.data.ts                   # PngData (internal wrapper)
+    png.data.ts                   # LoadedPng discriminated union
 
 __tests__/
   index.test.ts                   # verifies comparePng is exported from the package
@@ -104,55 +112,27 @@ out/                              # compiled output (gitignored, npm-published)
 
 ## Architecture & Data Flow
 
-### `comparePng(png1, png2, opts?)` — step by step
+### Shared pipeline
 
 ```
-1. Parse options
-   ├── excludedAreas                → [] by default
-   ├── throwErrorOnInvalidInputData → true by default
-   ├── extendedAreaColor            → green(0,255,0) by default
-   ├── excludedAreaColor            → blue(0,0,255) by default
-   └── shouldCreateDiffFile        → (opts.diffFilePath !== undefined)
-
-2. getPngData(png1, throwErrorOnInvalidInputData)  →  PngData { isValid, png }
-   getPngData(png2, throwErrorOnInvalidInputData)  →  PngData { isValid, png }
-   │
-   ├── If BOTH are invalid → throw 'Unknown PNG files input type' (always, regardless of flag)
-   └── If ONE is invalid and flag=false → treat as zero-size PNG (0×0)
-
-3. If excludedAreas.length > 0
-   └── addColoredAreasToImage(png1, excludedAreas, excludedAreaColor)
-      addColoredAreasToImage(png2, excludedAreas, excludedAreaColor)
-      → identical painted pixels on both images → those regions always match
-
-4. If images differ in size
-   ├── maxWidth  = Math.max(w1, w2)
-   ├── maxHeight = Math.max(h1, h2)
-   ├── extendImage(pngData.png, maxWidth, maxHeight)
-   │   └── PNG.bitblt copies original into top-left of new canvas; rest is transparent
-      └── fillImageSizeDifference(extendedPng, originalWidth, originalHeight, extendedAreaColor)
-       └── paints pixels where y > originalHeight OR x > originalWidth → always a diff
-
-5. pixelmatch(data1, data2, diffBuffer?, maxWidth, maxHeight, pixelmatchOptions?)
-   └── returns mismatchedPixelCount
-
-6. If mismatchedPixelCount > 0 AND diffFilePath is set
-   ├── mkdirSync(dir, { recursive: true })   — creates parent dirs automatically
-   └── writeFileSync(diffFilePath, PNG.sync.write(diff))
-
-7. return mismatchedPixelCount   (0 = identical)
+comparePng / comparePngAsync
+  -> resolveOptions
+  -> loadSources / loadSourcesAsync
+  -> normalizeImages
+  -> runComparison
+  -> persistDiff
 ```
 
 ### `getPngData(pngSource, throwErrorOnInvalidInputData)`
 
-| Input type      | File exists? | `throwError=true`                      | `throwError=false`                  |
-| --------------- | ------------ | -------------------------------------- | ----------------------------------- |
-| `string` (path) | yes          | `{ isValid: true, png: <decoded> }`    | `{ isValid: true, png: <decoded> }` |
-| `string` (path) | no           | throws `"PNG file … not found"`        | `{ isValid: false, png: 0×0 PNG }`  |
-| `Buffer`        | n/a          | `{ isValid: true, png: <decoded> }`    | `{ isValid: true, png: <decoded> }` |
-| any other type  | n/a          | throws `"Unknown PNG file input type"` | `{ isValid: false, png: 0×0 PNG }`  |
-
-> An invalid-placeholder PNG is `new PNG({ width: 0, height: 0 })` cast to `PNGWithMetadata`.
+- `string` path to a valid PNG → `{ kind: 'valid', png: <decoded> }`
+- missing/unreadable string path:
+    - `throwError=true` → throws a path/input error
+    - `throwError=false` → `{ kind: 'invalid', reason: 'path' }`
+- valid PNG `Buffer` → `{ kind: 'valid', png: <decoded> }`
+- invalid source or undecodable bytes:
+    - `throwError=true` → throws an input/decode error
+    - `throwError=false` → `{ kind: 'invalid', reason: 'type' | 'decode' }`
 
 ### Pixel address formula
 
@@ -169,15 +149,15 @@ position = (image.width * y + x) * 4; // byte offset of red channel
 
 All types live in `src/types/`, one file per type, collected in `src/types/index.ts`.
 
-| Type                | Exported publicly | Purpose                                                             |
-| ------------------- | ----------------- | ------------------------------------------------------------------- |
-| `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left)    |
-| `ComparePngOptions` | yes               | Options bag for `comparePng`                                        |
-| `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                    |
-| `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                        |
-| `PngData`           | yes               | Public `{ isValid: boolean, png: PNGWithMetadata }` used by helpers |
+| Type                | Exported publicly | Purpose                                                              |
+| ------------------- | ----------------- | -------------------------------------------------------------------- |
+| `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left)     |
+| `ComparePngOptions` | yes               | Options bag for `comparePng`                                         |
+| `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                     |
+| `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                         |
+| `LoadedPng`         | yes               | Discriminated decoded-image result union used by loaders and helpers |
 
-`Color` and `PngData` are currently part of the public type surface via \`src/index.ts\`. Treat them as stable exports when updating types or documentation.
+`Color` and `LoadedPng` are part of the public type surface via `src/index.ts`.
 
 ---
 
@@ -216,10 +196,10 @@ npx vitest run --update-snapshots
 
 | Metric     | Minimum |
 | ---------- | ------- |
-| Lines      | 90%     |
-| Functions  | 90%     |
-| Statements | 90%     |
-| Branches   | 75%     |
+| Lines      | 100%    |
+| Functions  | 100%    |
+| Statements | 100%    |
+| Branches   | 100%    |
 
 `src/types/**/*` is excluded from coverage (type-only files have no runtime behaviour).
 Current coverage is 100% across all source files.
@@ -232,11 +212,12 @@ Current coverage is 100% across all source files.
 - **One type per file** in `src/types/`. Collected by `src/types/index.ts`.
 - **Test files mirror source names** — `src/comparePng.ts` → `__tests__/comparePng.test.ts`.
 - **No shared test helper modules** — each test file is self-contained; common PNG fixtures live in `test-data/actual/` and `test-data/expected/`.
-- **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense`. Enforced by `npm run test:license` (runs as part of `pretest`).
+- **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense`. Enforced by `npm run test:license` (runs as part of `npm run test`).
 - **`throwErrorOnInvalidInputData` defaults to `true`**. Set to `false` only when intentionally comparing against a missing/invalid file (treated as a zero-size PNG). An error is **always** thrown when **both** inputs are invalid, regardless of this flag.
 - **Diff file is never written when `pixelmatchResult === 0`**, even if `diffFilePath` is provided — avoids creating empty/misleading diff artifacts.
 - **Excluded areas are painted on both images** before comparison — they will always match. Default is blue `{ r: 0, g: 0, b: 255 }`, override via `excludedAreaColor`. Coordinates are clamped to image bounds inside `addColoredAreasToImage`.
 - **Size difference region is painted on the extended canvas**. Default is green `{ r: 0, g: 255, b: 0 }`, override via `extendedAreaColor`. The padded area intentionally always counts as a difference.
+- **TypeScript config split**: `tsconfig.json` is the dev-wide no-emit config; `tsconfig.prod.json` is the emitted package-build config.
 
 ---
 
@@ -249,18 +230,16 @@ Current coverage is 100% across all source files.
 | ubuntu | ubuntu-latest | 24.x |
 | macos  | macos-latest  | 20.x |
 
-Each job: `npm ci` → `npm test` (which runs the full `pretest` + vitest pipeline).
+Each job installs Playwright Chromium and runs `npm run test:all`.
 
-### `publish.yml` — runs on GitHub release `created`
+### `publish.yml` — runs on GitHub release `published`
 
 ```
 npm ci
-npm test        ← full test suite including lint, format:check, license check, build
-npm run build   ← clean + fresh tsc after tests; ensures ./out is built from a clean state
+npm audit --audit-level=high
+npm run build   ← clean + fresh tsc using tsconfig.prod.json
 npm publish     ← publishes only ./out (per "files" in package.json)
 ```
-
-The double build is intentional: `npm test` compiles to `./out` as part of `pretest`, but also writes `./coverage` and `./test-results`. The subsequent `npm run build` triggers `prebuild → clean → tsc`, which deletes those directories and produces a fresh `./out` from a known-clean state before the package is published.
 
 Publishing requires the `NPM_TOKEN` secret to be set on the GitHub repository.
 
