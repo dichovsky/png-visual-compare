@@ -1,4 +1,4 @@
-import 'vitest';
+import type {} from 'vitest';
 import type { ComparePngOptions } from './types';
 
 declare module 'vitest' {

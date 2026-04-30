@@ -1,5 +1,4 @@
 import { Buffer } from 'node:buffer';
-import { Script } from 'node:vm';
 import { comparePng } from '../comparePng';
 import type { ComparePngOptions } from '../types';
 
@@ -108,7 +107,7 @@ export function parseSerializedPngSnapshot(serializedSnapshot: string): Buffer {
     let parsedSnapshot: unknown;
 
     try {
-        parsedSnapshot = new Script(`(${serializedSnapshot.trim()})`).runInNewContext();
+        parsedSnapshot = JSON.parse(serializedSnapshot.trim().replaceAll(/,(\s*[\]}])/g, '$1'));
     } catch {
         throw new Error('Stored PNG snapshot is not a valid serialized Buffer.');
     }

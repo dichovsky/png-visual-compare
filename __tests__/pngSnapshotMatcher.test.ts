@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PNG } from 'pngjs';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, chai, describe, expect, test, vi } from 'vitest';
 import { createPngSnapshotMatcher } from '../src/matchers/createPngSnapshotMatcher';
 import {
     compareAgainstSerializedPngSnapshot,
@@ -21,6 +21,16 @@ type JestPluginModule = {
 };
 type RegisteredMatchers = {
     toMatchPngSnapshot: ReturnType<typeof createPngSnapshotMatcher>;
+};
+type VitestProcessDomainSnapshotArgs = {
+    expectedSnapshot: {
+        key: string;
+    };
+    matchResult?: {
+        expected?: string;
+        pass: boolean;
+    };
+    received: string;
 };
 
 function createJestSnapshotState(snapshotData: Record<string, string>, updateSnapshot: 'all' | 'new' | 'none' = 'none') {
@@ -212,7 +222,17 @@ describe('png snapshot helpers', () => {
             serialized: '{"type":"Buffer","data":[137,80,78,71,13,10,26,9,0]}',
             message: 'Stored PNG snapshot is not a valid PNG Buffer.',
         },
+        {
+            name: 'serialized snapshot with trailing commas',
+            serialized: '{\n  "data": [137, 80, 78, 71, 13, 10, 26, 10,],\n  "type": "Buffer",\n}',
+            message: undefined,
+        },
     ])('rejects $name when parsing a serialized snapshot', ({ serialized, message }) => {
+        if (message === undefined) {
+            expect(parseSerializedPngSnapshot(serialized)).toBeInstanceOf(Buffer);
+            return;
+        }
+
         expect(() => parseSerializedPngSnapshot(serialized)).toThrow(message);
     });
 
@@ -258,6 +278,184 @@ describe('vitest matcher entrypoint', () => {
         await import('../src/vitest.mjs');
 
         expect(extendSpy).not.toHaveBeenCalled();
+    });
+
+    test('compares stored Vitest PNG snapshots with ComparePngOptions', async () => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+
+        await import('../src/vitest.mjs');
+
+        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Vitest matcher to be registered');
+        }
+
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'vitest-test-id' });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+        const markAsChecked = vi.fn();
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    currentTestName: 'compares PNG diffs',
+                    snapshotState: {
+                        probeExpectedSnapshot: () => ({
+                            count: 1,
+                            data: serializePngSnapshot(readFileSync(resolve('./test-data/expected/ILTQq copy.png'))),
+                            key: 'compares PNG diffs > thresholded diff 1',
+                            markAsChecked,
+                        }),
+                        processDomainSnapshot: ({ expectedSnapshot, matchResult, received }: VitestProcessDomainSnapshotArgs) => ({
+                            actual: received,
+                            expected: matchResult?.expected,
+                            key: expectedSnapshot.key,
+                            pass: matchResult?.pass ?? false,
+                        }),
+                    },
+                } as never,
+                readFileSync(resolve('./test-data/actual/ILTQq copy.png')),
+                'thresholded diff',
+                { pixelmatchOptions: { threshold: 0.97 } },
+            ),
+        );
+
+        expect(markAsChecked).toHaveBeenCalledTimes(1);
+        expect(result.pass).toBe(true);
+        expect(result.message()).toBe('Snapshot `compares PNG diffs > thresholded diff 1` mismatched');
+    });
+
+    test('uses serialized received PNG when a Vitest snapshot does not exist yet', async () => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+
+        await import('../src/vitest.mjs');
+
+        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Vitest matcher to be registered');
+        }
+
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'vitest-new-snapshot-id' });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    currentTestName: 'creates PNG snapshot',
+                    snapshotState: {
+                        probeExpectedSnapshot: () => ({
+                            count: 1,
+                            data: undefined,
+                            key: 'creates PNG snapshot 1',
+                            markAsChecked: vi.fn(),
+                        }),
+                        processDomainSnapshot: ({ expectedSnapshot, received }: VitestProcessDomainSnapshotArgs) => ({
+                            actual: received,
+                            expected: undefined,
+                            key: expectedSnapshot.key,
+                            pass: true,
+                        }),
+                    },
+                } as never,
+                readFileSync(PNG_FILE),
+            ),
+        );
+
+        expect(result.pass).toBe(true);
+        expect(result.actual).toContain('"type": "Buffer"');
+    });
+
+    test('throws when Vitest test context is unavailable', async () => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+
+        await import('../src/vitest.mjs');
+
+        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Vitest matcher to be registered');
+        }
+
+        expect(() =>
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion: {},
+                    currentTestName: 'broken matcher context',
+                    snapshotState: {
+                        probeExpectedSnapshot: vi.fn(),
+                        processDomainSnapshot: vi.fn(),
+                    },
+                } as never,
+                readFileSync(PNG_FILE),
+            ),
+        ).toThrow('Vitest test context must be initialized');
+    });
+
+    test('throws when Vitest assertion name is unavailable', async () => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+
+        await import('../src/vitest.mjs');
+
+        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Vitest matcher to be registered');
+        }
+
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'missing-assertion-name' });
+
+        expect(() =>
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    currentTestName: 'missing assertion name',
+                    snapshotState: {
+                        probeExpectedSnapshot: () => ({
+                            count: 1,
+                            data: undefined,
+                            key: 'missing assertion name 1',
+                            markAsChecked: vi.fn(),
+                        }),
+                        processDomainSnapshot: vi.fn(),
+                    },
+                } as never,
+                readFileSync(PNG_FILE),
+            ),
+        ).toThrow('Vitest assertion name must be initialized');
+    });
+
+    test('throws when Vitest snapshot state is unavailable', async () => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+
+        await import('../src/vitest.mjs');
+
+        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Vitest matcher to be registered');
+        }
+
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'missing-snapshot-state' });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+
+        expect(() => registeredMatchers.toMatchPngSnapshot.call({ assertion } as never, readFileSync(PNG_FILE))).toThrow(
+            'Snapshot state must be initialized',
+        );
     });
 });
 

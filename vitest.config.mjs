@@ -6,8 +6,15 @@ export default defineConfig({
         testTimeout: 30000,
         coverage: {
             provider: 'v8',
-            include: ['src/**/*.ts'],
-            exclude: ['src/types/**/*', 'src/index.ts', 'src/pipeline/types.ts', 'src/ports/types.ts', 'src/ports/asyncTypes.ts'],
+            include: ['src/**/*.ts', 'src/**/*.mts'],
+            exclude: [
+                'src/types/**/*',
+                'src/index.ts',
+                'src/pipeline/types.ts',
+                'src/ports/types.ts',
+                'src/ports/asyncTypes.ts',
+                'src/vitest.types.ts',
+            ],
             thresholds: {
                 lines: 100,
                 functions: 100,

@@ -128,7 +128,8 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
     const snapshotData = getSnapshotData(snapshotState);
     const storedSnapshot = snapshotData[key];
     const updateSnapshot = getUpdateSnapshotMode(snapshotState);
-    const snapshotIsPersisted = storedSnapshot !== undefined || existsSync(getSnapshotPath(snapshotState) ?? '');
+    const snapshotPath = getSnapshotPath(snapshotState);
+    const snapshotIsPersisted = storedSnapshot !== undefined || (snapshotPath !== undefined && existsSync(snapshotPath));
 
     if (storedSnapshot !== undefined) {
         const comparison = compareAgainstSerializedPngSnapshot(received, storedSnapshot, args.options);
