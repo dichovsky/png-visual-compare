@@ -16,9 +16,8 @@ Development and local tooling are supported on macOS and Linux only. Windows is 
 
 | Command                               | Description                                                                                |
 | ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `npm test`                            | Clean, lint, format-check, license-check, typecheck, and run unit tests with 100% coverage |
+| `npm test`                            | Run the full test suite: unit tests with repo-wide 100% coverage plus Playwright e2e tests |
 | `npm run test:e2e`                    | Run Playwright e2e tests for the Excluded Areas Builder tool                               |
-| `npm run test:all`                    | Run unit tests followed by e2e tests                                                       |
 | `npm run lint`                        | Run ESLint                                                                                 |
 | `npm run lint:fix`                    | Run ESLint with auto-fix                                                                   |
 | `npm run format`                      | Format all files with Prettier                                                             |
@@ -33,6 +32,8 @@ Development and local tooling are supported on macOS and Linux only. Windows is 
 ```sh
 npx vitest run __tests__/comparePng.test.ts
 ```
+
+Use `npm test` or `npm run test:unit` when you need the repo-wide 100% coverage gate. Direct `npx vitest run ... --coverage` commands only report coverage for the files exercised by that focused run.
 
 ### Updating snapshots
 
@@ -64,7 +65,7 @@ This builds the Docker image and runs both unit and e2e tests inside a container
 
 ## Pull request guidelines
 
-- All tests must pass (`npm run test:all`)
+- All tests must pass (`npm test`)
 - Typechecking must pass (`npm run typecheck`)
 - New functionality must be covered by tests (unit coverage threshold: 100% for all metrics)
 - No ESLint errors or Prettier formatting violations
