@@ -9,9 +9,9 @@ npm run build          # compile TypeScript → ./out via tsconfig.prod.json (ru
 npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
 npm run typecheck      # typecheck the full repo via tsconfig.json (src, tests, e2e, configs)
-npm run test           # unit-test gate: clean → lint → format:check → license check → typecheck → vitest --coverage
+npm run test:unit      # unit-test gate: clean → lint → format:check → license check → typecheck → repo-wide vitest coverage
 npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder
-npm run test:all       # npm run test && npm run test:e2e
+npm run test           # full test suite: repo-wide unit coverage gate plus Playwright e2e tests
 npm run test:license   # check all production dependency licenses are in the approved list
 npm run codemap        # regenerate CODEMAP.md via scripts/generate-codemap.mjs
 npm run format         # format files with Prettier
@@ -43,6 +43,7 @@ npx vitest run --update-snapshots
 ```
 
 > Use `npx vitest run` directly to skip clean/lint/format:check/build when iterating quickly.
+> `npm run test:unit` enables the repo-wide 100% coverage gate; direct `npx vitest run ... --coverage` commands only report coverage for the files exercised by that focused run.
 
 ## Architecture
 

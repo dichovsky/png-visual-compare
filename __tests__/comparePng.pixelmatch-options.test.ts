@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { parse, resolve } from 'path';
 import { expect, test } from 'vitest';
+import '../src/vitest.mjs';
 import { comparePng, InvalidInputError } from '../src';
 
 function expectInvalidInputError(fn: () => void, message?: string): void {
@@ -40,7 +41,7 @@ test(`compare different PNG files, diff color is specified`, async () => {
     );
     comparePng(actual, expected, { diffFilePath, pixelmatchOptions: { diffColor: [100, 100, 100] } });
 
-    expect(readFileSync(diffFilePath)).toMatchSnapshot();
+    expect(readFileSync(diffFilePath)).toMatchPngSnapshot();
 });
 
 const testDataArrayPixelmatchValidation: {

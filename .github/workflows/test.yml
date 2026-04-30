@@ -20,7 +20,7 @@ jobs:
             - name: Install Playwright browsers
               run: npx playwright install --with-deps chromium
             - name: Run tests
-              run: npm run test:all
+              run: npm run test
     macos:
         runs-on: macos-latest
         steps:
@@ -35,4 +35,4 @@ jobs:
             - name: Install Playwright browsers
               run: npx playwright install chromium
             - name: Run tests
-              run: npm run test:all
+              run: npm run test
