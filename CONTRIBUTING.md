@@ -40,6 +40,8 @@ npx vitest run __tests__/comparePng.test.ts
 npx vitest run -u
 ```
 
+PNG snapshot matcher tests import `../src/vitest` and assert diff images with `toMatchPngSnapshot()`, which still uses the normal Vitest snapshot update flow and can take `ComparePngOptions` when a snapshot should be compared semantically instead of byte-for-byte.
+
 ### Running e2e tests
 
 ```sh

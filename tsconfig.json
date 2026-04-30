@@ -12,6 +12,6 @@
         "moduleResolution": "node16",
         "noEmit": true
     },
-    "include": ["./**/*.ts"],
+    "include": ["./**/*.ts", "./**/*.mts"],
     "exclude": ["./node_modules/**/*", "./out/**/*", "./coverage/**/*", "./test-results/**/*"]
 }
