@@ -149,6 +149,12 @@ describe('extractSignature', () => {
         const node = findFirstStatement(sf, ts.isClassDeclaration);
         expect(generator.extractSignature(sf, node, 200)).toBe('class Foo<T> extends Bar implements Baz');
     });
+
+    test('does not stop at a `{` inside a generic constraint', () => {
+        const sf = parseSource('class Foo<T extends { a: number }> extends Bar { x = 1; }');
+        const node = findFirstStatement(sf, ts.isClassDeclaration);
+        expect(generator.extractSignature(sf, node, 200)).toBe('class Foo<T extends { a: number }> extends Bar');
+    });
 });
 
 describe('extractClassMembers', () => {

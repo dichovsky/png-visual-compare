@@ -259,14 +259,6 @@ function truncateSignature(text, maxLen) {
 }
 
 /**
- * Extract the leading-paragraph JSDoc for a node, preserving `@deprecated`, the first
- * `@example`, and `@since` tags. Drops `@param`/`@returns`. Returns `undefined` when
- * no JSDoc is present.
- *
- * @param {ts.Node} node
- * @returns {string | undefined}
- */
-/**
  * Stringify a JSDoc `comment` field, which can be either a plain string or a NodeArray
  * of JSDoc child nodes (text + @link references). Uses local property access so it works
  * on nodes harvested via `node.jsDoc` (which can lack parent-source linkage that
@@ -290,6 +282,14 @@ function jsDocCommentToText(comment) {
     return result;
 }
 
+/**
+ * Extract the leading-paragraph JSDoc for a node, preserving `@deprecated`, the first
+ * `@example`, and `@since` tags. Drops `@param`/`@returns`. Returns `undefined` when
+ * no JSDoc is present.
+ *
+ * @param {ts.Node} node
+ * @returns {string | undefined}
+ */
 export function extractJSDoc(node) {
     const directJsDocs = Array.isArray(node.jsDoc) ? node.jsDoc.filter((n) => n.kind === ts.SyntaxKind.JSDoc) : [];
     const jsDocNodes =
@@ -341,8 +341,9 @@ export function extractSideEffects(sourceFile) {
     for (const range of ranges) {
         if (range.kind !== ts.SyntaxKind.MultiLineCommentTrivia) continue;
         const block = text.slice(range.pos, range.end);
-        const match = block.match(/@sideEffect\s+([^*\n][^*\n]*?)(?:\s*\*\/|\s*\n)/);
-        if (match) results.push(match[1].replace(/\s+/g, ' ').trim());
+        for (const match of block.matchAll(/@sideEffect\s+([^*\n][^*\n]*?)(?:\s*\*\/|\s*\n)/g)) {
+            results.push(match[1].replace(/\s+/g, ' ').trim());
+        }
     }
     if (results.length === 0) {
         const firstStatement = sourceFile.statements[0];
@@ -392,8 +393,8 @@ export function extractSignature(sourceFile, node, maxLen) {
     ) {
         if (node.body) end = node.body.getStart(sourceFile);
     } else if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
-        const braceIdx = sourceFile.text.indexOf('{', node.name?.getEnd() ?? start);
-        if (braceIdx !== -1) end = braceIdx;
+        const braceToken = node.getChildren(sourceFile).find((c) => c.kind === ts.SyntaxKind.OpenBraceToken);
+        if (braceToken) end = braceToken.getStart(sourceFile);
     }
     const raw = sourceFile.text.slice(start, end);
     return truncateSignature(normalizeSignature(raw), maxLen);
@@ -446,23 +447,32 @@ function memberNameText(nameNode) {
  * @returns {string}
  */
 function extractVariableSignature(sourceFile, statement, declaration, maxLen) {
+    const isMultiDeclarator = statement.declarationList.declarations.length > 1;
+    const keyword =
+        statement.declarationList.flags & ts.NodeFlags.Const ? 'const' : statement.declarationList.flags & ts.NodeFlags.Let ? 'let' : 'var';
+    const declaratorPrefix = isMultiDeclarator
+        ? `${keyword} `
+        : sourceFile.text.slice(statement.getStart(sourceFile), declaration.getStart(sourceFile));
+
     const initializer = declaration.initializer;
     if (!initializer) {
-        const text = sourceFile.text.slice(statement.getStart(sourceFile), declaration.getEnd());
-        return truncateSignature(normalizeSignature(text), maxLen);
+        const declText = sourceFile.text.slice(declaration.getStart(sourceFile), declaration.getEnd());
+        return truncateSignature(normalizeSignature(`${declaratorPrefix}${declText}`), maxLen);
     }
     if (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer)) {
-        const start = statement.getStart(sourceFile);
         const end = initializer.body ? initializer.body.getStart(sourceFile) : initializer.getEnd();
-        return truncateSignature(normalizeSignature(sourceFile.text.slice(start, end)), maxLen);
+        const declText = sourceFile.text.slice(declaration.getStart(sourceFile), end);
+        return truncateSignature(normalizeSignature(`${declaratorPrefix}${declText}`), maxLen);
     }
     if (LITERAL_INITIALIZER_KINDS.has(initializer.kind)) {
-        const text = sourceFile.text.slice(statement.getStart(sourceFile), declaration.getEnd());
-        return truncateSignature(normalizeSignature(text), maxLen);
+        const declText = sourceFile.text.slice(declaration.getStart(sourceFile), declaration.getEnd());
+        return truncateSignature(normalizeSignature(`${declaratorPrefix}${declText}`), maxLen);
     }
-    const namePart = sourceFile.text.slice(statement.getStart(sourceFile), declaration.name.getEnd());
-    const typePart = declaration.type ? sourceFile.text.slice(declaration.type.getFullStart(), declaration.type.getEnd()) : '';
-    return truncateSignature(normalizeSignature(`${namePart}${typePart}`), maxLen);
+    const nameAndType = sourceFile.text.slice(
+        declaration.getStart(sourceFile),
+        declaration.type ? declaration.type.getEnd() : declaration.name.getEnd(),
+    );
+    return truncateSignature(normalizeSignature(`${declaratorPrefix}${nameAndType}`), maxLen);
 }
 
 /**
@@ -662,7 +672,7 @@ function findLocalDeclaration(sourceFile, name) {
         if (ts.isVariableStatement(statement)) {
             for (const declaration of statement.declarationList.declarations) {
                 if (ts.isIdentifier(declaration.name) && declaration.name.text === name) {
-                    return { node: statement, declarationName: name, kind: 'const', typeOnly: false };
+                    return { node: statement, declaration, declarationName: name, kind: 'const', typeOnly: false };
                 }
             }
         }
@@ -726,7 +736,7 @@ function resolveExportsFor(sourceFile, sourceFileMap, repoRoot, maxSignatureLeng
                         exposedAs,
                         kind: local.kind,
                         file: posixRelativePath(repoRoot, sourceFile.fileName),
-                        line: sourceFile.getLineAndCharacterOfPosition(local.node.getStart(sourceFile)).line + 1,
+                        line: sourceFile.getLineAndCharacterOfPosition((local.declaration ?? local.node).getStart(sourceFile)).line + 1,
                         signature: signatureForLocal(sourceFile, local, maxSignatureLength),
                         jsdoc: extractJSDoc(local.node) ?? null,
                         typeOnly: stmtTypeOnly || element.isTypeOnly || local.typeOnly,
@@ -772,9 +782,8 @@ function resolveExportsFor(sourceFile, sourceFileMap, repoRoot, maxSignatureLeng
  * @returns {string}
  */
 function signatureForLocal(sourceFile, local, maxLen) {
-    if (local.kind === 'const' && ts.isVariableStatement(local.node)) {
-        const decl = local.node.declarationList.declarations[0];
-        if (decl) return extractVariableSignature(sourceFile, local.node, decl, maxLen);
+    if (local.kind === 'const' && ts.isVariableStatement(local.node) && local.declaration) {
+        return extractVariableSignature(sourceFile, local.node, local.declaration, maxLen);
     }
     return extractSignature(sourceFile, local.node, maxLen);
 }
@@ -879,9 +888,10 @@ export function generate({ repoRoot }) {
     /** @type {CodemapFile[]} */
     const files = [];
 
+    const absSourcePathSet = new Set(absSourcePaths);
     for (const sourceFile of program.getSourceFiles()) {
         if (sourceFile.isDeclarationFile) continue;
-        if (!absSourcePaths.includes(sourceFile.fileName)) continue;
+        if (!absSourcePathSet.has(sourceFile.fileName)) continue;
         sourceFileMap.set(sourceFile.fileName, sourceFile);
         const relativePath = posixRelativePath(repoRoot, sourceFile.fileName);
         fileContents.set(relativePath, sourceFile.text);

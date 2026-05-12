@@ -221,6 +221,29 @@ describe('generate()', () => {
         expect(after.sourceHash).not.toBe(before.sourceHash);
     });
 
+    test('resolves the correct declarator for multi-declarator `const a=1, b=2; export { b }`', () => {
+        const repoRoot = track(
+            setupFixture([
+                {
+                    relPath: 'src/index.ts',
+                    contents: "export { second } from './impl';\n",
+                },
+                {
+                    relPath: 'src/impl.ts',
+                    contents: 'export const first = 11,\n    second = 22;\n',
+                },
+            ]),
+        );
+        const { codemap } = generator.generate({ repoRoot });
+        const second = requireDefined(
+            codemap.publicApi.find((p: { name: string }) => p.name === 'second'),
+            'publicApi entry second',
+        );
+        expect(second.signature).toContain('second = 22');
+        expect(second.signature).not.toContain('first = 11');
+        expect(second.line).toBe(2);
+    });
+
     test('preserves literal const RHS but elides arrow-function bodies', () => {
         const repoRoot = track(
             setupFixture([
