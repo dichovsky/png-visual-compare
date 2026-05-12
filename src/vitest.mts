@@ -2,6 +2,20 @@ import { chai, expect } from 'vitest';
 import type { MatcherState } from 'vitest';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher.js';
 import { buildSnapshotTestName, compareAgainstSerializedPngSnapshot, type PngSnapshotMatcherArgs } from './matchers/pngSnapshot.js';
+import type { ComparePngOptions } from './types/index.js';
+
+declare module 'vitest' {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    interface Assertion<T = any> {
+        toMatchPngSnapshot(opts?: ComparePngOptions): T;
+        toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): T;
+    }
+
+    interface AsymmetricMatchersContaining {
+        toMatchPngSnapshot(opts?: ComparePngOptions): void;
+        toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): void;
+    }
+}
 
 const VITEST_PNG_SNAPSHOT_MATCHER_KEY = Symbol.for('png-visual-compare/vitest/toMatchPngSnapshot');
 

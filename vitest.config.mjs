@@ -8,14 +8,7 @@ export default defineConfig({
         testTimeout: 30000,
         coverage: {
             provider: 'v8',
-            exclude: [
-                'src/types/**/*',
-                'src/index.ts',
-                'src/pipeline/types.ts',
-                'src/ports/types.ts',
-                'src/ports/asyncTypes.ts',
-                'src/vitest.types.ts',
-            ],
+            exclude: ['src/types/**/*', 'src/index.ts', 'src/pipeline/types.ts', 'src/ports/types.ts', 'src/ports/asyncTypes.ts'],
             ...(isFullCoverageRun
                 ? {
                       all: true,
