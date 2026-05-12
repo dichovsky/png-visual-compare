@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, unlinkSync } from 'fs';
 import { parse, resolve } from 'path';
 import { expect, test } from 'vitest';
+import '../src/vitest.mjs';
 import { comparePng } from '../src';
 
 const testDataArrayValidInput: { id: number; actual: string; expected: string; result: number }[] = [
@@ -43,7 +44,7 @@ for (const testData of testDataArrayValidInput) {
         });
 
         expect(result).toBe(testData.result);
-        expect(readFileSync(diffFilePath)).toMatchSnapshot();
+        expect(readFileSync(diffFilePath)).toMatchPngSnapshot();
     });
 }
 
@@ -76,6 +77,6 @@ for (const testData of testDataArrayInvalidInput) {
         });
 
         expect(result).toBe(testData.result);
-        expect(readFileSync(diffFilePath)).toMatchSnapshot();
+        expect(readFileSync(diffFilePath)).toMatchPngSnapshot();
     });
 }

@@ -25,6 +25,7 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 - [Installation](#installation)
 - [Migration Guide](#migration-guide)
 - [Quick Start](#quick-start)
+- [Snapshot Matchers](#snapshot-matchers)
 - [API Reference](#api-reference)
 - [Excluded Areas Builder](#excluded-areas-builder)
 - [Contributing](#contributing)
@@ -119,6 +120,81 @@ const asyncMismatchedPixels = await comparePngAsync(img1, img2, { diffFilePath: 
 
 expect(asyncMismatchedPixels).toBe(0);
 ```
+
+---
+
+## Snapshot Matchers
+
+The package also ships side-effect matcher plugins for **Vitest** and **Jest** so PNG diff buffers can be asserted with `toMatchPngSnapshot()`.
+
+### Vitest
+
+Register the matcher in your test setup file:
+
+```typescript
+import 'png-visual-compare/vitest';
+```
+
+Then assert any PNG `Buffer` or `Uint8Array`:
+
+```typescript
+import { readFileSync } from 'node:fs';
+
+expect(readFileSync('./diff.png')).toMatchPngSnapshot();
+expect(readFileSync('./dark-mode-diff.png')).toMatchPngSnapshot('dark mode diff');
+expect(readFileSync('./masked-diff.png')).toMatchPngSnapshot({
+    excludedAreas: [{ x1: 0, y1: 0, x2: 20, y2: 20 }],
+});
+expect(readFileSync('./thresholded-diff.png')).toMatchPngSnapshot('thresholded diff', {
+    pixelmatchOptions: { threshold: 0.2 },
+});
+```
+
+Update stored snapshots with the normal Vitest command:
+
+```sh
+npx vitest run -u
+```
+
+### Jest
+
+Register the matcher from `setupFilesAfterEnv`:
+
+```typescript
+import 'png-visual-compare/jest';
+```
+
+Then use it the same way in tests:
+
+```typescript
+import { readFileSync } from 'node:fs';
+
+expect(readFileSync('./diff.png')).toMatchPngSnapshot();
+expect(readFileSync('./dark-mode-diff.png')).toMatchPngSnapshot('dark mode diff');
+expect(readFileSync('./masked-diff.png')).toMatchPngSnapshot({
+    excludedAreas: [{ x1: 0, y1: 0, x2: 20, y2: 20 }],
+});
+expect(readFileSync('./thresholded-diff.png')).toMatchPngSnapshot('thresholded diff', {
+    pixelmatchOptions: { threshold: 0.2 },
+});
+```
+
+Update stored snapshots with Jest's normal snapshot flow:
+
+```sh
+npx jest -u
+```
+
+If your Jest config uses `injectGlobals: false`, register the matcher explicitly in your setup file:
+
+```typescript
+import { expect } from '@jest/globals';
+import { registerJestPngSnapshotMatcher } from 'png-visual-compare/jest';
+
+registerJestPngSnapshotMatcher(expect);
+```
+
+`toMatchPngSnapshot()` is intentionally strict: it accepts only PNG `Buffer` / `Uint8Array` input, does not support `.not`, and passes any provided `ComparePngOptions` to `comparePng` when checking the stored snapshot.
 
 ---
 

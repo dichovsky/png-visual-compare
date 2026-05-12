@@ -7,9 +7,9 @@ npm run build          # compile TypeScript → ./out via tsconfig.prod.json (ru
 npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
 npm run typecheck      # typecheck the full repo via tsconfig.json (src, tests, e2e, configs)
-npm run test           # unit-test gate: clean → lint → format:check → license check → typecheck → vitest --coverage
+npm run test           # npm run test && npm run test:e2e
 npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder
-npm run test:all       # npm run test && npm run test:e2e
+npm run test:unit      # unit-test gate: clean → lint → format:check → license check → typecheck → vitest --coverage
 npm run test:license   # check all production dependency licenses are in the approved list
 npm run test:docker    # clean → docker build → docker run (runs the full test suite in Docker)
 npm run codemap        # regenerate CODEMAP.md via scripts/generate-codemap.mjs
@@ -230,7 +230,7 @@ Current coverage is 100% across all source files.
 | ubuntu | ubuntu-latest | 24.x |
 | macos  | macos-latest  | 20.x |
 
-Each job installs Playwright Chromium and runs `npm run test:all`.
+Each job installs Playwright Chromium and runs `npm run test`.
 
 ### `publish.yml` — runs on GitHub release `published`
 
