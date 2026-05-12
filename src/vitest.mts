@@ -1,3 +1,6 @@
+/**
+ * @sideEffect Registers a `toMatchPngSnapshot` matcher on Vitest's `expect`.
+ */
 import { chai, expect } from 'vitest';
 import type { MatcherState } from 'vitest';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher.js';

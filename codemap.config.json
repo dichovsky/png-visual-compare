@@ -1,0 +1,8 @@
+{
+    "schemaVersion": "codemap.v2",
+    "sourceDirs": ["src"],
+    "entrypoints": ["src/index.ts", "src/vitest.mts", "src/jest.ts"],
+    "exclude": ["**/*.test.ts", "**/*.spec.ts", "__tests__/**", "e2e/**", "test-data/**", "tools/**", "out/**", "dist/**", "coverage/**"],
+    "maxSignatureLength": 200,
+    "outputSizeWarnBytes": 153600
+}
