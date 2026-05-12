@@ -55,7 +55,7 @@
         "build": "tsc --pretty --project tsconfig.prod.json",
         "clean": "rimraf ./out ./coverage ./test-results",
         "codemap": "node ./scripts/generate-codemap.mjs",
-        "postcodemap": "npm run format",
+        "codemap:check": "node ./scripts/generate-codemap.mjs --check",
         "docker:build": "docker build --compress -t test-png-visual-compare .",
         "docker:run": "docker run --rm test-png-visual-compare",
         "format": "prettier --write .",
@@ -68,7 +68,7 @@
         "pretest:e2e": "npx playwright install chromium",
         "test:e2e": "playwright test",
         "test:license": "node ./scripts/check-licenses.mjs",
-        "pretest:unit": "npm run clean && npm run lint && npm run format:check && npm run test:license && npm run typecheck",
+        "pretest:unit": "npm run clean && npm run codemap:check && npm run lint && npm run format:check && npm run test:license && npm run typecheck",
         "test:unit": "VITEST_FULL_COVERAGE=true vitest run --coverage",
         "tool:excluded-areas-builder": "node -e \"const { execFileSync } = require('node:child_process'); if (process.platform === 'darwin') { execFileSync('open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else if (process.platform === 'linux') { execFileSync('xdg-open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else { throw new Error('Unsupported platform: development tooling is only supported on macOS and Linux'); }\"",
         "typecheck": "tsc --noEmit"
