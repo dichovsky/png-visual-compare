@@ -36,7 +36,7 @@
             "default": "./out/index.js"
         },
         "./vitest": {
-            "types": "./out/vitest.types.d.ts",
+            "types": "./out/vitest.d.mts",
             "import": "./out/vitest.mjs",
             "default": "./out/vitest.mjs"
         },
