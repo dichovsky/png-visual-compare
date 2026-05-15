@@ -51,7 +51,21 @@ export type ComparePngOptions = {
      * Absolute file path where the diff PNG is saved when mismatched pixels are found.
      * The directory is created automatically if it does not exist.
      * The file is **not** created when `pixelmatchResult === 0`.
+     *
+     * **Symlink-atomic write contract (SECU-03):**
+     * The diff is written through an `O_NOFOLLOW` open. If the final path component
+     * is a symlink at write-time, the write is refused with a {@link PathValidationError}
+     * and the symlink's target is never touched. This closes the TOCTOU window where
+     * a hostile process could plant a symlink between path validation and the write.
+     * Regular files at the target path continue to be overwritten as before — only
+     * the symlink-redirect attack is closed.
+     *
+     * **Residual scope:** the parent-directory race (a symlink planted in a parent
+     * component between validation and `mkdirSync(..., { recursive: true })`) is not
+     * yet closed; tracked as `SECU-09` in `BACKLOG.md`.
+     *
      * @default undefined (no diff file written)
+     * @throws {PathValidationError} if a symlink exists at the target path at write-time.
      */
     diffFilePath?: string;
     /**
@@ -120,9 +134,13 @@ export type ComparePngOptions = {
      * is caller-controlled to prevent arbitrary file writes via path traversal
      * (VUL-01: `../../etc/passwd`).
      *
-     * **Note:** This check is point-in-time; a race condition could allow a symlink
-     * to be created after validation. For critical security contexts, use OS-level
-     * chroot/jails or filesystem ACLs for defense-in-depth.
+     * **Note:** This containment check is point-in-time. The **target-path** race
+     * (a symlink planted at `diffFilePath` itself between validation and write) is
+     * closed at write-time via `O_NOFOLLOW` — see {@link ComparePngOptions.diffFilePath}
+     * and SECU-03. The **parent-directory** race (a symlink planted in a parent
+     * component between validation and `mkdir`) remains open and is tracked as
+     * SECU-09. For critical security contexts, use OS-level chroot/jails or
+     * filesystem ACLs for defense-in-depth.
      *
      * @default undefined (no containment enforced)
      * @example

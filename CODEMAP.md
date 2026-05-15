@@ -12,9 +12,9 @@ Schema: `codemap.v2`
     "schema": "codemap.v2",
     "repo": {
         "name": "png-visual-compare",
-        "version": "6.1.0"
+        "version": "6.1.1"
     },
-    "sourceHash": "0a8b9bd3f9704e3c9d3b39b3d5c5301a48496d996d5af0c747ce2544afe69deb",
+    "sourceHash": "0d37d17860a88e76df714d54188f937cefd9131353ffb53f716eadcfbd922e44",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -1252,17 +1252,28 @@ Schema: `codemap.v2`
             "path": "src/ports/fsAsyncDiffWriter.ts",
             "symbols": [
                 {
+                    "name": "SYMLINK_REFUSING_WRITE_FLAGS",
+                    "kind": "const",
+                    "line": 7,
+                    "exported": false,
+                    "signature": "const SYMLINK_REFUSING_WRITE_FLAGS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "fsAsyncDiffWriter",
                     "kind": "const",
-                    "line": 5,
+                    "line": 9,
                     "exported": true,
-                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data) { await mkdir(parse(path).dir, { recursive: true }); await writeFile(path, data); }, }",
+                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data) { await mkdir(parse(path).dir, { recursive: true }); try { const handle = await open(path, SYMLINK_REFUSING_WRITE_FLAGS)…",
                     "members": null,
                     "jsdoc": null
                 }
             ],
             "imports": [
+                "../errors",
                 "./asyncTypes",
+                "node:fs",
                 "node:fs/promises",
                 "node:path"
             ],
@@ -1294,16 +1305,26 @@ Schema: `codemap.v2`
             "path": "src/ports/fsDiffWriter.ts",
             "symbols": [
                 {
+                    "name": "SYMLINK_REFUSING_WRITE_FLAGS",
+                    "kind": "const",
+                    "line": 6,
+                    "exported": false,
+                    "signature": "const SYMLINK_REFUSING_WRITE_FLAGS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "fsDiffWriter",
                     "kind": "const",
-                    "line": 5,
+                    "line": 8,
                     "exported": true,
-                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data) { mkdirSync(parse(path).dir, { recursive: true }); writeFileSync(path, data); }, }",
+                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data) { mkdirSync(parse(path).dir, { recursive: true }); let fd: number; try { fd = openSync(path, SYMLINK_REFUSING_WRITE_FLAGS); } catch (err…",
                     "members": null,
                     "jsdoc": null
                 }
             ],
             "imports": [
+                "../errors",
                 "./types",
                 "node:fs",
                 "node:path"
