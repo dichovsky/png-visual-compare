@@ -1,4 +1,4 @@
-import { closeSync, constants as fsConstants, mkdirSync, openSync, writeSync } from 'node:fs';
+import { closeSync, constants as fsConstants, mkdirSync, openSync, writeFileSync } from 'node:fs';
 import { parse } from 'node:path';
 import { PathValidationError } from '../errors';
 import type { DiffWriterPort } from './types';
@@ -18,7 +18,7 @@ export const fsDiffWriter: DiffWriterPort = {
             throw error;
         }
         try {
-            writeSync(fd, data);
+            writeFileSync(fd, data);
         } finally {
             closeSync(fd);
         }

@@ -36,6 +36,19 @@ describe('fsDiffWriter symlink refusal (SECU-03)', () => {
         expect(readFileSync(target)).toEqual(payload);
     });
 
+    test('writes the full buffer byte-for-byte for multi-megabyte payloads (no partial-write truncation)', () => {
+        const largePayload = Buffer.alloc(4 * 1024 * 1024); // 4 MiB
+        for (let i = 0; i < largePayload.length; i++) {
+            largePayload[i] = i & 0xff;
+        }
+
+        fsDiffWriter.write(asValidatedPath(target), largePayload);
+
+        const written = readFileSync(target);
+        expect(written.length).toBe(largePayload.length);
+        expect(written.equals(largePayload)).toBe(true);
+    });
+
     test('refuses to write when the target is a symlink to a non-existent file', () => {
         if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
 
