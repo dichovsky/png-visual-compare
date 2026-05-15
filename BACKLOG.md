@@ -804,7 +804,8 @@ When unblocked, the agent should:
 ## [SECU-03] Make diff write symlink-atomic
 
 **Priority:** P1  
-**Status:** Open  
+**Status:** Done  
+**Shipped:** 2026-05-16 (`6.1.1`) via `O_NOFOLLOW` on both `fsDiffWriter` and `fsAsyncDiffWriter`; behaviour preserved for regular-file overwrite; symlink at target now refused with `PathValidationError`. Residual parent-directory race tracked as `SECU-09`.  
 **Requires:** nothing  
 **Problem:** `src/ports/fsDiffWriter.ts` and `src/ports/fsAsyncDiffWriter.ts` write the diff PNG via `writeFileSync(path, data)` / `writeFile(path, data)`, both of which follow symlinks by default. `validatePath` correctly rejects an _existing_ symlink at the target path under output mode, but between that validation and the actual write a hostile or buggy process can plant a symlink at `diffFilePath`, causing the diff bytes to be written to an arbitrary destination outside `diffOutputBaseDir`.
 
@@ -911,6 +912,33 @@ if (filePath.length > 4096) {
 ```
 
 4096 is Linux `PATH_MAX`; macOS `pathconf(_PC_PATH_MAX)` is 1024 but APFS tolerates longer. A 4096-byte cap is permissive enough not to false-trigger on real paths and strict enough to refuse pathological inputs.
+
+## [SECU-09] `mkdirSync(recursive)` can cross a symlink planted in a parent directory component
+
+**Priority:** P2  
+**Status:** Open  
+**Filed:** 2026-05-16 as a follow-on from SECU-03 (target-path race closed; parent-component race deferred).  
+**Problem:** Both `fsDiffWriter` and `fsAsyncDiffWriter` call `mkdirSync(parse(path).dir, { recursive: true })` (or its async equivalent) before opening the target file. `mkdir` does **not** refuse symlinks in path components; if an attacker plants a symlink at any ancestor of `diffFilePath` between `validatePath` (which `realpath`s the longest existing parent) and the `mkdir` call, the diff write proceeds through that symlink. SECU-03 closed the race at the final path component via `O_NOFOLLOW`; this item is the analogous closure for intermediate components.
+
+**Technical rationale:** `validatePath` performs a `realpath` of the longest existing parent at validate-time. Between that point and `mkdirSync`, an attacker can `mkdir`/`ln -s` a new component that bypasses containment. The threat is narrower than SECU-03 because the attacker must control a directory inside `diffOutputBaseDir`, but the same `diffOutputBaseDir` security boundary is the one we claim to enforce.
+
+**Suggested approach:**
+
+- Walk the path segments manually (`path.relative(baseDir, target).split(path.sep)`), and for each non-existent segment, `mkdir` it without `recursive: true` and re-`lstat` it after creation to confirm it is a real directory (not a symlink). On any `lstat` mismatch, throw `PathValidationError`.
+- Alternative: skip the `mkdir` step in the writer entirely and document that callers must pre-create `diffFilePath`'s parent directory. Smaller code; larger behaviour shift.
+
+**Files to modify:**
+
+- `src/ports/fsDiffWriter.ts`, `src/ports/fsAsyncDiffWriter.ts` — replace `mkdirSync(parent, { recursive: true })` with a per-segment loop that lstats each created directory.
+- `src/types/compare.options.ts` — once closed, retract the "parent-directory race remains" caveat in the `diffFilePath` and `diffOutputBaseDir` TSDoc.
+- New test files mirroring `fsDiffWriter.symlink.test.ts` / `fsAsyncDiffWriter.symlink.test.ts` — assert that a symlink planted between `validatePath` and the per-segment `mkdir` is refused.
+
+**Acceptance criteria:**
+
+- Diff write refuses to traverse a symlink in any ancestor of `diffFilePath`
+- TSDoc on `diffFilePath` and `diffOutputBaseDir` no longer flags a residual parent-dir race
+- Coverage stays at 100 %
+- Symlink-in-parent test passes on Linux and macOS; Windows guarded as elsewhere
 
 ## [PERF-04] Skip eager clone in `normalizeImages` when no mutation follows
 

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.1] - 2026-05-16
+
+### Security
+
+- **SECU-03** — Closed the TOCTOU symlink-redirect window on diff writes. The
+  diff PNG is now written through an `O_NOFOLLOW` open, so a symlink planted at
+  `diffFilePath` between `validatePath` and the write is refused with a
+  `PathValidationError` instead of being followed. Regular-file overwrite
+  semantics are preserved; only the symlink-redirect attack is closed.
+- TSDoc on `diffFilePath` documents the new symlink-refusal contract and
+  `@throws PathValidationError`. TSDoc on `diffOutputBaseDir` clarifies that the
+  target-path race is now closed at write-time, while the residual
+  parent-directory race is tracked as `SECU-09`.
+
 ## [6.0.0] - 2026-04-25
 
 ### Added
