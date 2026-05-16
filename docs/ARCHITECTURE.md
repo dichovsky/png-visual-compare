@@ -117,6 +117,7 @@ Responsibilities:
 - clones valid decoded PNGs before mutation
 - turns one-sided invalid inputs into comparable `0×0` canvases
 - paints `excludedAreas` on both images
+- enforces `maxPixels` on the normalized comparison canvas (SECU-10), **before** any extension allocates oversized buffers
 - extends both images to `max(width) × max(height)`
 - paints padded regions with `extendedAreaColor`
 
@@ -128,10 +129,11 @@ Important invariant: normalization returns **new images** and does not mutate de
 
 Responsibilities:
 
-- enforces `maxPixels` on the normalized comparison canvas
 - lazily allocates a diff image only when diff output is requested
 - converts public `pixelmatchOptions` through `toPixelmatchOptions(...)`
 - calls `pixelmatch(...)`
+
+> The normalized-canvas `maxPixels` guard lives in `normalizeImages` (SECU-10), not here — the check must fire **before** `extendImage` allocates its target buffers.
 
 ### 5. `persistDiff`
 
@@ -180,6 +182,18 @@ The validator:
     - existing output directories
     - existing output symlinks
 - permits not-yet-created output parent directories by validating the nearest existing ancestor
+
+> **Check ordering (SECU-11):** when `baseDir` is set, the lexical and realpath containment checks run **before** the output-mode symlink/directory shape checks. As a consequence, every out-of-bounds path surfaces as a uniform `Path traversal detected: …` error and never as `must not be an existing symlink/directory` — closing a filesystem-enumeration oracle for paths outside the security boundary.
+
+### Diff write contract
+
+`src/ports/fsDiffWriter.ts`, `src/ports/fsAsyncDiffWriter.ts`
+
+The diff write:
+
+- creates parent directories on demand via `mkdir(..., { recursive: true })` (parent-component race tracked as SECU-09)
+- opens the target with `O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW` (target-component symlink race closed by SECU-03)
+- passes an explicit POSIX mode `0o600` (SECU-12) so diff files are owner-only regardless of the process umask
 
 ### Area validation
 

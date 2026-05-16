@@ -111,3 +111,33 @@ describe('fsDiffWriter symlink refusal (SECU-03)', () => {
         expect(existsSync(forbidden)).toBe(false);
     });
 });
+
+describe('fsDiffWriter file mode (SECU-12)', () => {
+    const rootDir = path.resolve('./test-results/fs-diff-writer-mode');
+    const target = path.join(rootDir, 'diff.png');
+    const payload = Buffer.from('PNG-PAYLOAD-BYTES');
+    let previousUmask = 0;
+
+    beforeEach(() => {
+        rmSync(rootDir, { recursive: true, force: true });
+        mkdirSync(rootDir, { recursive: true });
+        // Force a deliberately permissive umask so any reliance on umask would
+        // yield a mode wider than 0o600 (e.g. 0o666). The explicit mode passed
+        // to openSync must override it.
+        previousUmask = process.umask(0o000);
+    });
+
+    afterEach(() => {
+        process.umask(previousUmask);
+        rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    test('creates diff files with mode 0o600 regardless of permissive umask', () => {
+        if (process.platform === 'win32') return; // Windows does not honour POSIX mode bits.
+
+        fsDiffWriter.write(asValidatedPath(target), payload);
+
+        const mode = lstatSync(target).mode & 0o777;
+        expect(mode).toBe(0o600);
+    });
+});
