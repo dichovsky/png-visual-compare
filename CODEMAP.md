@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.1.1"
     },
-    "sourceHash": "4673016f4f19362202d139f68a524fc9c15c6c60991faa85bb8d16fa4d2b5df3",
+    "sourceHash": "714454209099df64be148639a8651f9eba43a8f4877280ec24403f39b5851b76",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -1037,7 +1037,7 @@ Schema: `codemap.v2`
                 {
                     "name": "clonePng",
                     "kind": "function",
-                    "line": 8,
+                    "line": 9,
                     "exported": false,
                     "signature": "function clonePng(image: PNGWithMetadata): PNGWithMetadata",
                     "members": null,
@@ -1046,7 +1046,7 @@ Schema: `codemap.v2`
                 {
                     "name": "toComparablePng",
                     "kind": "function",
-                    "line": 14,
+                    "line": 15,
                     "exported": false,
                     "signature": "function toComparablePng(source: LoadedPng): PNGWithMetadata",
                     "members": null,
@@ -1055,7 +1055,7 @@ Schema: `codemap.v2`
                 {
                     "name": "normalizeImages",
                     "kind": "function",
-                    "line": 23,
+                    "line": 24,
                     "exported": true,
                     "signature": "export function normalizeImages(sources: LoadedSources, opts: ResolvedOptions): NormalizedImages",
                     "members": null,
@@ -1064,6 +1064,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../addColoredAreasToImage",
+                "../errors",
                 "../extendImage",
                 "../fillImageSizeDifference",
                 "../types/png.data",
@@ -1143,7 +1144,7 @@ Schema: `codemap.v2`
                 {
                     "name": "runComparison",
                     "kind": "function",
-                    "line": 7,
+                    "line": 10,
                     "exported": true,
                     "signature": "export function runComparison(images: NormalizedImages, opts: ResolvedOptions): ComparisonResult",
                     "members": null,
@@ -1152,7 +1153,6 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../adapters/toPixelmatchOptions",
-                "../errors",
                 "./types",
                 "pixelmatch",
                 "pngjs"
@@ -1261,11 +1261,20 @@ Schema: `codemap.v2`
                     "jsdoc": null
                 },
                 {
+                    "name": "DIFF_FILE_MODE",
+                    "kind": "const",
+                    "line": 12,
+                    "exported": false,
+                    "signature": "const DIFF_FILE_MODE = 0o600",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "fsAsyncDiffWriter",
                     "kind": "const",
-                    "line": 9,
+                    "line": 14,
                     "exported": true,
-                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data) { await mkdir(parse(path).dir, { recursive: true }); try { const handle = await open(path, SYMLINK_REFUSING_WRITE_FLAGS)…",
+                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data) { await mkdir(parse(path).dir, { recursive: true }); try { const handle = await open(path, SYMLINK_REFUSING_WRITE_FLAGS,…",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1314,11 +1323,20 @@ Schema: `codemap.v2`
                     "jsdoc": null
                 },
                 {
+                    "name": "DIFF_FILE_MODE",
+                    "kind": "const",
+                    "line": 11,
+                    "exported": false,
+                    "signature": "const DIFF_FILE_MODE = 0o600",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "fsDiffWriter",
                     "kind": "const",
-                    "line": 8,
+                    "line": 13,
                     "exported": true,
-                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data) { mkdirSync(parse(path).dir, { recursive: true }); let fd: number; try { fd = openSync(path, SYMLINK_REFUSING_WRITE_FLAGS); } catch (err…",
+                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data) { mkdirSync(parse(path).dir, { recursive: true }); let fd: number; try { fd = openSync(path, SYMLINK_REFUSING_WRITE_FLAGS, DIFF_FILE_MOD…",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1644,9 +1662,18 @@ Schema: `codemap.v2`
                     "jsdoc": null
                 },
                 {
+                    "name": "assertOutputTargetShape",
+                    "kind": "function",
+                    "line": 61,
+                    "exported": false,
+                    "signature": "function assertOutputTargetShape(resolved: string): void",
+                    "members": null,
+                    "jsdoc": "Asserts that an output-mode target is not an existing symlink or directory."
+                },
+                {
                     "name": "validatePath",
                     "kind": "function",
-                    "line": 77,
+                    "line": 116,
                     "exported": true,
                     "signature": "export function validatePath(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPath",
                     "members": null,
