@@ -60,6 +60,16 @@ export type ComparePngOptions = {
      * Regular files at the target path continue to be overwritten as before — only
      * the symlink-redirect attack is closed.
      *
+     * **File mode contract (SECU-12):**
+     * After the file is opened the writer issues an explicit `fchmod` to mode
+     * `0o600` (owner read/write only), so the final mode is `0o600` regardless
+     * of (a) the process umask and (b) any pre-existing mode at the target
+     * when the diff overwrites an older file. POSIX would otherwise mask the
+     * requested create-mode with `~umask` (so umask can only make permissions
+     * *more* restrictive), and `O_TRUNC` would otherwise leave a pre-existing
+     * `0o644` file at its existing wider mode. Callers who need a different
+     * file mode can inject a custom `DiffWriterPort` via `comparePngWithPorts`.
+     *
      * **Residual scope:** the parent-directory race (a symlink planted in a parent
      * component between validation and `mkdirSync(..., { recursive: true })`) is not
      * yet closed; tracked as `SECU-09` in `BACKLOG.md`.

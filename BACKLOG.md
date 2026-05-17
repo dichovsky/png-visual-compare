@@ -940,6 +940,122 @@ if (filePath.length > 4096) {
 - Coverage stays at 100 %
 - Symlink-in-parent test passes on Linux and macOS; Windows guarded as elsewhere
 
+## [SECU-10] Normalized canvas `maxPixels` check fires after extended buffers are already allocated
+
+**Priority:** P1  
+**Status:** Done  
+**Filed:** 2026-05-16 (CTF iteration 1). Closed in `feat/secu-10-11-12-ctf-findings` — check relocated into `normalizeImages` before `extendImage` is invoked; redundant check removed from `runComparison`.  
+**Problem:** SECU-02 specified that the canvas-level `maxPixels` check must fire **"after `maxWidth`/`maxHeight` are computed, before diff allocation"**, but the shipped implementation lives in `src/pipeline/runComparison.ts:8-14`. That check runs **after** `normalizeImages` returns, and `normalizeImages` has by then already called `extendImage(first, width, height)` and `extendImage(second, width, height)` (`src/pipeline/normalizeImages.ts:38-39`). Each `extendImage` call allocates a fresh `new PNG({ width, height, fill: true })` of the maxed-out canvas size and zero-fills its entire RGBA buffer. The `maxPixels` gate is meant to prevent exactly that allocation; placing it after the allocation makes the gate cosmetic for the DoS path it was designed to close.
+
+**Technical rationale (PoC under default options):** Both `getPngData` per-image guards pass for the following pair:
+
+- Image A: declared `16384 × 1024` (16,777,216 pixels — exactly `DEFAULT_MAX_PIXELS`, within `DEFAULT_MAX_DIMENSION = 16384`)
+- Image B: declared `1024 × 16384` (16,777,216 pixels — same)
+
+Then `normalizeImages` computes `width = 16384`, `height = 16384` and calls `extendImage` twice — each allocating a `16384 × 16384 × 4` ≈ **1 GiB** zero-filled buffer (~2 GiB peak across both sides) before `runComparison` finally throws `ResourceLimitError`. On a default-config host this is enough to OOM-kill the process or trigger heavy GC pressure. The defender has done the right thing on paper (the error message exists and the test `"rejects normalized canvas that exceeds maxPixels even when individual images do not"` passes) but the runtime allocation it was meant to prevent still happens.
+
+**Files to modify:**
+
+- `src/pipeline/normalizeImages.ts` — after computing `width = Math.max(width1, width2)` and `height = Math.max(height1, height2)` and **before** the `if (width1 !== width2 || height1 !== height2)` branch that calls `extendImage`, throw `ResourceLimitError` when `width * height > opts.maxPixels`. Use the existing error message format from `runComparison.ts:10-13` so the user-facing contract is unchanged.
+- `src/pipeline/runComparison.ts` — the existing check becomes defense-in-depth. Either delete it (preferred — the invariant is now upheld upstream) or annotate it with a comment that `normalizeImages` is the primary enforcement point and this is a redundant guard for direct callers of `runComparison` (none today).
+- `src/pipeline/normalizeImages.ts` — also: the check must guard the equal-size path too (`width = width1 = width2`, but still subject to `maxPixels`), so it must live outside the `if` branch.
+
+**Test additions in `__tests__/comparePng.exceptions.test.ts` (data-driven):**
+
+- `"rejects normalized canvas before allocating extended buffers"` — supply a pair `(16384×1024, 1024×16384)` with `maxPixels: 16_777_216` (the default). Spy on `PNG.prototype` constructor (or stub `extendImage` via a port if injection allows) and assert that `extendImage` is **not** invoked. Expected: `ResourceLimitError` with the existing canvas-overflow message.
+- `"runComparison maxPixels check no longer needed but remains as defense-in-depth"` — if the redundant check is kept, add a unit test for `runComparison.ts` that fabricates `NormalizedImages` with `width * height > maxPixels` directly (bypassing `normalizeImages`) and asserts the same `ResourceLimitError`. If the check is removed, delete that test.
+
+**Acceptance criteria:**
+
+- The PoC `(16384×1024, 1024×16384)` pair throws `ResourceLimitError` **without** allocating either extended canvas (verified via spy / call counter on `extendImage` or `PNG.bitblt`).
+- Existing `"rejects normalized canvas that exceeds maxPixels even when individual images do not"` test (from SECU-02) continues to pass with the same error code and message.
+- 100 % branch/line/function/statement coverage maintained.
+- Snapshot test suite unchanged byte-for-byte.
+- `docs/ARCHITECTURE.md` security section updated to reflect that the canvas-level check is enforced inside `normalizeImages`, not `runComparison`.
+
+**CTF notes:** This is a regression from the SECU-02 specification — the spec said "before diff allocation"; the implementation interpreted that as "before the diff `PNG` in `runComparison`" but missed that `extendImage` is itself a canvas-size allocation. The defect is purely a placement bug; the math, the error type, and the error message are all already correct.
+
+## [SECU-11] `validatePath` output mode leaks filesystem state for paths outside `baseDir`
+
+**Priority:** P2  
+**Status:** Done  
+**Filed:** 2026-05-16 (CTF iteration 2). Closed in `feat/secu-10-11-12-ctf-findings` — lstat/stat shape checks reordered to run **after** the `baseDir` containment check via the new `assertOutputTargetShape` helper.  
+**Problem:** In `src/validatePath.ts:86-104`, the **symlink-at-target** check (`lstatSync(resolved).isSymbolicLink()`) and the **existing-directory** check (`statSync(resolved).isDirectory()`) execute unconditionally for `mode === 'output'`, **before** the `baseDir` containment check at line 105-119. As a result, an attacker who controls `diffFilePath` while `diffOutputBaseDir` is enforced can use `validatePath` as a probing oracle for arbitrary absolute paths anywhere on the filesystem — even though those paths would ultimately be rejected by the containment check.
+
+**Probe walkthrough (assume `diffOutputBaseDir = '/srv/runs/job-42'`):**
+
+| Attacker's `diffFilePath`       | Filesystem state                | Error message returned                                             | Information leaked                                                                       |
+| ------------------------------- | ------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `/etc/ssh/ssh_host_ed25519_key` | Regular file, exists            | `Path traversal detected: "/etc/..." is outside ...`               | (none — containment fires, expected)                                                     |
+| `/var/secrets/api-token`        | **Symlink** pointing to a vault | `Invalid file path: output path must not be an existing symlink`   | The path exists **and** it is a symlink (confirms a vault indirection at that location). |
+| `/var/log`                      | **Directory**, exists           | `Invalid file path: output path must not be an existing directory` | The path exists **and** it is a directory.                                               |
+| `/etc/totally-not-here-9923`    | ENOENT                          | `Path traversal detected: "/etc/..." is outside ...`               | (none — both checks skip cleanly, containment fires)                                     |
+
+The attacker iterates over candidate paths and reads back distinct error strings; the response splits the universe of probed paths into three observable classes — _exists-symlink_, _exists-directory_, and _anything else_. Combined with knowledge of common filesystem layouts (`/var/secrets/<service>`, `/etc/ssh/host_*`, `/proc/<pid>`, container mount points) this constitutes a generic filesystem-enumeration primitive. The library's own `getPngData.ts:96` comment already cites VUL-05 ("prevents filesystem enumeration") as the reason for the unified "source could not be loaded" message on input paths — the output-side check missed the same lesson.
+
+**Technical rationale:** The early existence checks make sense **inside** the trust boundary (a caller writing to `/srv/runs/job-42/diff.png` legitimately wants to know "don't overwrite that symlink"). They make no sense **outside** the boundary, where they answer questions the attacker shouldn't be allowed to ask. The fix is purely an ordering change: run the cheap lexical containment check first, then realpath-based containment, and only then run the symlink/directory existence checks against the (now-confirmed-in-bounds) target.
+
+**Files to modify:**
+
+- `src/validatePath.ts` — reorder the body so that, when `baseDir !== undefined`, the lexical `isContained` and realpath-based containment checks run **before** the `lstatSync` / `statSync` block. When `baseDir === undefined` (legacy, anywhere-on-disk) the existence checks remain first (no oracle to exploit because no boundary is being enforced). Suggested refactor: extract a `assertOutputTargetShape(resolved): void` helper containing the lstat/statSync block, then call it after the containment block.
+- TSDoc on `validatePath` — clarify that, with `baseDir` enforced, paths outside the boundary always yield `Path traversal detected: …` and never reveal filesystem state at the probed location.
+
+**Test additions in `__tests__/validatePath.test.ts`:**
+
+- `"with diffOutputBaseDir set, an out-of-bounds symlink target reports traversal — not 'must not be a symlink'"` — create a symlink at `/tmp/outside-XXXX/leak-link`, set `baseDir = /tmp/inside-XXXX`, assert the thrown `PathValidationError.message` starts with `Path traversal detected:` and never contains the strings `symlink` or `directory`.
+- `"with diffOutputBaseDir set, an out-of-bounds existing directory reports traversal — not 'must not be a directory'"` — analogous case with a directory target outside `baseDir`.
+- `"without baseDir, existing-symlink and existing-directory checks are unchanged"` — regression guard for the legacy code path.
+
+**Acceptance criteria:**
+
+- When `baseDir` is set, the error message returned for any path outside `baseDir` is identical regardless of whether the out-of-bounds path is a regular file, a symlink, a directory, or absent.
+- The two existing positive paths — "writing a new file inside `baseDir`" and "writing under a deep `baseDir` whose parents include a symlink the validator follows" — continue to work.
+- Coverage remains at 100 %.
+- `docs/ARCHITECTURE.md` security section gains a sentence documenting the new ordering invariant.
+
+**CTF notes:** This pairs with the inline comment in `getPngData.ts:95-97` and `getPngData.ts:113-115` that explicitly cites VUL-05 ("prevents filesystem enumeration") — the input-side enforces a uniform error message, but the output-side leaks a three-way oracle. Two-way fix: tighten output-side ordering **and** add a similar VUL-05-style comment so the invariant is documented at the call site.
+
+## [SECU-12] Diff PNG is written with default `0o666 & ~umask` — world-readable on a default Linux host
+
+**Priority:** P2  
+**Status:** Done  
+**Filed:** 2026-05-16 (CTF iteration 3). Closed in `feat/secu-10-11-12-ctf-findings` — both writers now pass an explicit `0o600` mode to `openSync` / `open`.  
+**Problem:** Both `src/ports/fsDiffWriter.ts:13` and `src/ports/fsAsyncDiffWriter.ts:13` open the diff target with `openSync(path, SYMLINK_REFUSING_WRITE_FLAGS)` / `await open(path, SYMLINK_REFUSING_WRITE_FLAGS)` and pass **no third `mode` argument**. When `O_CREAT` is one of the flags (it is — `O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW`), POSIX `open(2)` creates the file with mode `0o666 & ~umask`. On a default Linux host (`umask 0022`) that yields `0o644` (`rw-r--r--`) — i.e. **world-readable**. The diff PNG can contain visual evidence of whatever the consumer was screenshotting — production dashboards, JWTs in browser dev-tools, half-loaded admin pages — and every local user can read it.
+
+**Threat model:**
+
+- Multi-tenant CI runners (shared Linux hosts where one job's diff artefact is readable by another job running concurrently as a different uid).
+- Self-hosted GitHub runner / GitLab runner / Jenkins agent boxes with multiple users (developers SSH-ing in) and a single shared `/tmp` or repo workdir.
+- Developer workstations that run untrusted helper scripts under separate uids (rarely, but the same `~/.npm/_cacache/_locks` pattern keeps biting because of permissive umask).
+- The diff path itself is usually outside `diffOutputBaseDir` only via misconfiguration, but the **mode** at the target is independent of containment — even a containment-respecting write leaks.
+
+**Why the current code looks safe but isn't:** SECU-03 closed the symlink-redirect TOCTOU at the target by switching from `writeFileSync` to a low-level `openSync` + `O_NOFOLLOW` flow. That refactor was the right call — but it also changed the file-creation contract. `writeFileSync(path, data)` (Node 20+) defaults to mode `0o666` _too_ — so the regression is technically pre-existing — but the switch to `openSync` made it _explicit_ in the source while still inheriting umask. The opportunity to thread an explicit mode was right there and wasn't taken.
+
+**Files to modify:**
+
+- `src/ports/fsDiffWriter.ts` — change `openSync(path, SYMLINK_REFUSING_WRITE_FLAGS)` to `openSync(path, SYMLINK_REFUSING_WRITE_FLAGS, 0o600)`.
+- `src/ports/fsAsyncDiffWriter.ts` — change `open(path, SYMLINK_REFUSING_WRITE_FLAGS)` to `open(path, SYMLINK_REFUSING_WRITE_FLAGS, 0o600)`.
+- `src/types/compare.options.ts` — extend the `diffFilePath` TSDoc with a "**File mode contract:**" paragraph: "The diff is created with mode `0o600` (owner read/write only). This intentionally bypasses umask so that diffs do not become group- or world-readable on default Linux hosts. To override this, inject a custom `diffWriter` port via `comparePngWithPorts` (SECU-07 will make this ergonomic once ports are part of the public barrel)."
+- `docs/ARCHITECTURE.md` — security model section: list "diff-file mode" alongside "diff-write symlink safety".
+
+**Alternative considered and rejected:** Inheriting umask "to match POSIX convention". Rejected because (a) the rest of the library treats umask as an unsafe default (validatePath rejects symlinks by default; the path canonicalization assumes adversarial neighbours); (b) callers who genuinely want world-readable diffs are a vanishing minority and can express it via a custom `DiffWriterPort`, while callers who get burned by world-readable diffs cannot recover the leaked bytes; (c) `0o600` matches the behaviour of `fs.mkdtemp` family (which always returns mode `0o700`) — the precedent inside Node's own stdlib favours private-by-default for synthesised filesystem objects.
+
+**Test additions:**
+
+- `__tests__/ports/fsDiffWriter.mode.test.ts` (new) — write a diff to a tmp directory under a deliberately permissive umask (`process.umask(0o000)`) and `fs.statSync(path).mode & 0o777` must equal `0o600`. Restore previous umask in `afterEach`. Linux/macOS only; Windows-guard.
+- `__tests__/ports/fsAsyncDiffWriter.mode.test.ts` (new) — same assertion on the async path.
+- Existing snapshot tests must continue to produce byte-identical PNG content (mode change is metadata-only).
+
+**Acceptance criteria:**
+
+- Diff files created by either writer have mode `0o600` regardless of the process umask, on Linux and macOS.
+- Windows behaviour is unchanged (Windows ignores POSIX mode bits — Node ports the value but the filesystem doesn't honour it; the test must skip rather than fail).
+- 100 % coverage maintained.
+- TSDoc on `diffFilePath` documents the mode contract.
+- A short paragraph appears in `docs/ARCHITECTURE.md` security section.
+
+**CTF notes:** Discovered by reading `openSync` calls for missing third arguments. Smallest possible fix (one literal per writer) with the largest possible blast-radius reduction — every prior release of this package has shipped diff files at the host's umask default, and the documentation has never warned consumers about it.
+
 ## [PERF-04] Skip eager clone in `normalizeImages` when no mutation follows
 
 **Priority:** P2  

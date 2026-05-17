@@ -1,5 +1,6 @@
 import { PNG, type PNGWithMetadata } from 'pngjs';
 import { addColoredAreasToImage } from '../addColoredAreasToImage';
+import { ResourceLimitError } from '../errors';
 import { extendImage } from '../extendImage';
 import { fillImageSizeDifference } from '../fillImageSizeDifference';
 import type { LoadedPng } from '../types/png.data';
@@ -33,6 +34,18 @@ export function normalizeImages(sources: LoadedSources, opts: ResolvedOptions): 
     const { width: width2, height: height2 } = second;
     const width = Math.max(width1, width2);
     const height = Math.max(height1, height2);
+
+    // SECU-10: enforce the normalized-canvas pixel cap *before* extendImage allocates
+    // its target buffers. Allowing `extendImage` to run first would let a crafted
+    // (16384×1024, 1024×16384) input pair allocate ~2 GiB of zero-filled RGBA buffers
+    // before the runtime guard could throw.
+    const pixelCount = width * height;
+    if (pixelCount > opts.maxPixels) {
+        throw new ResourceLimitError(
+            `Normalized canvas pixel count (${pixelCount}) exceeds the maximum allowed ${opts.maxPixels} pixels. ` +
+                'Set opts.maxPixels to increase the limit.',
+        );
+    }
 
     if (width1 !== width2 || height1 !== height2) {
         first = extendImage(first, width, height);

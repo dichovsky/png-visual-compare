@@ -111,3 +111,53 @@ describe('fsDiffWriter symlink refusal (SECU-03)', () => {
         expect(existsSync(forbidden)).toBe(false);
     });
 });
+
+describe('fsDiffWriter file mode (SECU-12)', () => {
+    const rootDir = path.resolve('./test-results/fs-diff-writer-mode');
+    const target = path.join(rootDir, 'diff.png');
+    const payload = Buffer.from('PNG-PAYLOAD-BYTES');
+    let previousUmask = 0;
+
+    beforeEach(() => {
+        rmSync(rootDir, { recursive: true, force: true });
+        mkdirSync(rootDir, { recursive: true });
+        // Set umask(0) so the kernel's `mode & ~umask` masking leaves the
+        // requested create-mode untouched; the resulting mode we observe is
+        // then a direct function of what the writer requested rather than a
+        // combination of mode + umask. The asymmetry only goes one way: a
+        // restrictive umask can narrow permissions, but a permissive umask
+        // can never widen them past the requested mode — and the explicit
+        // fchmod the writer issues makes both directions irrelevant.
+        previousUmask = process.umask(0o000);
+    });
+
+    afterEach(() => {
+        process.umask(previousUmask);
+        rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    test('creates new diff files with mode 0o600 under a permissive umask', () => {
+        if (process.platform === 'win32') return; // Windows does not honour POSIX mode bits.
+
+        fsDiffWriter.write(asValidatedPath(target), payload);
+
+        const mode = lstatSync(target).mode & 0o777;
+        expect(mode).toBe(0o600);
+    });
+
+    test('tightens the mode of a pre-existing 0o644 file on overwrite (fchmod, not just open-mode)', () => {
+        if (process.platform === 'win32') return; // Windows does not honour POSIX mode bits.
+
+        // Pre-create the target with a wider mode, as if a previous version of
+        // the library (or any other tool) had written it. `O_TRUNC` truncates
+        // bytes but POSIX does NOT change the inode's mode; without the
+        // post-open fchmod the file would stay at 0o644.
+        writeFileSync(target, 'stale-bytes', { mode: 0o644 });
+        expect(lstatSync(target).mode & 0o777).toBe(0o644);
+
+        fsDiffWriter.write(asValidatedPath(target), payload);
+
+        expect(lstatSync(target).mode & 0o777).toBe(0o600);
+        expect(readFileSync(target)).toEqual(payload);
+    });
+});
