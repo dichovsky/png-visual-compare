@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.1.1"
     },
-    "sourceHash": "714454209099df64be148639a8651f9eba43a8f4877280ec24403f39b5851b76",
+    "sourceHash": "274c3e0094a7b3a29110ff285204146c3676a99284a69853038bc2da116ac4be",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -1263,7 +1263,7 @@ Schema: `codemap.v2`
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 12,
+                    "line": 18,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
@@ -1272,7 +1272,7 @@ Schema: `codemap.v2`
                 {
                     "name": "fsAsyncDiffWriter",
                     "kind": "const",
-                    "line": 14,
+                    "line": 20,
                     "exported": true,
                     "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data) { await mkdir(parse(path).dir, { recursive: true }); try { const handle = await open(path, SYMLINK_REFUSING_WRITE_FLAGS,…",
                     "members": null,
@@ -1325,7 +1325,7 @@ Schema: `codemap.v2`
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 11,
+                    "line": 17,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
@@ -1334,7 +1334,7 @@ Schema: `codemap.v2`
                 {
                     "name": "fsDiffWriter",
                     "kind": "const",
-                    "line": 13,
+                    "line": 19,
                     "exported": true,
                     "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data) { mkdirSync(parse(path).dir, { recursive: true }); let fd: number; try { fd = openSync(path, SYMLINK_REFUSING_WRITE_FLAGS, DIFF_FILE_MOD…",
                     "members": null,

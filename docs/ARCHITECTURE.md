@@ -193,7 +193,7 @@ The diff write:
 
 - creates parent directories on demand via `mkdir(..., { recursive: true })` (parent-component race tracked as SECU-09)
 - opens the target with `O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW` (target-component symlink race closed by SECU-03)
-- passes an explicit POSIX mode `0o600` (SECU-12) so diff files are owner-only regardless of the process umask
+- passes an explicit POSIX create-mode `0o600` to `open` and then issues an explicit `fchmod(0o600)` on the open handle (SECU-12). The `open` mode alone is insufficient: POSIX masks it with `~umask` (a restrictive umask can only narrow it further, never widen it) and `O_TRUNC` does not reset the mode of a pre-existing file. The post-open `fchmod` makes the final mode `0o600` in both the create and overwrite cases.
 
 ### Area validation
 
