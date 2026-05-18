@@ -49,7 +49,6 @@
 - [ ] 🟢 🐛 RELI [RELI-07]: `persistDiff` use `=== 0` not `<= 0`
 - [ ] 🟢 🐛 RELI [RELI-08]: Validate-before-bind in `resolveOptions`
 - [ ] 🟢 🐛 RELI [RELI-09]: Wrap `realpathNative` errors in `PathValidationError`
-- [ ] 🟢 🐛 RELI [RELI-10]: Wrap `pixelmatch` errors → `ComparisonError`
 - [ ] 🟢 📦 API [API-03]: In-memory diff buffer (no disk round-trip)
 - [ ] 🟢 📦 API [API-04]: Accept `string|URL` for path options
 - [ ] 🟢 📦 API [API-05]: `comparePngWithResult` verbose return shape

@@ -92,3 +92,36 @@ export class ResourceLimitError extends Error {
         Object.setPrototypeOf(this, new.target.prototype);
     }
 }
+
+/**
+ * Thrown when the underlying `pixelmatch` call fails — for example, when the two
+ * normalized image buffers have mismatched lengths, or when `pixelmatch` itself
+ * throws for any reason the public API does not control directly.
+ *
+ * The original failure is preserved on the standard ES2022 `cause` property so
+ * callers can inspect it without parsing error messages. Like {@link ResourceLimitError},
+ * this error is **NOT** recoverable via `throwErrorOnInvalidInputData: false`:
+ * a comparison-kernel failure signals an integrity bug in the pipeline, not a
+ * user-recoverable input problem.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   comparePng('a.png', 'b.png');
+ * } catch (error) {
+ *   if (error instanceof ComparisonError) {
+ *     console.log('Comparison failed:', error.message);
+ *     console.log('Underlying cause:', error.cause);
+ *   }
+ * }
+ * ```
+ */
+export class ComparisonError extends Error {
+    readonly code = 'ERR_COMPARISON' as const;
+
+    constructor(message: string, options?: { cause?: unknown }) {
+        super(message, options);
+        this.name = 'ComparisonError';
+        Object.setPrototypeOf(this, new.target.prototype);
+    }
+}

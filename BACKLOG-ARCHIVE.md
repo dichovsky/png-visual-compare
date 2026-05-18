@@ -51,6 +51,9 @@
 - [x] 🔴 🐛 RELI [RELI-04]: Zero-dimension PNG semantics
     - **Impl:** `getPngData` rejects `width === 0 || height === 0` with `InvalidInputError`; non-throw variant returns invalid `LoadedPng`.
     - **Rat:** Zero-size behavior was an implementation side effect, not a contract — corner cases under-specified for consumers and maintainers.
+- [x] 🟢 🐛 RELI [RELI-10]: Wrap `pixelmatch` errors → `ComparisonError`
+    - **Impl:** New public `ComparisonError extends Error` (`code: 'ERR_COMPARISON'`) in `src/errors.ts`; `runComparison` wraps the `pixelmatch(...)` call in try/catch and rethrows with the original on the ES2022 `cause` property; exported from `src/index.ts`; README + ARCHITECTURE error-model sections updated; unit tests cover Error / non-Error throws plus a passthrough.
+    - **Rat:** Raw `pixelmatch` throws leaked through both sync and async public APIs as untyped `Error`s — callers had to parse free-form messages to branch on comparison-kernel failures, defeating the structured-error model established by RELI-03.
 - [x] 🔴 ♻️ TYPE [TYPE-01]: Replace `PngData` sentinel with discriminated union
     - **Impl:** Replaced `PngData` with `LoadedPng = {kind:'valid',png} | {kind:'invalid',reason}`; updated `getPngData` + loaders + tests; removed from public barrel (semver-major).
     - **Rat:** Sentinel encoded failure as a fake `0×0` PNG — weakened invariants and let invalid input flow through as if real.

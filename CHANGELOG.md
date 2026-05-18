@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **RELI-10** — New public `ComparisonError` (`code: 'ERR_COMPARISON'`) thrown
+  when the underlying `pixelmatch` call fails. The original failure is preserved
+  on the standard ES2022 `cause` property so callers can match by class or by
+  `code` instead of parsing free-form messages. Like `ResourceLimitError`, this
+  error is **not** downgraded by `throwErrorOnInvalidInputData: false` — a
+  comparison-kernel failure signals an integrity bug, not a recoverable input
+  problem. Applies to both `comparePng` and `comparePngAsync` since they share
+  `runComparison`.
+
 ## [6.1.1] - 2026-05-16
 
 ### Security
