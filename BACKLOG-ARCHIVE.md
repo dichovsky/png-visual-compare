@@ -2,7 +2,7 @@
 
 > **Agent Rules:** Append completed tasks here. Add Impl: (Implementation details) and Rat: (Rationale/Why).
 
-> Full original specs (file lists, prescribed signatures, acceptance criteria): see `BACKLOG.md` — will be renamed `BACKLOG_OLD.md` on swap. IDs in `[BRACKETS]` are stable cross-refs.
+> Full original specs (file lists, prescribed signatures, acceptance criteria) are preserved in git history — see commits prior to the compact-backlog adoption. IDs in `[BRACKETS]` are stable cross-refs to git history, `CHANGELOG.md`, `BACKLOG.md`, and `docs/ARCHITECTURE.md`.
 
 ## 🔒 Security
 

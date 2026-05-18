@@ -1,19 +1,22 @@
-import { PNG } from 'pngjs';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { ComparisonError } from '../../src';
-import { loadSources } from '../../src/pipeline/loadSources';
-import { normalizeImages } from '../../src/pipeline/normalizeImages';
-import { resolveOptions } from '../../src/pipeline/resolveOptions';
-import { runComparison } from '../../src/pipeline/runComparison';
 
 // `pixelmatch` is a third-party module — mock its default export so we can
-// drive `runComparison`'s catch path deterministically.
+// drive `runComparison`'s catch path deterministically. This declaration is
+// intentionally placed before any module-under-test import so it matches the
+// hoisted-mock pattern used in `__tests__/getPngData.non-error.test.ts` and
+// `__tests__/validatePath.branches.test.ts`.
 vi.mock('pixelmatch', () => ({
     __esModule: true,
     default: vi.fn(),
 }));
 
 import pixelmatch from 'pixelmatch';
+import { PNG } from 'pngjs';
+import { ComparisonError } from '../../src';
+import { loadSources } from '../../src/pipeline/loadSources';
+import { normalizeImages } from '../../src/pipeline/normalizeImages';
+import { resolveOptions } from '../../src/pipeline/resolveOptions';
+import { runComparison } from '../../src/pipeline/runComparison';
 
 const mockedPixelmatch = vi.mocked(pixelmatch);
 

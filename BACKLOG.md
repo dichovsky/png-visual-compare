@@ -2,7 +2,7 @@
 
 > **Agent Rules:** Keep descriptions brief. When a task is completed, REMOVE it from here and APPEND it to BACKLOG-ARCHIVE.md.
 
-> Verbose original (problem / files / acceptance criteria / dependency table): see `BACKLOG.md` — will be renamed `BACKLOG_OLD.md` on swap. IDs in `[BRACKETS]` are stable cross-refs to that file, CHANGELOG, and `docs/ARCHITECTURE.md`.
+> Verbose original specs (problem / files / acceptance criteria / dependency table) are preserved in git history — see commits prior to the compact-backlog adoption. IDs in `[BRACKETS]` are stable cross-refs to git history, `CHANGELOG.md`, `BACKLOG-ARCHIVE.md`, and `docs/ARCHITECTURE.md`.
 
 > Legend — Priority: 🔴 high (P0/P1) · 🟡 medium (P2) · 🟢 low (P3). Type: 🐛 fix · 📦 feature · ♻️ refactor · 🧪 test · 📝 docs.
 
