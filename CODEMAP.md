@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.1.1"
     },
-    "sourceHash": "274c3e0094a7b3a29110ff285204146c3676a99284a69853038bc2da116ac4be",
+    "sourceHash": "95b1e226e650b25b2a6cccd76b99a958bfcfc63545c62512cf6b9290e93c93a2",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -50,6 +50,16 @@ Schema: `codemap.v2`
             "signature": "export type ComparePngOptions = { excludedAreas?: Area[]; diffFilePath?: string; throwErrorOnInvalidInputData?: boolean; extendedAreaColor?: Color; excludedAreaColor?: Color; maxDimension?: number; ma…",
             "jsdoc": null,
             "typeOnly": true
+        },
+        {
+            "name": "ComparisonError",
+            "kind": "class",
+            "entrypoint": "src/index.ts",
+            "file": "src/errors.ts",
+            "line": 119,
+            "signature": "export class ComparisonError extends Error",
+            "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
+            "typeOnly": false
         },
         {
             "name": "DEFAULT_EXCLUDED_AREA_COLOR",
@@ -458,6 +468,26 @@ Schema: `codemap.v2`
                         }
                     ],
                     "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension` or `maxPixels`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Reject PNGs larger than 16384 × 16384 comparePng('huge.png', 'ima…"
+                },
+                {
+                    "name": "ComparisonError",
+                    "kind": "class",
+                    "line": 119,
+                    "exported": true,
+                    "signature": "export class ComparisonError extends Error",
+                    "members": [
+                        {
+                            "name": "code",
+                            "kind": "property",
+                            "line": 120
+                        },
+                        {
+                            "name": "constructor",
+                            "kind": "constructor",
+                            "line": 122
+                        }
+                    ],
+                    "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
                 }
             ],
             "imports": [],
@@ -595,6 +625,7 @@ Schema: `codemap.v2`
                 {
                     "source": "./errors",
                     "names": [
+                        "ComparisonError",
                         "InvalidInputError",
                         "PathValidationError",
                         "ResourceLimitError"
@@ -1144,7 +1175,7 @@ Schema: `codemap.v2`
                 {
                     "name": "runComparison",
                     "kind": "function",
-                    "line": 10,
+                    "line": 11,
                     "exported": true,
                     "signature": "export function runComparison(images: NormalizedImages, opts: ResolvedOptions): ComparisonResult",
                     "members": null,
@@ -1153,6 +1184,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../adapters/toPixelmatchOptions",
+                "../errors",
                 "./types",
                 "pixelmatch",
                 "pngjs"

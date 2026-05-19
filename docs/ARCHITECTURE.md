@@ -29,6 +29,7 @@ comparePng / comparePngAsync
 
 - `comparePng`
 - `comparePngAsync`
+- `ComparisonError`
 - `InvalidInputError`
 - `PathValidationError`
 - `ResourceLimitError`
@@ -132,6 +133,7 @@ Responsibilities:
 - lazily allocates a diff image only when diff output is requested
 - converts public `pixelmatchOptions` through `toPixelmatchOptions(...)`
 - calls `pixelmatch(...)`
+- wraps any throw from `pixelmatch` in a `ComparisonError` (RELI-10), preserving the original failure on the standard `cause` property
 
 > The normalized-canvas `maxPixels` guard lives in `normalizeImages` (SECU-10), not here — the check must fire **before** `extendImage` allocates its target buffers.
 
@@ -232,6 +234,7 @@ Stable error classes:
 - `InvalidInputError` → `ERR_INVALID_PNG_INPUT`
 - `PathValidationError` → `ERR_PATH_VALIDATION`
 - `ResourceLimitError` → `ERR_RESOURCE_LIMIT`
+- `ComparisonError` → `ERR_COMPARISON` (wraps `pixelmatch` failures; preserves the underlying error on `cause`)
 
 These are used consistently across sync and async flows.
 

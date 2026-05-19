@@ -74,11 +74,12 @@ The library now fails fast for malformed option data instead of relying on downs
 
 ### 3. Security/resource limits still throw in permissive mode
 
-`throwErrorOnInvalidInputData: false` only downgrades ordinary invalid-image inputs. Security and resource-boundary checks still throw:
+`throwErrorOnInvalidInputData: false` only downgrades ordinary invalid-image inputs. Security, resource-boundary, and comparison-kernel checks still throw:
 
-- `inputBaseDir` / `diffOutputBaseDir` containment violations
-- symlink traversal and invalid output target checks
-- `maxDimension` / `maxPixels` limits
+- `inputBaseDir` / `diffOutputBaseDir` containment violations → `PathValidationError`
+- symlink traversal and invalid output target checks → `PathValidationError`
+- `maxDimension` / `maxPixels` limits → `ResourceLimitError`
+- failures inside the underlying `pixelmatch` call → `ComparisonError` (the original error is preserved on `cause`)
 
 ### 4. Use `comparePngAsync` for promise-based I/O
 
@@ -274,6 +275,30 @@ type Color = {
 | `diffColor`    | `[r, g, b]` | `[255, 0, 0]`   | Colour of differing pixels in the diff                      |
 | `diffColorAlt` | `[r, g, b]` | `undefined`     | Alternative diff colour for dark pixels (dark-mode support) |
 | `diffMask`     | `boolean`   | `false`         | Show only changed pixels on a transparent background        |
+
+### Errors
+
+All public errors extend the built-in `Error` and expose a stable string `code` for runtime matching without parsing messages. Match either via `instanceof` or via `code`:
+
+| Class                 | `code`                  | When it throws                                                                                                                              |
+| --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `InvalidInputError`   | `ERR_INVALID_PNG_INPUT` | A PNG input is missing, malformed, or cannot be decoded. Recoverable via `throwErrorOnInvalidInputData: false` (treated as a zero-size PNG) |
+| `PathValidationError` | `ERR_PATH_VALIDATION`   | A file path fails validation: traversal outside a base directory, symlink at the output target, empty/null-byte path                        |
+| `ResourceLimitError`  | `ERR_RESOURCE_LIMIT`    | A PNG would exceed `maxDimension` or `maxPixels`. **Always throws** regardless of `throwErrorOnInvalidInputData`                            |
+| `ComparisonError`     | `ERR_COMPARISON`        | The underlying `pixelmatch` call threw. The original failure is preserved on the standard `cause` property. **Always throws**               |
+
+```typescript
+import { comparePng, ComparisonError } from 'png-visual-compare';
+
+try {
+    comparePng(img1, img2);
+} catch (error) {
+    if (error instanceof ComparisonError) {
+        console.error('Pixel comparison failed:', error.message);
+        console.error('Underlying:', error.cause);
+    }
+}
+```
 
 ### Exported constants
 
