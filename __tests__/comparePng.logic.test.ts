@@ -36,6 +36,25 @@ test('throws when both inputs are invalid', () => {
     ).toThrow(InvalidInputError);
 });
 
+test('size-difference band is reported as a mismatch when not excluded (control)', () => {
+    // 4x4 vs 4x2: the bottom two rows exist only in the first image and become
+    // extended (green) padding in the second, so they differ.
+    const result = comparePng(createPngBuffer(4, 4, [255, 0, 0, 255]), createPngBuffer(4, 2, [255, 0, 0, 255]), {});
+
+    expect(result).toBe(8);
+});
+
+test('excludedAreas overlapping the size-extension region always match (contract)', () => {
+    // Excluding the exact bottom band that only exists in the larger image must
+    // make it match — excluded areas "always match regardless of content", even
+    // when they overlap regions added by size extension.
+    const result = comparePng(createPngBuffer(4, 4, [255, 0, 0, 255]), createPngBuffer(4, 2, [255, 0, 0, 255]), {
+        excludedAreas: [{ x1: 0, y1: 2, x2: 3, y2: 3 }],
+    });
+
+    expect(result).toBe(0);
+});
+
 test('excludedAreas validation runs before image mutation', () => {
     const diffDir = resolve('./test-results/logic-invalid-area');
     const diffFilePath = resolve(diffDir, 'diff.png');

@@ -117,10 +117,10 @@ Responsibilities:
 - converts `LoadedPng` into comparable `PNGWithMetadata`
 - clones valid decoded PNGs before mutation
 - turns one-sided invalid inputs into comparable `0×0` canvases
-- paints `excludedAreas` on both images
 - enforces `maxPixels` on the normalized comparison canvas (SECU-10), **before** any extension allocates oversized buffers
 - extends both images to `max(width) × max(height)`
 - paints padded regions with `extendedAreaColor`
+- paints `excludedAreas` on both images **last**, on the final canvas, so they always match regardless of content — including regions added by size extension
 
 Important invariant: normalization returns **new images** and does not mutate decoded source PNGs in place.
 

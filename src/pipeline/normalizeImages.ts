@@ -25,11 +25,6 @@ export function normalizeImages(sources: LoadedSources, opts: ResolvedOptions): 
     let first = toComparablePng(sources.first);
     let second = toComparablePng(sources.second);
 
-    if (opts.excludedAreas.length > 0) {
-        addColoredAreasToImage(first, opts.excludedAreas, opts.excludedAreaColor);
-        addColoredAreasToImage(second, opts.excludedAreas, opts.excludedAreaColor);
-    }
-
     const { width: width1, height: height1 } = first;
     const { width: width2, height: height2 } = second;
     const width = Math.max(width1, width2);
@@ -53,6 +48,15 @@ export function normalizeImages(sources: LoadedSources, opts: ResolvedOptions): 
 
         fillImageSizeDifference(first, width1, height1, opts.extendedAreaColor);
         fillImageSizeDifference(second, width2, height2, opts.extendedAreaColor);
+    }
+
+    // Paint excluded areas last, on the final normalized canvas, so they always match
+    // regardless of content — including regions added by size extension. Painting before
+    // extension left an excluded band clamped out of the smaller image, which the
+    // size-difference fill then coloured differently from the larger image.
+    if (opts.excludedAreas.length > 0) {
+        addColoredAreasToImage(first, opts.excludedAreas, opts.excludedAreaColor);
+        addColoredAreasToImage(second, opts.excludedAreas, opts.excludedAreaColor);
     }
 
     return { first, second, width, height };
