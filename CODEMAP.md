@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.2.0"
     },
-    "sourceHash": "426a8af16b1e8a83555113cf0bcab6f118a285b753cf8f993a2102ca020c4786",
+    "sourceHash": "86d91808ca03900278cedc6227b4a3b0582fa8ffe12a822578d57dd89e9ebf43",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -46,7 +46,7 @@ Schema: `codemap.v2`
             "kind": "type",
             "entrypoint": "src/index.ts",
             "file": "src/types/compare.options.ts",
-            "line": 43,
+            "line": 49,
             "signature": "export type ComparePngOptions = { excludedAreas?: Area[]; diffFilePath?: string; throwErrorOnInvalidInputData?: boolean; extendedAreaColor?: Color; excludedAreaColor?: Color; maxDimension?: number; ma…",
             "jsdoc": null,
             "typeOnly": true
@@ -1524,7 +1524,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparePngOptions",
                     "kind": "type",
-                    "line": 43,
+                    "line": 49,
                     "exported": true,
                     "signature": "export type ComparePngOptions = { excludedAreas?: Area[]; diffFilePath?: string; throwErrorOnInvalidInputData?: boolean; extendedAreaColor?: Color; excludedAreaColor?: Color; maxDimension?: number; ma…",
                     "members": null,

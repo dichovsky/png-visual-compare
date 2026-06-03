@@ -355,6 +355,22 @@ const testDataArrayOptionValidation: {
         errorPattern: 'maxPixels must be a positive integer or Infinity',
         errorClass: TypeError,
     },
+    {
+        id: 28,
+        name: 'excludedAreas negative x1 coordinate is rejected',
+        opts: { excludedAreas: [{ x1: -1, y1: 0, x2: 10, y2: 10 }] },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: coordinates must be non-negative',
+        errorClass: InvalidInputError,
+    },
+    {
+        id: 29,
+        name: 'excludedAreas fully negative rectangle is rejected',
+        opts: { excludedAreas: [{ x1: -10, y1: -10, x2: -1, y2: -1 }] },
+        throws: true,
+        errorPattern: 'excludedAreas[0]: coordinates must be non-negative',
+        errorClass: InvalidInputError,
+    },
 ];
 
 for (const testData of testDataArrayOptionValidation) {

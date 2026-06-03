@@ -32,6 +32,7 @@ export function validatePixelmatchOptions(opts: PixelmatchOptions): void {
     validateUnitInterval('pixelmatchOptions.alpha', opts.alpha);
     validateBoolean('pixelmatchOptions.includeAA', opts.includeAA);
     validateBoolean('pixelmatchOptions.diffMask', opts.diffMask);
+    validateBoolean('pixelmatchOptions.checkerboard', opts.checkerboard);
 
     if (opts.aaColor !== undefined) validateColorTuple('pixelmatchOptions.aaColor', opts.aaColor);
     if (opts.diffColor !== undefined) validateColorTuple('pixelmatchOptions.diffColor', opts.diffColor);

@@ -45,8 +45,6 @@
 - [ ] 🟢 ♻️ TYPE [TYPE-08]: Rename `isComparePngOptions` → `isPlainObject`
 - [ ] 🟢 ♻️ TYPE [TYPE-09]: `Partial<ComparisonPorts>` on overload
 - [ ] 🟢 🐛 RELI [RELI-05]: `Promise.allSettled` in `comparePngAsync`
-- [ ] 🟢 🐛 RELI [RELI-06]: Reject negative coords in `validateArea`
-- [ ] 🟢 🐛 RELI [RELI-07]: `persistDiff` use `=== 0` not `<= 0`
 - [ ] 🟢 🐛 RELI [RELI-08]: Validate-before-bind in `resolveOptions`
 - [ ] 🟢 🐛 RELI [RELI-09]: Wrap `realpathNative` errors in `PathValidationError`
 - [ ] 🟢 📦 API [API-03]: In-memory diff buffer (no disk round-trip)

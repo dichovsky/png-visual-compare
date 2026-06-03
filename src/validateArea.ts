@@ -14,6 +14,9 @@ export function validateArea(area: Area, index: number): void {
     ) {
         throw new InvalidInputError(`excludedAreas[${index}]: coordinates must be finite integers`);
     }
+    if (![x1, y1, x2, y2].every((coordinate) => coordinate >= 0)) {
+        throw new InvalidInputError(`excludedAreas[${index}]: coordinates must be non-negative`);
+    }
     if (x1 > x2) {
         throw new InvalidInputError(`excludedAreas[${index}]: x1 must be <= x2`);
     }

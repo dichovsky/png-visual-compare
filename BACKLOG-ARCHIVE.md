@@ -54,6 +54,12 @@
 - [x] 🟢 🐛 RELI [RELI-10]: Wrap `pixelmatch` errors → `ComparisonError`
     - **Impl:** New public `ComparisonError extends Error` (`code: 'ERR_COMPARISON'`) in `src/errors.ts`; `runComparison` wraps the `pixelmatch(...)` call in try/catch and rethrows with the original on the ES2022 `cause` property; exported from `src/index.ts`; README + ARCHITECTURE error-model sections updated; unit tests cover Error / non-Error throws plus a passthrough.
     - **Rat:** Raw `pixelmatch` throws leaked through both sync and async public APIs as untyped `Error`s — callers had to parse free-form messages to branch on comparison-kernel failures, defeating the structured-error model established by RELI-03.
+- [x] 🟢 🐛 RELI [RELI-06]: Reject negative coords in `validateArea`
+    - **Impl:** `validateArea` now throws `InvalidInputError` (`excludedAreas[i]: coordinates must be non-negative`) when any of `x1/y1/x2/y2` is `< 0`, after the finite-integer check and before the ordering checks; sync + async exception suites gain negative-coordinate cases.
+    - **Rat:** Negative excluded-area coordinates were silently clamped to `0` inside `addColoredAreasToImage`, so a caller typo (e.g. `x1: -5`) painted a different region than requested with no signal — fail-fast at the validation boundary instead. The paint layer keeps its defensive clamp for direct callers.
+- [x] 🟢 🐛 RELI [RELI-07]: `persistDiff` use `=== 0` not `<= 0`
+    - **Impl:** `getPersistableDiff` guard changed from `result.mismatchedPixels <= 0` to `=== 0`.
+    - **Rat:** `pixelmatch` returns a non-negative mismatch count, so `<= 0` and `=== 0` are behaviourally identical; `=== 0` states the actual contract ("no mismatches ⇒ no diff file") without implying negative counts are reachable.
 - [x] 🔴 ♻️ TYPE [TYPE-01]: Replace `PngData` sentinel with discriminated union
     - **Impl:** Replaced `PngData` with `LoadedPng = {kind:'valid',png} | {kind:'invalid',reason}`; updated `getPngData` + loaders + tests; removed from public barrel (semver-major).
     - **Rat:** Sentinel encoded failure as a fake `0×0` PNG — weakened invariants and let invalid input flow through as if real.

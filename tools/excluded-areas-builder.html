@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'sha256-KxcnPUdqXBjdkdeKLwhyZay5KzWqMjkj1zh6CBBTHpM='; style-src 'sha256-rxhPnDCcdJeCfOiyZXOP5TSV4njfY4rSCBARxyvfU3Q='; img-src blob:;"
+            content="default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'sha256-EkVEUkycSCesQimD2nlLKZStNKu6Fh81+V0ZbxMp75A='; style-src 'sha256-rxhPnDCcdJeCfOiyZXOP5TSV4njfY4rSCBARxyvfU3Q='; img-src blob:;"
         />
         <title>Excluded Areas Builder</title>
         <style>
@@ -479,7 +479,7 @@
                 }
 
                 const pos = svgCoords(e);
-                drawStart = { x: clamp(pos.x, 0, naturalW), y: clamp(pos.y, 0, naturalH) };
+                drawStart = { x: clamp(pos.x, 0, naturalW - 1), y: clamp(pos.y, 0, naturalH - 1) };
                 isDrawing = true;
                 selectedId = null;
 
@@ -502,8 +502,8 @@
             window.addEventListener('mousemove', (e) => {
                 if (!isDrawing) return;
                 const pos = svgCoords(e);
-                const cx = clamp(pos.x, 0, naturalW);
-                const cy = clamp(pos.y, 0, naturalH);
+                const cx = clamp(pos.x, 0, naturalW - 1);
+                const cy = clamp(pos.y, 0, naturalH - 1);
                 previewRect.setAttribute('x', Math.min(drawStart.x, cx));
                 previewRect.setAttribute('y', Math.min(drawStart.y, cy));
                 previewRect.setAttribute('width', Math.abs(cx - drawStart.x));
@@ -515,8 +515,8 @@
                 isDrawing = false;
 
                 const pos = svgCoords(e);
-                const cx = clamp(pos.x, 0, naturalW);
-                const cy = clamp(pos.y, 0, naturalH);
+                const cx = clamp(pos.x, 0, naturalW - 1);
+                const cy = clamp(pos.y, 0, naturalH - 1);
 
                 if (previewRect) {
                     previewRect.remove();
