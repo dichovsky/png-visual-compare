@@ -24,6 +24,7 @@ jobs:
                   cache: 'npm'
                   registry-url: 'https://registry.npmjs.org'
             - run: npm ci
+            - run: npx playwright install --with-deps chromium
             - run: npm audit --audit-level=high
             - run: npm run build
             - run: npm publish --provenance

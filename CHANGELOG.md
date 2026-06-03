@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.2.0] - 2026-06-03
+
+### Security
+
+- **SECU-10** — Moved the normalized-canvas `maxPixels` guard into
+  `normalizeImages`, _before_ `extendImage` runs. The check previously lived in
+  `runComparison`, which fires only after two extended canvases are already
+  allocated, so a `(16384x1024, 1024x16384)` input pair — each within
+  `DEFAULT_MAX_PIXELS` — could force ~2 GiB of zero-filled RGBA allocation
+  before the guard could throw.
+- **SECU-11** — `validatePath` now performs the `baseDir` containment check
+  _before_ the symlink/directory shape checks, closing an oracle that leaked
+  exists-symlink / exists-directory / other status for arbitrary absolute paths
+  when a security boundary was configured. Every out-of-bounds path now yields a
+  uniform `Path traversal detected: ...` error.
+- **SECU-12** — Both diff writers now issue an explicit `fchmodSync(fd, 0o600)`
+  / `await handle.chmod(0o600)` after open. `open(path, flags, 0o600)` only sets
+  the mode on newly created files (and is narrowed by umask), so overwriting a
+  pre-existing `0o644` diff left it group/world-readable; the post-open chmod
+  forces `0o600` in both the create and overwrite cases.
+- Hardened the sync diff writer against partial writes by replacing `writeSync`
+  (which can write fewer bytes than requested) with `writeFileSync`, which loops
+  until the full buffer is flushed. The async path already guaranteed
+  full-buffer writes via `FileHandle.writeFile`.
+
 ### Added
 
 - **RELI-10** — New public `ComparisonError` (`code: 'ERR_COMPARISON'`) thrown
@@ -17,6 +42,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   comparison-kernel failure signals an integrity bug, not a recoverable input
   problem. Applies to both `comparePng` and `comparePngAsync` since they share
   `runComparison`.
+
+### Fixed
+
+- `excludedAreas` are now painted on the final normalized canvas, _after_ size
+  extension, so an excluded band that falls outside the smaller image is no
+  longer clamped away and reported as a mismatch. Same-size inputs are
+  unaffected.
+- The `./vitest` subpath export no longer ships an empty CommonJS
+  `vitest.types.js`; the `declare module 'vitest'` augmentation is inlined into
+  `vitest.mts`, and the published types entry points to the co-located `.d.mts`.
 
 ## [6.1.1] - 2026-05-16
 

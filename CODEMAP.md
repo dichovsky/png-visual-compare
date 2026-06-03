@@ -12,7 +12,7 @@ Schema: `codemap.v2`
     "schema": "codemap.v2",
     "repo": {
         "name": "png-visual-compare",
-        "version": "6.1.1"
+        "version": "6.2.0"
     },
     "sourceHash": "426a8af16b1e8a83555113cf0bcab6f118a285b753cf8f993a2102ca020c4786",
     "entrypoints": [
