@@ -9,7 +9,7 @@ export type PersistableDiff = {
 };
 
 export function getPersistableDiff(result: ComparisonResult, opts: ResolvedOptions): PersistableDiff | undefined {
-    if (result.mismatchedPixels <= 0 || !opts.shouldCreateDiffFile || !result.diff || !opts.diffFilePath) {
+    if (result.mismatchedPixels === 0 || !opts.shouldCreateDiffFile || !result.diff || !opts.diffFilePath) {
         return undefined;
     }
 

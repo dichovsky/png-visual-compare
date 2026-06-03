@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **checkerboard** — `pixelmatchOptions.checkerboard` is now forwarded to
+  pixelmatch (7.2.0+), letting callers control whether semi-transparent pixels
+  are blended against a checkerboard pattern (`true`, the default) or plain
+  white (`false`). Validated as a boolean by `validatePixelmatchOptions`.
+
+### Changed
+
+- **RELI-06** — `validateArea` now rejects negative `excludedAreas`
+  coordinates with `InvalidInputError` (`coordinates must be non-negative`)
+  instead of letting `addColoredAreasToImage` silently clamp them to `0`. A
+  negative coordinate is almost always a caller typo, so it now fails fast at
+  the validation boundary. Potentially breaking for callers that relied on the
+  previous clamping behaviour.
+
+### Fixed
+
+- **RELI-07** — the `persistDiff` guard now reads `mismatchedPixels === 0`
+  rather than `<= 0`. Behaviourally identical (pixelmatch never returns a
+  negative count) but states the actual "no mismatches ⇒ no diff file"
+  contract.
+- **excluded-areas-builder** — the drawing tool now clamps coordinates to the
+  last valid pixel index (`naturalW - 1` / `naturalH - 1`), so emitted areas
+  are valid inclusive pixel indices instead of one-past-the-edge values.
+
 ## [6.2.0] - 2026-06-03
 
 ### Security

@@ -16,5 +16,6 @@ export function toPixelmatchOptions(opts?: PixelmatchOptions): PixelmatchRawOpti
         ...(opts.diffColor !== undefined ? { diffColor: opts.diffColor } : {}),
         ...(opts.diffColorAlt !== undefined ? { diffColorAlt: opts.diffColorAlt } : {}),
         ...(opts.diffMask !== undefined ? { diffMask: opts.diffMask } : {}),
+        ...(opts.checkerboard !== undefined ? { checkerboard: opts.checkerboard } : {}),
     };
 }

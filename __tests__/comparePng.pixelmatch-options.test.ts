@@ -150,6 +150,20 @@ const testDataArrayPixelmatchValidation: {
         pixelmatchOptions: { diffColorAlt: [12, 34, 56] },
         throws: false,
     },
+    {
+        id: 15,
+        name: 'checkerboard non-boolean is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pixelmatchOptions: { checkerboard: 'yes' as any },
+        throws: true,
+        message: 'pixelmatchOptions.checkerboard must be a boolean',
+    },
+    {
+        id: 16,
+        name: 'checkerboard boolean is accepted',
+        pixelmatchOptions: { checkerboard: false },
+        throws: false,
+    },
 ];
 
 for (const testData of testDataArrayPixelmatchValidation) {

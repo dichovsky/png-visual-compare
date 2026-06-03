@@ -38,6 +38,12 @@ export type PixelmatchOptions = {
      * @default false
      */
     diffMask?: boolean;
+    /**
+     * Whether to blend semi-transparent pixels against a checkerboard pattern (`true`) or plain
+     * white (`false`) when comparing. Affects how partially transparent pixels are matched.
+     * @default true
+     */
+    checkerboard?: boolean;
 };
 
 export type ComparePngOptions = {

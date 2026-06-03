@@ -12,6 +12,7 @@ describe('toPixelmatchOptions', () => {
                 diffColor: [4, 5, 6],
                 diffColorAlt: [7, 8, 9],
                 diffMask: true,
+                checkerboard: false,
             }),
         ).toEqual({
             threshold: 0.2,
@@ -21,6 +22,7 @@ describe('toPixelmatchOptions', () => {
             diffColor: [4, 5, 6],
             diffColorAlt: [7, 8, 9],
             diffMask: true,
+            checkerboard: false,
         });
     });
 

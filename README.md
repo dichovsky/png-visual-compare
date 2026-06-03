@@ -67,7 +67,7 @@ import type { LoadedPng } from 'png-visual-compare';
 
 The library now fails fast for malformed option data instead of relying on downstream behavior:
 
-- `excludedAreas` must be an array of finite integer rectangles with `x1 <= x2` and `y1 <= y2`
+- `excludedAreas` must be an array of non-negative finite integer rectangles with `x1 <= x2` and `y1 <= y2`
 - `pixelmatchOptions` must be an object with validated numeric/boolean/tuple fields
 - `diffFilePath`, `inputBaseDir`, and `diffOutputBaseDir` must be strings when provided
 - `diffFilePath` now rejects existing directories and existing symlinks in output mode
@@ -266,15 +266,16 @@ type Color = {
 
 ### `PixelmatchOptions`
 
-| Option         | Type        | Default         | Description                                                 |
-| -------------- | ----------- | --------------- | ----------------------------------------------------------- |
-| `threshold`    | `number`    | `0.1`           | Matching threshold `0`–`1`. Lower = more sensitive          |
-| `includeAA`    | `boolean`   | `false`         | When `true`, anti-aliased pixels count as mismatches        |
-| `alpha`        | `number`    | `0.1`           | Opacity of unchanged pixels in the diff image               |
-| `aaColor`      | `[r, g, b]` | `[255, 255, 0]` | Colour of anti-aliased pixels in the diff                   |
-| `diffColor`    | `[r, g, b]` | `[255, 0, 0]`   | Colour of differing pixels in the diff                      |
-| `diffColorAlt` | `[r, g, b]` | `undefined`     | Alternative diff colour for dark pixels (dark-mode support) |
-| `diffMask`     | `boolean`   | `false`         | Show only changed pixels on a transparent background        |
+| Option         | Type        | Default         | Description                                                     |
+| -------------- | ----------- | --------------- | --------------------------------------------------------------- |
+| `threshold`    | `number`    | `0.1`           | Matching threshold `0`–`1`. Lower = more sensitive              |
+| `includeAA`    | `boolean`   | `false`         | When `true`, anti-aliased pixels count as mismatches            |
+| `alpha`        | `number`    | `0.1`           | Opacity of unchanged pixels in the diff image                   |
+| `aaColor`      | `[r, g, b]` | `[255, 255, 0]` | Colour of anti-aliased pixels in the diff                       |
+| `diffColor`    | `[r, g, b]` | `[255, 0, 0]`   | Colour of differing pixels in the diff                          |
+| `diffColorAlt` | `[r, g, b]` | `undefined`     | Alternative diff colour for dark pixels (dark-mode support)     |
+| `diffMask`     | `boolean`   | `false`         | Show only changed pixels on a transparent background            |
+| `checkerboard` | `boolean`   | `true`          | Blend semi-transparent pixels against a checkerboard (vs white) |
 
 ### Errors
 
