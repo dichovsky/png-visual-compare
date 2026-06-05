@@ -63,7 +63,6 @@
 ## 📝 Docs
 
 - [ ] 🟡 📝 DOC [DOC-01]: Sweep stale RELI-03 frontmatter
-- [ ] 🟡 📝 DOC [DOC-02]: Add `SECURITY.md` (disclosure channel)
 - [ ] 🟢 📝 DOC [DOC-03]: Dedupe `CLAUDE.md` vs `.github/copilot-instructions.md`
 - [ ] 🟢 📝 DOC [DOC-04]: Expand public function JSDoc
 - [ ] 🟢 📝 DOC [DOC-05]: Cross-link `ARCHITECTURE.md` ↔ `BACKLOG.md`
@@ -81,10 +80,8 @@
 - [ ] 🟢 ♻️ DEPS [DEPS-03]: Loosen `peerDependencies` upper bounds (or watch script)
 - [ ] 🟢 ♻️ DX [DX-01]: Extract `scripts/open-tool.mjs` (kill inline `node -e`)
 - [ ] 🟢 ♻️ DX [DX-02]: Add `npm run dev` (vitest watch)
-- [ ] 🟢 ♻️ DX [DX-03]: Add `test:fast` script (skip pretest chain)
 - [ ] 🟢 ♻️ DX [DX-04]: Add `.editorconfig`
 - [ ] 🟢 ♻️ DX [DX-05]: Pre-commit hook (`simple-git-hooks` + `lint-staged`)
-- [ ] 🟢 ♻️ CI [CI-01]: Add `pull_request` trigger to `test.yml`
 - [ ] 🟢 ♻️ CI [CI-02]: Add CodeQL workflow
 - [ ] 🟢 ♻️ CI [CI-03]: `dependency-review-action` on PRs
 - [ ] 🟢 ♻️ CI [CI-04]: Upload coverage to Codecov

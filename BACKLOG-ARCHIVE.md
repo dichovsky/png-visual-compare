@@ -75,3 +75,18 @@
 - [x] 🟡 🧪 TEST [TEST-01]: Fixture-free orchestrator tests (a+b)
     - **Impl:** New `__tests__/comparePng.logic.test.ts` (3 in-memory-buffer cases) + `__tests__/comparePng.ports.test.ts` (fake port injection). Sub-items: a (decision logic), b (port injection after API-01b).
     - **Rat:** Orchestration decision logic was only testable through real PNG decode + disk fixtures — slow and coupled logic tests to fixture maintenance.
+
+## 📝 Docs
+
+- [x] 🟡 📝 DOC [DOC-02]: Add `SECURITY.md` (disclosure channel)
+    - **Impl:** Added `SECURITY.md` with supported versions (`6.x`) and GitHub private vulnerability reporting guidance.
+    - **Rat:** Security reporters needed a clear disclosure path without relying on public issues or an unverified contact address.
+
+## 🛠️ Build · Deps · CI · DX
+
+- [x] 🟢 ♻️ DX [DX-03]: Add `test:fast` script (skip pretest chain)
+    - **Impl:** Added `npm run test:fast` as a direct verbose Vitest run without the unit-test preflight chain.
+    - **Rat:** Maintainers needed a documented fast iteration command that skips clean, lint, format, license, typecheck, and coverage gates.
+- [x] 🟢 ♻️ CI [CI-01]: Add `pull_request` trigger to `test.yml`
+    - **Impl:** Added `pull_request` to the main test workflow and renamed the workflow from push-only to `Tests`.
+    - **Rat:** PRs should run the existing cross-platform test matrix before merge, not only after branch pushes.
