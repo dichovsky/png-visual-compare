@@ -67,6 +67,7 @@
         "test:docker": "npm run clean && npm run docker:build && npm run docker:run",
         "pretest:e2e": "npx playwright install chromium",
         "test:e2e": "playwright test",
+        "test:fast": "vitest run --reporter=verbose",
         "test:license": "node ./scripts/check-licenses.mjs",
         "pretest:unit": "npm run clean && npm run codemap:check && npm run lint && npm run format:check && npm run test:license && npm run typecheck",
         "test:unit": "VITEST_FULL_COVERAGE=true vitest run --coverage",

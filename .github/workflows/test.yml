@@ -1,8 +1,9 @@
-name: Tests on push
+name: Tests
 on:
     push:
         branches-ignore:
             - 'release/*'
+    pull_request:
 permissions:
     contents: read
 jobs:
