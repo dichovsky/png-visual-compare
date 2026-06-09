@@ -106,7 +106,7 @@ Loads both inputs via the selected `ImageSourcePort`:
 - default sync implementation: `fsImageSource`
 - default async implementation: `fsAsyncImageSource`
 
-If both sides are invalid, the pipeline throws `InvalidInputError('Unknown PNG files input type')`.
+If both sides are invalid, the pipeline throws `InvalidInputError` with a message naming each input's failure reason (e.g. `Both PNG inputs are invalid — png1: could not decode PNG content; png2: source path could not be loaded.`).
 
 ### 3. `normalizeImages`
 
