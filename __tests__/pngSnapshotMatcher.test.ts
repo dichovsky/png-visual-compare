@@ -116,10 +116,7 @@ describe('createPngSnapshotMatcher', () => {
     test('rejects .not because snapshot negation is unsupported', () => {
         const matcher = createPngSnapshotMatcher(() => ({ pass: true, message: () => '' }));
 
-        const result = expectSyncResult(matcher.call({ isNot: true }, readFileSync(PNG_FILE)));
-
-        expect(result.pass).toBe(false);
-        expect(result.message()).toContain('.not.toMatchPngSnapshot() is not supported');
+        expect(() => matcher.call({ isNot: true }, readFileSync(PNG_FILE))).toThrow('.not.toMatchPngSnapshot() is not supported.');
     });
 
     test.each([
@@ -278,6 +275,15 @@ describe('vitest matcher entrypoint', () => {
         await import('../src/vitest.mjs');
 
         expect(extendSpy).not.toHaveBeenCalled();
+    });
+
+    test('rejects a real expect().not.toMatchPngSnapshot() assertion driven through Vitest', async () => {
+        vi.resetModules();
+        clearMatcherRegistration();
+
+        await import('../src/vitest.mjs');
+
+        expect(() => expect(readFileSync(PNG_FILE)).not.toMatchPngSnapshot()).toThrow('.not.toMatchPngSnapshot() is not supported.');
     });
 
     test('compares stored Vitest PNG snapshots with ComparePngOptions', async () => {
@@ -738,6 +744,34 @@ describe('jest matcher entrypoint', () => {
         expect(result.message()).toContain('New PNG snapshot was not written for "creates snapshot"');
     });
 
+    test('counts a missing Jest PNG snapshot as unmatched in CI (none) mode', async () => {
+        vi.resetModules();
+        const extend = vi.fn();
+        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+
+        await import('../src/jest.js');
+
+        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Jest matcher to be registered');
+        }
+
+        const snapshotState = createJestSnapshotState({});
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    currentTestName: 'missing snapshot in CI',
+                    snapshotState,
+                } as never,
+                readFileSync(PNG_FILE),
+            ),
+        );
+
+        expect(result.pass).toBe(false);
+        expect(snapshotState.unmatched).toBe(1);
+    });
+
     test('returns a generic missing-snapshot message when no Jest test name is available', async () => {
         vi.resetModules();
         const extend = vi.fn();
@@ -764,7 +798,7 @@ describe('jest matcher entrypoint', () => {
         expect(result.message()).toBe('New PNG snapshot was not written. Run Jest with -u to create it.');
     });
 
-    test('does not create a new Jest PNG snapshot when a snapshot file already exists', async () => {
+    test('creates a new Jest PNG snapshot key under -u even when the snapshot file already exists', async () => {
         vi.resetModules();
         const extend = vi.fn();
         (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
@@ -777,25 +811,30 @@ describe('jest matcher entrypoint', () => {
             throw new Error('Expected the Jest matcher to be registered');
         }
 
+        const snapshotState = {
+            _counters: new Map<string, number>(),
+            _dirty: false,
+            _snapshotData: {} as Record<string, string>,
+            _snapshotPath: PNG_FILE,
+            _uncheckedKeys: new Set<string>(),
+            _updateSnapshot: 'new',
+            added: 0,
+        };
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call(
                 {
                     currentTestName: 'existing snapshot file',
-                    snapshotState: {
-                        _counters: new Map<string, number>(),
-                        _dirty: false,
-                        _snapshotData: {},
-                        _snapshotPath: PNG_FILE,
-                        _uncheckedKeys: new Set<string>(),
-                        _updateSnapshot: 'new',
-                    },
+                    snapshotState,
                 } as never,
                 readFileSync(PNG_FILE),
             ),
         );
 
-        expect(result.pass).toBe(false);
-        expect(result.message()).toContain('New PNG snapshot was not written for "existing snapshot file"');
+        expect(result.pass).toBe(true);
+        expect(result.message()).toBe('');
+        expect(snapshotState.added).toBe(1);
+        expect(snapshotState._dirty).toBe(true);
+        expect(snapshotState._snapshotData).toHaveProperty('existing snapshot file 1');
     });
 
     test('initializes Jest snapshot counters when they are missing', async () => {

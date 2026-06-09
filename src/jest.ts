@@ -1,7 +1,6 @@
 /**
  * @sideEffect Registers a `toMatchPngSnapshot` matcher on Jest's global `expect` when present, and augments the global `jest.Matchers` interface.
  */
-import { existsSync } from 'node:fs';
 import type { ComparePngOptions } from './types';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher';
 import { buildSnapshotTestName, compareAgainstSerializedPngSnapshot, serializePngSnapshot } from './matchers/pngSnapshot';
@@ -74,11 +73,6 @@ function getUpdateSnapshotMode(snapshotState: SnapshotStateLike): 'all' | 'new' 
     return updateSnapshot;
 }
 
-function getSnapshotPath(snapshotState: SnapshotStateLike): string | undefined {
-    const snapshotPath = snapshotState._snapshotPath;
-    return typeof snapshotPath === 'string' ? snapshotPath : undefined;
-}
-
 function setSnapshotDirty(snapshotState: SnapshotStateLike): void {
     snapshotState._dirty = true;
 }
@@ -131,8 +125,6 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
     const snapshotData = getSnapshotData(snapshotState);
     const storedSnapshot = snapshotData[key];
     const updateSnapshot = getUpdateSnapshotMode(snapshotState);
-    const snapshotPath = getSnapshotPath(snapshotState);
-    const snapshotIsPersisted = storedSnapshot !== undefined || (snapshotPath !== undefined && existsSync(snapshotPath));
 
     if (storedSnapshot !== undefined) {
         const comparison = compareAgainstSerializedPngSnapshot(received, storedSnapshot, args.options);
@@ -163,7 +155,7 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
         };
     }
 
-    if ((updateSnapshot === 'new' || updateSnapshot === 'all') && !snapshotIsPersisted) {
+    if (updateSnapshot === 'new' || updateSnapshot === 'all') {
         persistJestSnapshot(snapshotState, key, serializePngSnapshot(received));
         incrementSnapshotCounter(snapshotState, 'added');
         return {
@@ -172,6 +164,7 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
         };
     }
 
+    incrementSnapshotCounter(snapshotState, 'unmatched');
     return {
         pass: false,
         actual: serializePngSnapshot(received),
