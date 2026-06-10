@@ -58,10 +58,7 @@ export function createPngSnapshotMatcher(delegate: SnapshotMatcherDelegate) {
         options?: ComparePngOptions,
     ) {
         if (this.isNot === true) {
-            return {
-                pass: false,
-                message: () => '.not.toMatchPngSnapshot() is not supported.',
-            };
+            throw new Error('.not.toMatchPngSnapshot() is not supported.');
         }
 
         if (!(received instanceof Uint8Array) || !hasPngSignature(received)) {
