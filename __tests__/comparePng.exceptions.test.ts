@@ -454,7 +454,7 @@ test('with throwErrorOnInvalidInputData=false, zero-dimension PNG is treated as 
         expectThrownAs(
             () => comparePng(Buffer.alloc(24), Buffer.alloc(24), { throwErrorOnInvalidInputData: false }),
             InvalidInputError,
-            'Unknown PNG files input type',
+            'Both PNG inputs are invalid — png1: could not decode PNG content; png2: could not decode PNG content.',
         );
     } finally {
         readSpy.mockRestore();

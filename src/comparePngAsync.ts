@@ -8,6 +8,7 @@ import { fsAsyncDiffWriter } from './ports/fsAsyncDiffWriter';
 import { fsAsyncImageSource } from './ports/fsAsyncImageSource';
 import type { ComparePngOptions } from './types';
 import type { LoadedSources } from './pipeline/types';
+import { describeBothInvalidSources } from './pipeline/describeInvalidSources';
 import { InvalidInputError } from './errors';
 
 async function loadSourcesAsync(
@@ -18,7 +19,7 @@ async function loadSourcesAsync(
     const [first, second] = await Promise.all([fsAsyncImageSource.load(png1, opts), fsAsyncImageSource.load(png2, opts)]);
 
     if (first.kind === 'invalid' && second.kind === 'invalid') {
-        throw new InvalidInputError('Unknown PNG files input type');
+        throw new InvalidInputError(describeBothInvalidSources(first.reason, second.reason));
     }
 
     return { png1, png2, first, second };

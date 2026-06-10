@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.2.0"
     },
-    "sourceHash": "8820f7f3c414148d9d1cac9b15f9754676107a6dd99e8a95c30951b65298a9f1",
+    "sourceHash": "14a28028fcd6a9b4d47247d24f55aca08e04d4ca979f7e5c7604c4fc6166f999",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -166,7 +166,7 @@ Schema: `codemap.v2`
             "kind": "function",
             "entrypoint": "src/index.ts",
             "file": "src/comparePngAsync.ts",
-            "line": 27,
+            "line": 28,
             "signature": "export async function comparePngAsync(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): Promise<number>",
             "jsdoc": null,
             "typeOnly": false
@@ -311,7 +311,7 @@ Schema: `codemap.v2`
                 {
                     "name": "loadSourcesAsync",
                     "kind": "function",
-                    "line": 13,
+                    "line": 14,
                     "exported": false,
                     "signature": "async function loadSourcesAsync( png1: string | Buffer, png2: string | Buffer, opts: ReturnType<typeof resolveOptions>, ): Promise<LoadedSources>",
                     "members": null,
@@ -320,7 +320,7 @@ Schema: `codemap.v2`
                 {
                     "name": "comparePngAsync",
                     "kind": "function",
-                    "line": 27,
+                    "line": 28,
                     "exported": true,
                     "signature": "export async function comparePngAsync(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): Promise<number>",
                     "members": null,
@@ -329,6 +329,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "./errors",
+                "./pipeline/describeInvalidSources",
                 "./pipeline/normalizeImages",
                 "./pipeline/persistDiff",
                 "./pipeline/resolveOptions",
@@ -1032,12 +1033,48 @@ Schema: `codemap.v2`
             "reExports": []
         },
         {
+            "path": "src/pipeline/describeInvalidSources.ts",
+            "symbols": [
+                {
+                    "name": "InvalidPngReason",
+                    "kind": "type",
+                    "line": 3,
+                    "exported": false,
+                    "signature": "type InvalidPngReason = Extract<LoadedPng, { kind: 'invalid' }>['reason'];",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "INVALID_PNG_REASON_PHRASES",
+                    "kind": "const",
+                    "line": 5,
+                    "exported": false,
+                    "signature": "const INVALID_PNG_REASON_PHRASES: Record<InvalidPngReason, string> = { decode: 'could not decode PNG content', path: 'source path could not be loaded', type: 'unrecognized input type', }",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "describeBothInvalidSources",
+                    "kind": "function",
+                    "line": 22,
+                    "exported": true,
+                    "signature": "export function describeBothInvalidSources(firstReason: InvalidPngReason, secondReason: InvalidPngReason): string",
+                    "members": null,
+                    "jsdoc": "Builds the error message used when both PNG inputs fail to load. Reports each input's actual failure reason (invalid content vs. unloadable path vs. unknown type) instead of the misleading \"Unknown PNG files input type\", which wrongly implies the input *type* was unrecognised even for valid `Buffer`/`string` inputs whose content simply could not be decoded."
+                }
+            ],
+            "imports": [
+                "../types/png.data"
+            ],
+            "reExports": []
+        },
+        {
             "path": "src/pipeline/loadSources.ts",
             "symbols": [
                 {
                     "name": "loadSources",
                     "kind": "function",
-                    "line": 6,
+                    "line": 7,
                     "exported": true,
                     "signature": "export function loadSources(png1: string | Buffer, png2: string | Buffer, opts: ResolvedOptions): LoadedSources",
                     "members": null,
@@ -1047,6 +1084,7 @@ Schema: `codemap.v2`
             "imports": [
                 "../errors",
                 "../ports/fsImageSource",
+                "./describeInvalidSources",
                 "./types",
                 "node:buffer"
             ],

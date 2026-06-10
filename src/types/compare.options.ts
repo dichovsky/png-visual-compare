@@ -130,7 +130,7 @@ export type ComparePngOptions = {
      * (e.g., 1 × 16,777,216 pixels) that would still exhaust memory.
      * Set to `Infinity` to disable the limit entirely.
      *
-     * @default 16_777_216 (256 megapixels, ~1 GB decompressed at 4 bytes/pixel)
+     * @default 16_777_216 (16 megapixels, ~64 MB decompressed at 4 bytes/pixel)
      * @example
      * ```ts
      * // For web/mobile use cases with strict memory budgets
