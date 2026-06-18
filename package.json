@@ -63,6 +63,8 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "prepublishOnly": "npm test && npm run build",
+        "release:check:pre": "node ./scripts/prerelease-check.mjs",
+        "release:check:post": "node ./scripts/postrelease-check.mjs",
         "test": "npm run test:unit && npm run test:e2e",
         "test:docker": "npm run clean && npm run docker:build && npm run docker:run",
         "pretest:e2e": "npx playwright install chromium",

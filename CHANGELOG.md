@@ -7,12 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.2.0] - 2026-06-19
+
 ### Added
 
 - **checkerboard** — `pixelmatchOptions.checkerboard` is now forwarded to
   pixelmatch (7.2.0+), letting callers control whether semi-transparent pixels
   are blended against a checkerboard pattern (`true`, the default) or plain
   white (`false`). Validated as a boolean by `validatePixelmatchOptions`.
+- **RELI-10** — New public `ComparisonError` (`code: 'ERR_COMPARISON'`) thrown
+  when the underlying `pixelmatch` call fails. The original failure is preserved
+  on the standard ES2022 `cause` property so callers can match by class or by
+  `code` instead of parsing free-form messages. Like `ResourceLimitError`, this
+  error is **not** downgraded by `throwErrorOnInvalidInputData: false` — a
+  comparison-kernel failure signals an integrity bug, not a recoverable input
+  problem. Applies to both `comparePng` and `comparePngAsync` since they share
+  `runComparison`.
 
 ### Changed
 
@@ -32,8 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **excluded-areas-builder** — the drawing tool now clamps coordinates to the
   last valid pixel index (`naturalW - 1` / `naturalH - 1`), so emitted areas
   are valid inclusive pixel indices instead of one-past-the-edge values.
-
-## [6.2.0] - 2026-06-03
+- `excludedAreas` are now painted on the final normalized canvas, _after_ size
+  extension, so an excluded band that falls outside the smaller image is no
+  longer clamped away and reported as a mismatch. Same-size inputs are
+  unaffected.
+- The `./vitest` subpath export no longer ships an empty CommonJS
+  `vitest.types.js`; the `declare module 'vitest'` augmentation is inlined into
+  `vitest.mts`, and the published types entry points to the co-located `.d.mts`.
 
 ### Security
 
@@ -57,27 +72,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (which can write fewer bytes than requested) with `writeFileSync`, which loops
   until the full buffer is flushed. The async path already guaranteed
   full-buffer writes via `FileHandle.writeFile`.
-
-### Added
-
-- **RELI-10** — New public `ComparisonError` (`code: 'ERR_COMPARISON'`) thrown
-  when the underlying `pixelmatch` call fails. The original failure is preserved
-  on the standard ES2022 `cause` property so callers can match by class or by
-  `code` instead of parsing free-form messages. Like `ResourceLimitError`, this
-  error is **not** downgraded by `throwErrorOnInvalidInputData: false` — a
-  comparison-kernel failure signals an integrity bug, not a recoverable input
-  problem. Applies to both `comparePng` and `comparePngAsync` since they share
-  `runComparison`.
-
-### Fixed
-
-- `excludedAreas` are now painted on the final normalized canvas, _after_ size
-  extension, so an excluded band that falls outside the smaller image is no
-  longer clamped away and reported as a mismatch. Same-size inputs are
-  unaffected.
-- The `./vitest` subpath export no longer ships an empty CommonJS
-  `vitest.types.js`; the `declare module 'vitest'` augmentation is inlined into
-  `vitest.mts`, and the published types entry points to the co-located `.d.mts`.
 
 ## [6.1.1] - 2026-05-16
 
