@@ -3,6 +3,10 @@ on:
     release:
         types: [published]
 
+# id-token: write is required for npm Trusted Publishing (OIDC) and provenance.
+# No NPM_TOKEN is used: the trusted publisher must be configured on npmjs.com
+# (Package → Settings → Trusted Publishing) for org "dichovsky", repo
+# "png-visual-compare", workflow "publish.yml", no environment.
 permissions:
     contents: read
     id-token: write
@@ -23,10 +27,17 @@ jobs:
                   node-version-file: .nvmrc
                   cache: 'npm'
                   registry-url: 'https://registry.npmjs.org'
+            - name: Ensure npm supports Trusted Publishing (>= 11.5.1)
+              run: npm install -g npm@latest
             - run: npm ci
             - run: npx playwright install --with-deps chromium
             - run: npm audit --audit-level=high
             - run: npm run build
-            - run: npm publish --provenance
+            - name: Pre-release checks
+              run: npm run release:check:pre
               env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+            - name: Publish to npm (Trusted Publishing / OIDC)
+              run: npm publish --provenance
+            - name: Post-release checks
+              run: npm run release:check:post
