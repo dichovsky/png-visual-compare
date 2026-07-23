@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.2.0"
     },
-    "sourceHash": "14a28028fcd6a9b4d47247d24f55aca08e04d4ca979f7e5c7604c4fc6166f999",
+    "sourceHash": "77a978c030f2c233761bf39cfad6731ebb5332e9d75948d6398f29e6461ea2a2",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -117,7 +117,7 @@ Schema: `codemap.v2`
             "entrypoint": "src/index.ts",
             "file": "src/types/png.data.ts",
             "line": 3,
-            "signature": "export type LoadedPng = | { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
+            "signature": "export type LoadedPng = { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
             "jsdoc": null,
             "typeOnly": true
         },
@@ -1609,7 +1609,7 @@ Schema: `codemap.v2`
                     "kind": "type",
                     "line": 3,
                     "exported": true,
-                    "signature": "export type LoadedPng = | { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
+                    "signature": "export type LoadedPng = { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
                     "members": null,
                     "jsdoc": null
                 }
