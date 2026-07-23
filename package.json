@@ -52,7 +52,7 @@
     ],
     "scripts": {
         "prebuild": "npm run clean",
-        "build": "tsc --pretty --project tsconfig.prod.json",
+        "build": "node ./node_modules/@typescript/native/bin/tsc --pretty --project tsconfig.prod.json",
         "clean": "rimraf ./out ./coverage ./test-results",
         "codemap": "node ./scripts/generate-codemap.mjs",
         "codemap:check": "node ./scripts/generate-codemap.mjs --check",
@@ -74,7 +74,7 @@
         "pretest:unit": "npm run clean && npm run codemap:check && npm run lint && npm run format:check && npm run test:license && npm run typecheck",
         "test:unit": "VITEST_FULL_COVERAGE=true vitest run --coverage",
         "tool:excluded-areas-builder": "node -e \"const { execFileSync } = require('node:child_process'); if (process.platform === 'darwin') { execFileSync('open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else if (process.platform === 'linux') { execFileSync('xdg-open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else { throw new Error('Unsupported platform: development tooling is only supported on macOS and Linux'); }\"",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit"
     },
     "dependencies": {
         "pixelmatch": "~7.2.0",
@@ -84,11 +84,12 @@
         "@playwright/test": "~1.61.1",
         "@types/node": "~26.1.1",
         "@types/pngjs": "~6.0.5",
+        "@typescript/native": "npm:typescript@~7.0.2",
         "@vitest/coverage-v8": "~4.1.10",
         "eslint": "~10.7.0",
         "prettier": "~3.9.6",
         "rimraf": "~6.1.3",
-        "typescript": "~6.0.3",
+        "typescript": "npm:@typescript/typescript6@~6.0.2",
         "typescript-eslint": "~8.65.0",
         "vitest": "~4.1.10"
     },
