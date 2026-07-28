@@ -57,22 +57,33 @@ export function createPngSnapshotMatcher(delegate: SnapshotMatcherDelegate) {
         hintOrOptions?: string | ComparePngOptions,
         options?: ComparePngOptions,
     ) {
-        if (this.isNot === true) {
-            throw new Error('.not.toMatchPngSnapshot() is not supported.');
-        }
+        // Guard failures are reported as `pass: false`, which the framework
+        // inverts under `.not` into a passing assertion. Throwing instead keeps
+        // invalid input loud in both directions.
+        const isNot = this.isNot === true;
 
         if (!(received instanceof Uint8Array) || !hasPngSignature(received)) {
+            const errorMessage = `toMatchPngSnapshot() expects a PNG Buffer or Uint8Array, but received ${describeValue(received)}.`;
+
+            if (isNot) {
+                throw new Error(errorMessage);
+            }
+
             return {
                 pass: false,
                 actual: received,
                 expected: 'PNG Buffer or Uint8Array',
-                message: () => `toMatchPngSnapshot() expects a PNG Buffer or Uint8Array, but received ${describeValue(received)}.`,
+                message: () => errorMessage,
             };
         }
 
         const normalizedArgs = normalizePngSnapshotMatcherArgs(hintOrOptions, options);
 
         if ('errorMessage' in normalizedArgs) {
+            if (isNot) {
+                throw new Error(normalizedArgs.errorMessage);
+            }
+
             return {
                 pass: false,
                 actual: hintOrOptions,

@@ -4,7 +4,12 @@
 import { chai, expect } from 'vitest';
 import type { MatcherState } from 'vitest';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher.js';
-import { buildSnapshotTestName, compareAgainstSerializedPngSnapshot, type PngSnapshotMatcherArgs } from './matchers/pngSnapshot.js';
+import {
+    buildSnapshotTestName,
+    compareAgainstSerializedPngSnapshot,
+    NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE,
+    type PngSnapshotMatcherArgs,
+} from './matchers/pngSnapshot.js';
 import type { ComparePngOptions } from './types/index.js';
 
 declare module 'vitest' {
@@ -102,6 +107,26 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext: unknown, re
     });
 
     expectedSnapshot.markAsChecked();
+
+    // `.not` asserts the received PNG differs from the stored snapshot. The
+    // probe above already claimed the key so it is not reported obsolete;
+    // `processDomainSnapshot` is deliberately skipped because it owns pass/fail,
+    // file writes and counter updates, none of which apply to a negated
+    // assertion. The framework inverts `pass` for us.
+    if (context.isNot === true) {
+        if (expectedSnapshot.data === undefined) {
+            throw new Error(NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE);
+        }
+
+        const negatedComparison = compareAgainstSerializedPngSnapshot(received, expectedSnapshot.data, args.options);
+
+        return {
+            pass: negatedComparison.pass,
+            actual: negatedComparison.actualSerialized.trim(),
+            expected: negatedComparison.expectedSerialized.trim(),
+            message: () => `Snapshot \`${expectedSnapshot.key}\` matched but was expected to differ`,
+        };
+    }
 
     const comparison =
         expectedSnapshot.data === undefined

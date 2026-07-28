@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.3.0] - 2026-07-29
+
+### Added
+
+- **`.not.toMatchPngSnapshot()`** — negated snapshot assertions are now
+  supported in both the Vitest and Jest matchers, and assert that the received
+  PNG **differs** from the stored snapshot. Previously any `.not` usage threw
+  `.not.toMatchPngSnapshot() is not supported.`
+    - Passes when the received PNG differs beyond the configured threshold;
+      fails when it matches.
+    - **Never writes or updates a snapshot**, even under `-u` — you cannot
+      record what an image must _not_ be.
+    - **Throws when no snapshot is stored**, rather than passing vacuously on a
+      missing baseline.
+    - Invalid input (non-PNG value, malformed matcher arguments) now throws
+      under `.not` instead of reporting `pass: false`, which the test framework
+      would have inverted into a silently passing assertion.
+
+### Changed
+
+- **TypeScript 7** — `build` and `typecheck` now run the native TypeScript 7
+  compiler via the `@typescript/native` alias. TypeScript 6 is retained under
+  the `typescript` alias because the codemap generator, its tests, and
+  `typescript-eslint` still require the legacy compiler API. This is a
+  development-only change: the published `out/` artifact is semantically
+  identical, differing from a TypeScript 6 build only in `.d.ts` quote style and
+  one union member ordering. See `docs/TYPESCRIPT_7_MIGRATION.md`.
+- Refreshed development dependencies (`@playwright/test`, `@types/node`,
+  `@vitest/coverage-v8`, `eslint`, `prettier`, `typescript-eslint`, `vitest`)
+  and pinned GitHub Actions digests.
+
 ## [6.2.0] - 2026-06-19
 
 ### Added
