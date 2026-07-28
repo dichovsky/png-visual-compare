@@ -22,6 +22,13 @@ type SerializedPngSnapshot = {
     type: 'Buffer';
 };
 
+/**
+ * Thrown by `.not.toMatchPngSnapshot()` when there is no stored snapshot to
+ * compare against. A missing baseline must never pass vacuously — you cannot
+ * record what an image must *not* be.
+ */
+export const NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE = '.not.toMatchPngSnapshot() requires an existing snapshot to compare against.';
+
 export type ComparedPngSnapshot = {
     pass: boolean;
     mismatchedPixels: number;

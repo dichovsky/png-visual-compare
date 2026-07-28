@@ -195,7 +195,20 @@ import { registerJestPngSnapshotMatcher } from 'png-visual-compare/jest';
 registerJestPngSnapshotMatcher(expect);
 ```
 
-`toMatchPngSnapshot()` is intentionally strict: it accepts only PNG `Buffer` / `Uint8Array` input, does not support `.not`, and passes any provided `ComparePngOptions` to `comparePng` when checking the stored snapshot.
+`toMatchPngSnapshot()` is intentionally strict: it accepts only PNG `Buffer` / `Uint8Array` input, and passes any provided `ComparePngOptions` to `comparePng` when checking the stored snapshot.
+
+### Negated assertions
+
+`expect(received).not.toMatchPngSnapshot()` asserts that the received PNG **differs** from the stored snapshot:
+
+```typescript
+expect(await page.screenshot()).not.toMatchPngSnapshot('light mode');
+```
+
+- **Passes** when the received PNG differs from the stored snapshot beyond the configured threshold.
+- **Fails** when they match.
+- **Never writes or updates a snapshot**, even under `-u` — you cannot record what an image must _not_ be.
+- **Throws when no snapshot is stored.** A missing baseline would otherwise pass vacuously, which is a false green. Record the baseline with a positive `toMatchPngSnapshot()` first.
 
 ---
 

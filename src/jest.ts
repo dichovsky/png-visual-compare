@@ -3,7 +3,12 @@
  */
 import type { ComparePngOptions } from './types';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher';
-import { buildSnapshotTestName, compareAgainstSerializedPngSnapshot, serializePngSnapshot } from './matchers/pngSnapshot';
+import {
+    buildSnapshotTestName,
+    compareAgainstSerializedPngSnapshot,
+    NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE,
+    serializePngSnapshot,
+} from './matchers/pngSnapshot';
 
 const JEST_PNG_SNAPSHOT_MATCHER_KEY = Symbol.for('png-visual-compare/jest/toMatchPngSnapshot');
 
@@ -25,6 +30,7 @@ type JestMatcherContext = {
     currentConcurrentTestName?: () => string | undefined;
     currentTestName?: string;
     error?: Error;
+    isNot?: boolean;
     snapshotState?: SnapshotStateLike | null;
     testFailing?: boolean;
 };
@@ -99,6 +105,12 @@ function createJestMismatchMessage(testName: string, mismatchedPixels: number): 
         : `Received PNG snapshot does not match the stored snapshot for "${testName}" (${mismatchLabel}).`;
 }
 
+function createJestNegatedMatchMessage(testName: string): string {
+    return testName === ''
+        ? 'Received PNG snapshot matches the stored snapshot, but was expected to differ.'
+        : `Received PNG snapshot matches the stored snapshot for "${testName}", but was expected to differ.`;
+}
+
 function createJestMissingSnapshotMessage(testName: string): string {
     return testName === ''
         ? 'New PNG snapshot was not written. Run Jest with -u to create it.'
@@ -125,6 +137,32 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
     const snapshotData = getSnapshotData(snapshotState);
     const storedSnapshot = snapshotData[key];
     const updateSnapshot = getUpdateSnapshotMode(snapshotState);
+
+    // `.not` asserts the received PNG differs from the stored snapshot. It never
+    // writes or updates a snapshot, and it returns the raw comparison result:
+    // the framework inverts `pass` for the negated assertion.
+    if (context.isNot === true) {
+        if (storedSnapshot === undefined) {
+            throw new Error(NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE);
+        }
+
+        const comparison = compareAgainstSerializedPngSnapshot(received, storedSnapshot, args.options);
+
+        if (!comparison.pass) {
+            return {
+                pass: false,
+                message: () => '',
+            };
+        }
+
+        incrementSnapshotCounter(snapshotState, 'unmatched');
+        return {
+            pass: true,
+            actual: comparison.actualSerialized,
+            expected: comparison.expectedSerialized,
+            message: () => createJestNegatedMatchMessage(testName),
+        };
+    }
 
     if (storedSnapshot !== undefined) {
         const comparison = compareAgainstSerializedPngSnapshot(received, storedSnapshot, args.options);

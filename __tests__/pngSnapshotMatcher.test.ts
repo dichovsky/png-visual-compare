@@ -113,10 +113,35 @@ describe('createPngSnapshotMatcher', () => {
         expect(snapshotDelegate).toHaveBeenCalledWith({}, expect.any(Buffer), { hint: undefined, options });
     });
 
-    test('rejects .not because snapshot negation is unsupported', () => {
+    test('forwards the negated matcher context to the delegate', () => {
+        const snapshotDelegate = vi.fn<(...args: [unknown, Buffer, PngSnapshotMatcherArgs]) => { pass: false; message: () => string }>(
+            () => ({
+                pass: false,
+                message: () => '',
+            }),
+        );
+        const matcher = createPngSnapshotMatcher(snapshotDelegate);
+
+        const result = expectSyncResult(matcher.call({ isNot: true }, readFileSync(PNG_FILE)));
+
+        expect(snapshotDelegate).toHaveBeenCalledWith({ isNot: true }, expect.any(Buffer), { hint: undefined, options: undefined });
+        expect(result.pass).toBe(false);
+    });
+
+    test('throws on non-PNG input under .not instead of passing vacuously', () => {
         const matcher = createPngSnapshotMatcher(() => ({ pass: true, message: () => '' }));
 
-        expect(() => matcher.call({ isNot: true }, readFileSync(PNG_FILE))).toThrow('.not.toMatchPngSnapshot() is not supported.');
+        expect(() => matcher.call({ isNot: true }, 'not a png')).toThrow(
+            'toMatchPngSnapshot() expects a PNG Buffer or Uint8Array, but received string.',
+        );
+    });
+
+    test('throws on invalid matcher arguments under .not instead of passing vacuously', () => {
+        const matcher = createPngSnapshotMatcher(() => ({ pass: true, message: () => '' }));
+
+        expect(() => matcher.call({ isNot: true }, readFileSync(PNG_FILE), 42 as never)).toThrow(
+            'toMatchPngSnapshot() expects either a snapshot hint string or a ComparePngOptions object as the first argument.',
+        );
     });
 
     test.each([
@@ -277,13 +302,103 @@ describe('vitest matcher entrypoint', () => {
         expect(extendSpy).not.toHaveBeenCalled();
     });
 
-    test('rejects a real expect().not.toMatchPngSnapshot() assertion driven through Vitest', async () => {
+    test('throws on a real expect().not.toMatchPngSnapshot() assertion with no stored snapshot', async () => {
         vi.resetModules();
         clearMatcherRegistration();
 
         await import('../src/vitest.mjs');
 
-        expect(() => expect(readFileSync(PNG_FILE)).not.toMatchPngSnapshot()).toThrow('.not.toMatchPngSnapshot() is not supported.');
+        expect(() => expect(readFileSync(PNG_FILE)).not.toMatchPngSnapshot()).toThrow(
+            '.not.toMatchPngSnapshot() requires an existing snapshot to compare against.',
+        );
+    });
+
+    test('passes a negated Vitest assertion when the received PNG differs from the stored snapshot', async () => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+
+        await import('../src/vitest.mjs');
+
+        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Vitest matcher to be registered');
+        }
+
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'vitest-negated-differs-id' });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+        const markAsChecked = vi.fn();
+        const processDomainSnapshot = vi.fn();
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    isNot: true,
+                    currentTestName: 'differs from snapshot',
+                    snapshotState: {
+                        probeExpectedSnapshot: () => ({
+                            count: 1,
+                            data: serializePngSnapshot(createSolidPng(255, 0, 0)),
+                            key: 'differs from snapshot 1',
+                            markAsChecked,
+                        }),
+                        processDomainSnapshot,
+                    },
+                } as never,
+                createSolidPng(0, 0, 255),
+            ),
+        );
+
+        // pass: false is what the framework inverts into a passing `.not`.
+        expect(result.pass).toBe(false);
+        expect(markAsChecked).toHaveBeenCalledTimes(1);
+        expect(processDomainSnapshot).not.toHaveBeenCalled();
+    });
+
+    test('fails a negated Vitest assertion when the received PNG matches the stored snapshot', async () => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+
+        await import('../src/vitest.mjs');
+
+        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Vitest matcher to be registered');
+        }
+
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'vitest-negated-matches-id' });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+        const processDomainSnapshot = vi.fn();
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    isNot: true,
+                    currentTestName: 'matches snapshot',
+                    snapshotState: {
+                        probeExpectedSnapshot: () => ({
+                            count: 1,
+                            data: serializePngSnapshot(readFileSync(PNG_FILE)),
+                            key: 'matches snapshot 1',
+                            markAsChecked: vi.fn(),
+                        }),
+                        processDomainSnapshot,
+                    },
+                } as never,
+                readFileSync(PNG_FILE),
+            ),
+        );
+
+        expect(result.pass).toBe(true);
+        expect(result.message()).toBe('Snapshot `matches snapshot 1` matched but was expected to differ');
+        expect(result.actual).toContain('"type": "Buffer"');
+        expect(result.expected).toContain('"type": "Buffer"');
+        expect(processDomainSnapshot).not.toHaveBeenCalled();
     });
 
     test('compares stored Vitest PNG snapshots with ComparePngOptions', async () => {
@@ -1003,5 +1118,120 @@ describe('jest matcher entrypoint', () => {
         const jestPlugin = (await import('../src/jest.js')) as JestPluginModule;
 
         expect(jestPlugin.registerJestPngSnapshotMatcher).toBeTypeOf('function');
+    });
+
+    test('throws on a negated Jest assertion when no snapshot is stored', async () => {
+        vi.resetModules();
+        const extend = vi.fn();
+        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+
+        await import('../src/jest.js');
+
+        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Jest matcher to be registered');
+        }
+
+        const snapshotState = createJestSnapshotState({}, 'all');
+
+        expect(() =>
+            registeredMatchers.toMatchPngSnapshot.call(
+                { currentTestName: 'missing baseline', isNot: true, snapshotState } as never,
+                readFileSync(PNG_FILE),
+            ),
+        ).toThrow('.not.toMatchPngSnapshot() requires an existing snapshot to compare against.');
+
+        // Even under -u a negated assertion must never record a baseline.
+        expect(snapshotState._dirty).toBe(false);
+        expect(snapshotState.added).toBe(0);
+    });
+
+    test('passes a negated Jest assertion when the received PNG differs from the stored snapshot', async () => {
+        vi.resetModules();
+        const extend = vi.fn();
+        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+
+        await import('../src/jest.js');
+
+        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Jest matcher to be registered');
+        }
+
+        const storedSnapshot = serializePngSnapshot(createSolidPng(255, 0, 0));
+        const snapshotState = createJestSnapshotState({ 'differs from snapshot 1': storedSnapshot }, 'all');
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                { currentTestName: 'differs from snapshot', isNot: true, snapshotState } as never,
+                createSolidPng(0, 0, 255),
+            ),
+        );
+
+        // pass: false is what the framework inverts into a passing `.not`.
+        expect(result.pass).toBe(false);
+        expect(result.message()).toBe('');
+        expect(snapshotState.added).toBe(0);
+        expect(snapshotState.matched).toBe(0);
+        expect(snapshotState.unmatched).toBe(0);
+        expect(snapshotState.updated).toBe(0);
+        expect(snapshotState._dirty).toBe(false);
+        expect(snapshotState._snapshotData['differs from snapshot 1']).toBe(storedSnapshot);
+    });
+
+    test('fails a negated Jest assertion when the received PNG matches the stored snapshot', async () => {
+        vi.resetModules();
+        const extend = vi.fn();
+        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+
+        await import('../src/jest.js');
+
+        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Jest matcher to be registered');
+        }
+
+        const snapshotState = createJestSnapshotState({
+            'matches snapshot: dark mode 1': serializePngSnapshot(readFileSync(PNG_FILE)),
+        });
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                { currentTestName: 'matches snapshot', isNot: true, snapshotState } as never,
+                readFileSync(PNG_FILE),
+                'dark mode',
+            ),
+        );
+
+        expect(result.pass).toBe(true);
+        expect(result.message()).toBe(
+            'Received PNG snapshot matches the stored snapshot for "matches snapshot: dark mode", but was expected to differ.',
+        );
+        expect(snapshotState.unmatched).toBe(1);
+        expect(snapshotState.matched).toBe(0);
+        expect(snapshotState._dirty).toBe(false);
+    });
+
+    test('reports a negated Jest match without a test name', async () => {
+        vi.resetModules();
+        const extend = vi.fn();
+        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+
+        await import('../src/jest.js');
+
+        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
+
+        if (registeredMatchers === undefined) {
+            throw new Error('Expected the Jest matcher to be registered');
+        }
+
+        const snapshotState = createJestSnapshotState({ ' 1': serializePngSnapshot(readFileSync(PNG_FILE)) });
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call({ isNot: true, snapshotState } as never, readFileSync(PNG_FILE)),
+        );
+
+        expect(result.pass).toBe(true);
+        expect(result.message()).toBe('Received PNG snapshot matches the stored snapshot, but was expected to differ.');
     });
 });
