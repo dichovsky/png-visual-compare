@@ -27,8 +27,21 @@ jobs:
                   node-version-file: .nvmrc
                   cache: 'npm'
                   registry-url: 'https://registry.npmjs.org'
+            # Only upgrade when the runner's npm is below the Trusted Publishing
+            # floor. Installing npm@latest unconditionally couples this job to
+            # whatever Node range the newest npm demands: npm@12 requires Node
+            # ^22.22.2 || ^24.15.0 || >=26.0.0 and hard-fails EBADENGINE against
+            # the Node pinned in .nvmrc, even though the preinstalled npm
+            # already satisfies 11.5.1.
             - name: Ensure npm supports Trusted Publishing (>= 11.5.1)
-              run: npm install -g npm@latest
+              run: |
+                  current="$(npm --version)"
+                  if [ "$(printf '%s\n%s\n' "$current" '11.5.1' | sort -V | head -n1)" = '11.5.1' ]; then
+                      echo "npm $current already satisfies >= 11.5.1"
+                  else
+                      echo "npm $current is below 11.5.1; upgrading within the 11.x line"
+                      npm install -g 'npm@^11.5.1'
+                  fi
             - run: npm ci
             - run: npx playwright install --with-deps chromium
             - run: npm audit --audit-level=high
