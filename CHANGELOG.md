@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **CI** — the test workflow now takes its Node version from `.nvmrc` instead of a
+  hardcoded `24.x`, and the macOS job was removed (CI is Ubuntu-only). macOS stays a
+  supported platform per `"os": ["darwin", "linux"]`; it is simply no longer exercised
+  in CI.
+- **CI** — `actions/checkout` and `actions/setup-node` are now SHA-pinned in
+  `publish.yml` as well as `test.yml`, both annotated with the matching release tag
+  (`v7.0.1` / `v7.0.0`). Closes CI-05.
+- **Docs** — `.github/copilot-instructions.md` was resynced with the code: the CI
+  matrix, the OIDC Trusted Publishing flow (no `NPM_TOKEN`), the `pixelmatch ~7.2.0`
+  floor, the `./vitest` and `./jest` subpath exports, the `sideEffects` array, and the
+  `npm run` script list. `CLAUDE.md` and `AGENTS.md` now list `codemap:check` in the
+  `pretest:unit` chain.
+
+### Dependencies
+
+- Bumped devDependencies to their latest stable releases: `@playwright/test` 1.62.1,
+  `@types/node` 26.2.0, `eslint` 10.8.1.
+
 ## [6.3.0] - 2026-07-29
 
 ### Added
