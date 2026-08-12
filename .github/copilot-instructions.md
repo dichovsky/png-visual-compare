@@ -5,16 +5,21 @@
 ```sh
 npm run build          # compile TypeScript → ./out via tsconfig.prod.json (runs clean first via prebuild)
 npm run clean          # delete ./out, ./coverage, ./test-results
-npm run lint           # ESLint with @typescript-eslint
+npm run lint           # ESLint with typescript-eslint
 npm run typecheck      # typecheck the full repo via tsconfig.json (src, tests, e2e, configs)
-npm run test           # npm run test && npm run test:e2e
+npm run test           # full suite: npm run test:unit && npm run test:e2e
+npm run test:unit      # unit-test gate: clean → codemap:check → lint → format:check → license check → typecheck → vitest --coverage
 npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder
-npm run test:unit      # unit-test gate: clean → lint → format:check → license check → typecheck → vitest --coverage
+npm run test:fast      # vitest run --reporter=verbose, skipping the pretest:unit gate
 npm run test:license   # check all production dependency licenses are in the approved list
 npm run test:docker    # clean → docker build → docker run (runs the full test suite in Docker)
 npm run codemap        # regenerate CODEMAP.md via scripts/generate-codemap.mjs
+npm run codemap:check  # fail if CODEMAP.md is stale (runs inside pretest:unit)
 npm run format         # format files with Prettier
 npm run format:check   # validate formatting with Prettier
+npm run release:check:pre   # pre-publish gate: version unpublished, CHANGELOG/CODEMAP/lockfile agree, tarball ships only ./out
+npm run release:check:post  # post-publish check: version live, `latest` dist-tag, provenance attestation, fresh install imports
+npm run tool:excluded-areas-builder  # open tools/excluded-areas-builder.html (macOS/Linux only)
 ```
 
 Run a single test file (skips pretest):
@@ -35,75 +40,91 @@ Run tests and watch for changes during development:
 npx vitest --reporter=verbose
 ```
 
-> `npm run test` triggers `pretest:unit` (clean → lint → format:check → license check → typecheck) before vitest runs.
-> To iterate quickly during development, use `npx vitest run` directly to skip those steps.
+> `npm run test:unit` triggers `pretest:unit` (clean → codemap:check → lint → format:check → license check → typecheck) before vitest runs.
+> To iterate quickly during development, use `npx vitest run` (or `npm run test:fast`) directly to skip those steps.
+> `npm run test:unit` sets `VITEST_FULL_COVERAGE=true`, enabling the repo-wide 100% coverage gate; a focused `npx vitest run --coverage` only reports on the files that run.
 
 ---
 
 ## Project Overview
 
-This is a small PNG comparison library with two public runtime entrypoints:
+This is a small PNG comparison library with two public runtime APIs:
 
 ```ts
 import { comparePng, comparePngAsync } from 'png-visual-compare';
 ```
 
-Both public APIs share the same internal pipeline and export surface from `src/index.ts`.
+Both share the same internal pipeline and export surface from `src/index.ts`.
+
+Two additional side-effect-only subpaths register a `toMatchPngSnapshot()` matcher:
+
+```ts
+import 'png-visual-compare/vitest'; // in Vitest `setupFiles`
+import 'png-visual-compare/jest'; // in Jest `setupFilesAfterEnv`
+```
 
 **Production dependencies (2 total):**
 
-- `pixelmatch ~7.1.0` — pixel-level image comparison engine
+- `pixelmatch ~7.2.0` — pixel-level image comparison engine
 - `pngjs ~7.0.0` — synchronous PNG read/write
+
+**Optional peer dependencies** (only needed for the matcher subpaths): `vitest >=4.1.0 <5`, `jest >=29 <31`.
 
 ---
 
 ## Repository Layout
+
+> `CODEMAP.md` is the authoritative, generated symbol index (`npm run codemap`, freshness enforced by `npm run codemap:check`). Consult it instead of a hand-maintained file list.
 
 ```
 src/
   index.ts                        # exports comparePng, comparePngAsync, errors, constants, and public types
   comparePng.ts                   # sync orchestrator
   comparePngAsync.ts              # async orchestrator
-  pipeline/                       # option resolution, loading, normalization, comparison, diff persistence
-  ports/                          # sync/async filesystem adapters and test seams
-  adapters/                       # public-to-external library boundaries
+  vitest.mts                      # side-effect entry: registers toMatchPngSnapshot on Vitest's expect (ESM)
+  jest.ts                         # side-effect entry: registers toMatchPngSnapshot on Jest's expect (CJS)
+  defaults.ts                     # default option values and limits
+  errors.ts                       # named error classes and ERR_* codes
   getPngData.ts                   # reads file path or Buffer → LoadedPng
   extendImage.ts                  # pads a PNG canvas to a larger size
   fillImageSizeDifference.ts      # colours the padded region green (0,255,0)
   addColoredAreasToImage.ts       # paints rectangular areas with a solid colour
   drawPixelOnBuff.ts              # writes a single RGBA pixel into a raw buffer
+  validateArea.ts                 # Area validation
+  validateColor.ts                # Color validation
+  validatePath.ts                 # path validation, base-dir containment, symlink checks
+  validatePixelmatchOptions.ts    # PixelmatchOptions validation
+  adapters/                       # public-to-external library boundaries (toPixelmatchOptions)
+  matchers/                       # framework-agnostic snapshot matcher core shared by vitest.mts/jest.ts
+  pipeline/                       # resolveOptions, loadSources, normalizeImages, runComparison, persistDiff
+  ports/                          # sync/async filesystem adapters and test seams
   types/
     index.ts                      # re-exports all types
     area.ts                       # Area (x1,y1,x2,y2 rectangle)
-    color.ts                      # Color (r,g,b — internal only)
-    compare.options.ts            # ComparePngOptions, PixelmatchOptions (public)
+    color.ts                      # Color (r,g,b)
+    compare.options.ts            # ComparePngOptions, PixelmatchOptions
     png.data.ts                   # LoadedPng discriminated union
+    validated-path.ts             # ValidatedPath branded type (internal — not re-exported from types/index.ts)
 
-__tests__/
-  index.test.ts                   # verifies comparePng is exported from the package
-  comparePng.test.ts              # happy-path: files, buffers, excludedAreas, diff creation
-  comparePng.diffs.test.ts        # diff PNG output + snapshot assertions
-  comparePng.diff-size.test.ts    # different-sized images; verifies diff canvas = max(w,h)
-  comparePng.exceptions.test.ts   # all invalid-input combinations
-  comparePng.pixelmatch-options.test.ts  # threshold, diffColor pass-through
-  getPngData.test.ts              # unit tests for getPngData
-  extendImage.test.ts             # unit tests for extendImage
-  drawPixelOnBuff.test.ts         # unit tests for drawPixelOnBuff
+__tests__/                        # one file per source module; mirrors src/ layout
+  adapters/  codemap/  pipeline/  ports/
   __snapshots__/                  # vitest snapshot files (committed)
 
+e2e/
+  excluded-areas-builder.test.ts  # Playwright coverage for tools/excluded-areas-builder.html
+
+scripts/
+  generate-codemap.mjs            # CODEMAP.md generator (`--check` mode for CI)
+  check-licenses.mjs              # production dependency license allowlist
+  prerelease-check.mjs            # pre-publish gate
+  postrelease-check.mjs           # post-publish registry verification
+
 test-data/
-  actual/                         # "actual" PNG fixtures
-    pnggrad16rgb.png
-    youtube-play-button.png
-    ILTQq.png
-    ILTQq copy.png                # slightly different from expected version
-    budweiser640x862.png          # used in diff-size test (640×862)
-  expected/                       # "expected" PNG fixtures (mirrors actual/)
-    pnggrad16rgb.png
-    youtube-play-button.png
-    ILTQq.png
-    ILTQq copy.png
-    water1500x600.png             # used in diff-size test (1500×600)
+  actual/                         # "actual" PNG fixtures (budweiser640x862.png used in diff-size test)
+  expected/                       # "expected" fixtures, mirrors actual/ (water1500x600.png for diff-size)
+
+tools/
+  excluded-areas-builder.html     # zero-build browser tool; inline script is CSP sha256-pinned
 
 out/                              # compiled output (gitignored, npm-published)
 ```
@@ -223,25 +244,36 @@ Current coverage is 100% across all source files.
 
 ## CI / CD
 
-### `test.yml` — runs on every push (except `release/*` branches)
+### `test.yml` — runs on every push (except `release/*` branches) and on every pull request
 
-| Job    | OS            | Node |
-| ------ | ------------- | ---- |
-| ubuntu | ubuntu-latest | 24.x |
-| macos  | macos-latest  | 20.x |
+| Job    | OS            | Node                      |
+| ------ | ------------- | ------------------------- |
+| ubuntu | ubuntu-latest | from `.nvmrc` (Node `24`) |
 
-Each job installs Playwright Chromium and runs `npm run test`.
+The job installs Playwright Chromium (`--with-deps`) and runs `npm run test`. There is no macOS
+job: CI is Ubuntu-only. macOS remains a **supported** platform (`"os": ["darwin","linux"]`), it is
+just not exercised in CI.
 
-### `publish.yml` — runs on GitHub release `published`
+### `publish.yml` — runs on GitHub release `published` (skipped for prereleases)
 
 ```
+ensure npm >= 11.5.1   ← Trusted Publishing floor; upgrades within 11.x only if below it
 npm ci
+npx playwright install --with-deps chromium
 npm audit --audit-level=high
-npm run build   ← clean + fresh tsc using tsconfig.prod.json
-npm publish     ← publishes only ./out (per "files" in package.json)
+npm run build            ← clean + fresh tsc using tsconfig.prod.json
+npm run release:check:pre  ← RELEASE_TAG from the GitHub release tag
+npm publish --provenance   ← publishes only ./out (per "files" in package.json)
+npm run release:check:post
 ```
 
-Publishing requires the `NPM_TOKEN` secret to be set on the GitHub repository.
+Publishing uses **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN` secret. The job requests
+`id-token: write` and the trusted publisher must be configured on npmjs.com (Package → Settings →
+Trusted Publishing) for org `dichovsky`, repo `png-visual-compare`, workflow `publish.yml`, no
+environment.
+
+Both workflows pin `actions/checkout` and `actions/setup-node` by commit SHA with a `# vX.Y.Z`
+comment, and take their Node version from `.nvmrc`.
 
 ---
 
@@ -253,7 +285,14 @@ The package exposes:
 
 - `"main": "./out/index.js"` — CommonJS entry point (legacy resolution)
 - `"types": "./out/index.d.ts"` — TypeScript type definitions
-- `"exports": { ".": { "types": "./out/index.d.ts", "default": "./out/index.js" } }` — modern subpath exports
-- `"sideEffects": false` — allows bundlers to tree-shake the package
+- `"exports"` — three subpaths:
+    - `.` → `./out/index.js` (types `./out/index.d.ts`)
+    - `./vitest` → `./out/vitest.mjs` (ESM, types `./out/vitest.d.mts`)
+    - `./jest` → `./out/jest.js` (types `./out/jest.d.ts`)
+- `"sideEffects": ["./out/vitest.mjs", "./out/jest.js"]` — the main entry stays tree-shakeable; the
+  two matcher entries are excluded because importing them intentionally calls `expect.extend(...)`
 
-Compiled output is CommonJS (`module: nodenext` with no `"type": "module"` in package.json).
+Compiled output is CommonJS (`module: nodenext` with no `"type": "module"` in package.json), except
+`src/vitest.mts` → `out/vitest.mjs`, which is ESM because Vitest is ESM-only.
+
+`"engines": { "node": ">=20" }`, `"os": ["darwin", "linux"]`.

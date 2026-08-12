@@ -85,4 +85,4 @@
 - [ ] 🟢 ♻️ CI [CI-02]: Add CodeQL workflow
 - [ ] 🟢 ♻️ CI [CI-03]: `dependency-review-action` on PRs
 - [ ] 🟢 ♻️ CI [CI-04]: Upload coverage to Codecov
-- [ ] 🟢 ♻️ CI [CI-05]: SHA-pin actions in `publish.yml`
+- [x] 🟢 ♻️ CI [CI-05]: SHA-pin actions in `publish.yml`
