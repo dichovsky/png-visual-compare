@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`maxFileBytes` option** (default `67_108_864`, exported as `DEFAULT_MAX_FILE_BYTES`) —
+  caps the size of a PNG read from a path, checked from the file's size before any
+  bytes are read. `maxDimension` and `maxPixels` inspect the declared IHDR header and
+  so bound the _decoded_ image; nothing previously bounded the _compressed_ bytes, so a
+  multi-gigabyte file was fully resident before either limit was consulted. Throws
+  `ResourceLimitError` regardless of `throwErrorOnInvalidInputData`, matching the other
+  two limits. Ignored for `Buffer` inputs, whose memory the caller already holds.
+  Closes SECU-04.
+
+    The default is the decoded RGBA size of an image at `maxPixels`, so essentially
+    nothing legitimate reaches it — a 4096 × 4096 screenshot compresses to single-digit
+    megabytes. One edge does: a maximally incompressible image at exactly the pixel
+    ceiling encodes roughly 9 KB above the cap and will now be rejected. Raise
+    `maxFileBytes` if you compare synthetic noise at that size.
+
+### Security
+
+- **Path reads are pinned to one inode** — `comparePng` and `comparePngAsync` now open
+  an input file _before_ validating it, then prove the opened handle is the file
+  containment approved. Previously `validatePath` walked the path and `readFile` walked
+  it again from scratch, so anything swapped in between was what actually got read.
+  Only engages when `inputBaseDir` is set. Closes SECU-05.
+- **Diff writes no longer traverse a symlinked parent** — the recursive `mkdir` in both
+  diff writers followed symlinks in every intermediate component, and `O_NOFOLLOW`
+  guards only the final one, so a symlinked parent could redirect the write outside
+  `diffOutputBaseDir`. Parent directories are now created one component at a time with
+  symlinks refused, `O_TRUNC` is deferred until the opened handle has been proven
+  contained, and a failed check removes only a file this write created. Only engages
+  when `diffOutputBaseDir` is set. Closes SECU-09.
+- **Absent file identity is refused, not ignored** — on a filesystem that reports no
+  inode (some network mounts) containment cannot be verified, so the operation throws
+  `PathValidationError` instead of silently passing a check that compares two zeroes.
+- **README gained a Security Model section** documenting what each limit does and does
+  not cover, including that the race defences _detect_ a swap rather than prevent it,
+  since Node exposes no `openat`. Closes SECU-06.
+
 ### Changed
 
 - **CI** — the test workflow now takes its Node version from `.nvmrc` instead of a

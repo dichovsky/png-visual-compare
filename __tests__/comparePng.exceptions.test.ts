@@ -460,3 +460,61 @@ test('with throwErrorOnInvalidInputData=false, zero-dimension PNG is treated as 
         readSpy.mockRestore();
     }
 });
+
+const realPngPath = resolve('./test-data/actual/youtube-play-button.png');
+const realExpectedPngPath = resolve('./test-data/expected/youtube-play-button.png');
+
+const testDataArrayMaxFileBytes: { id: number; name: string; opts: { maxFileBytes?: number }; errorClass: ErrorClass; message: string }[] =
+    [
+        {
+            id: 1,
+            name: 'rejects a file larger than maxFileBytes',
+            opts: { maxFileBytes: 1 },
+            errorClass: ResourceLimitError,
+            message: 'exceeds the maximum allowed 1 bytes',
+        },
+        {
+            id: 2,
+            name: 'rejects a non-integer maxFileBytes',
+            opts: { maxFileBytes: 1.5 },
+            errorClass: TypeError,
+            message: 'opts.maxFileBytes must be a positive integer or Infinity',
+        },
+        {
+            id: 3,
+            name: 'rejects a zero maxFileBytes',
+            opts: { maxFileBytes: 0 },
+            errorClass: TypeError,
+            message: 'opts.maxFileBytes must be a positive integer or Infinity',
+        },
+        {
+            id: 4,
+            name: 'rejects a negative maxFileBytes',
+            opts: { maxFileBytes: -1 },
+            errorClass: TypeError,
+            message: 'opts.maxFileBytes must be a positive integer or Infinity',
+        },
+    ];
+
+testDataArrayMaxFileBytes.forEach((data) => {
+    test(`maxFileBytes ${data.id}: ${data.name}`, () => {
+        expectThrownAs(() => comparePng(realPngPath, realExpectedPngPath, data.opts), data.errorClass, data.message);
+    });
+});
+
+test('maxFileBytes 5: throws even when throwErrorOnInvalidInputData is false', () => {
+    expectThrownAs(
+        () => comparePng(realPngPath, realExpectedPngPath, { maxFileBytes: 1, throwErrorOnInvalidInputData: false }),
+        ResourceLimitError,
+        'exceeds the maximum allowed',
+    );
+});
+
+test('maxFileBytes 6: Infinity disables the limit', () => {
+    expect(() => comparePng(realPngPath, realExpectedPngPath, { maxFileBytes: Infinity })).not.toThrow();
+});
+
+test('maxFileBytes 7: ignored for Buffer inputs', () => {
+    const buffer = createPngBuffer(4, 4);
+    expect(() => comparePng(buffer, buffer, { maxFileBytes: 1 })).not.toThrow();
+});

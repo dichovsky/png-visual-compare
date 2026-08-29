@@ -8,7 +8,7 @@ export interface ImageSourcePort {
 }
 
 export interface DiffWriterPort {
-    write(path: ValidatedPath, data: Buffer): void;
+    write(path: ValidatedPath, data: Buffer, baseDir?: string): void;
 }
 
 export type ComparisonPorts = {

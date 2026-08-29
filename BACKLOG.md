@@ -8,11 +8,6 @@
 
 ## 🔒 Security
 
-- [ ] 🟡 🐛 SECU [SECU-04]: Cap pre-decode file read (`maxFileBytes`)
-- [ ] 🟡 🐛 SECU [SECU-05]: Close async-path TOCTOU (validate→read)
-- [ ] 🟡 🐛 SECU [SECU-06]: Document decoder-bomb surface in README
-- [ ] 🟡 🐛 SECU [SECU-09]: Refuse symlink in mkdir parent component
-- [ ] 🟢 🐛 SECU [SECU-07]: `comparePngWithPorts` barrel hygiene (`@internal` or relocate)
 - [ ] 🟢 🐛 SECU [SECU-08]: Cap path length in `validatePath` (4096)
 
 ## ⚡ Performance
@@ -62,7 +57,6 @@
 
 ## 📝 Docs
 
-- [ ] 🟡 📝 DOC [DOC-01]: Sweep stale RELI-03 frontmatter
 - [ ] 🟢 📝 DOC [DOC-03]: Dedupe `CLAUDE.md` vs `.github/copilot-instructions.md`
 - [ ] 🟢 📝 DOC [DOC-04]: Expand public function JSDoc
 - [ ] 🟢 📝 DOC [DOC-05]: Cross-link `ARCHITECTURE.md` ↔ `BACKLOG.md`
@@ -85,4 +79,3 @@
 - [ ] 🟢 ♻️ CI [CI-02]: Add CodeQL workflow
 - [ ] 🟢 ♻️ CI [CI-03]: `dependency-review-action` on PRs
 - [ ] 🟢 ♻️ CI [CI-04]: Upload coverage to Codecov
-- [x] 🟢 ♻️ CI [CI-05]: SHA-pin actions in `publish.yml`

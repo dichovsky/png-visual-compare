@@ -471,3 +471,20 @@ test('[async] with throwErrorOnInvalidInputData=false, zero-dimension PNG is tre
         readSpy.mockRestore();
     }
 });
+
+test('maxFileBytes: async rejects a file larger than the cap', async () => {
+    await expect(
+        comparePngAsync(resolve('./test-data/actual/youtube-play-button.png'), resolve('./test-data/expected/youtube-play-button.png'), {
+            maxFileBytes: 1,
+        }),
+    ).rejects.toThrow(ResourceLimitError);
+});
+
+test('maxFileBytes: async rejects even when throwErrorOnInvalidInputData is false', async () => {
+    await expect(
+        comparePngAsync(resolve('./test-data/actual/youtube-play-button.png'), resolve('./test-data/expected/youtube-play-button.png'), {
+            maxFileBytes: 1,
+            throwErrorOnInvalidInputData: false,
+        }),
+    ).rejects.toThrow(ResourceLimitError);
+});

@@ -6,7 +6,13 @@ import { persistDiff } from './pipeline/persistDiff';
 import { resolveOptions } from './pipeline/resolveOptions';
 import { runComparison } from './pipeline/runComparison';
 import type { ComparisonPorts } from './ports/types';
-export { DEFAULT_EXCLUDED_AREA_COLOR, DEFAULT_EXTENDED_AREA_COLOR, DEFAULT_MAX_DIMENSION, DEFAULT_MAX_PIXELS } from './defaults';
+export {
+    DEFAULT_EXCLUDED_AREA_COLOR,
+    DEFAULT_EXTENDED_AREA_COLOR,
+    DEFAULT_MAX_DIMENSION,
+    DEFAULT_MAX_FILE_BYTES,
+    DEFAULT_MAX_PIXELS,
+} from './defaults';
 
 type ComparePngInput = string | Buffer;
 

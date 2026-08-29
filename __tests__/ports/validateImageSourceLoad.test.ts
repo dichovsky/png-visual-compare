@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { DEFAULT_EXCLUDED_AREA_COLOR, DEFAULT_EXTENDED_AREA_COLOR, DEFAULT_MAX_DIMENSION, DEFAULT_MAX_PIXELS } from '../../src/defaults';
+import {
+    DEFAULT_EXCLUDED_AREA_COLOR,
+    DEFAULT_EXTENDED_AREA_COLOR,
+    DEFAULT_MAX_DIMENSION,
+    DEFAULT_MAX_FILE_BYTES,
+    DEFAULT_MAX_PIXELS,
+} from '../../src/defaults';
 import { InvalidInputError, PathValidationError, ResourceLimitError } from '../../src/errors';
 import type { ResolvedOptions } from '../../src/pipeline/types';
 import { handleFileReadError, handlePathValidationError, handlePngDecodeError } from '../../src/ports/validateImageSourceLoad';
@@ -13,6 +19,7 @@ function createOptions(overrides?: Partial<ResolvedOptions>): ResolvedOptions {
         shouldCreateDiffFile: false,
         maxDimension: DEFAULT_MAX_DIMENSION,
         maxPixels: DEFAULT_MAX_PIXELS,
+        maxFileBytes: DEFAULT_MAX_FILE_BYTES,
         ...overrides,
     };
 }

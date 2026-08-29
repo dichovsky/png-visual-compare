@@ -8,5 +8,5 @@ export interface AsyncImageSourcePort {
 }
 
 export interface AsyncDiffWriterPort {
-    write(path: ValidatedPath, data: Buffer): Promise<void>;
+    write(path: ValidatedPath, data: Buffer, baseDir?: string): Promise<void>;
 }

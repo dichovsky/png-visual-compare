@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.3.0"
     },
-    "sourceHash": "e394b94734da831c89abaa111bcc2e057eee46bfa24f0cec44e192dfc1abae5b",
+    "sourceHash": "e9dee8bff8607d1e4fc4be3a0575a3b137d48f64169ab44ed308b5db40e8cde5",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -92,6 +92,16 @@ Schema: `codemap.v2`
             "typeOnly": false
         },
         {
+            "name": "DEFAULT_MAX_FILE_BYTES",
+            "kind": "const",
+            "entrypoint": "src/index.ts",
+            "file": "src/defaults.ts",
+            "line": 29,
+            "signature": "export const DEFAULT_MAX_FILE_BYTES",
+            "jsdoc": "Default maximum size, in bytes, of a PNG file read from disk.",
+            "typeOnly": false
+        },
+        {
             "name": "DEFAULT_MAX_PIXELS",
             "kind": "const",
             "entrypoint": "src/index.ts",
@@ -156,7 +166,7 @@ Schema: `codemap.v2`
             "kind": "function",
             "entrypoint": "src/index.ts",
             "file": "src/comparePng.ts",
-            "line": 28,
+            "line": 34,
             "signature": "export function comparePng(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): number",
             "jsdoc": "Compare two PNG inputs and return the mismatched pixel count.",
             "typeOnly": false
@@ -257,7 +267,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparePngInput",
                     "kind": "type",
-                    "line": 11,
+                    "line": 17,
                     "exported": false,
                     "signature": "type ComparePngInput = string | Buffer;",
                     "members": null,
@@ -266,7 +276,7 @@ Schema: `codemap.v2`
                 {
                     "name": "comparePngWithPorts",
                     "kind": "function",
-                    "line": 13,
+                    "line": 19,
                     "exported": true,
                     "signature": "export function comparePngWithPorts( png1: ComparePngInput, png2: ComparePngInput, opts: ComparePngOptions | undefined, ports?: ComparisonPorts, ): number",
                     "members": null,
@@ -275,7 +285,7 @@ Schema: `codemap.v2`
                 {
                     "name": "comparePng",
                     "kind": "function",
-                    "line": 28,
+                    "line": 34,
                     "exported": true,
                     "signature": "export function comparePng(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): number",
                     "members": null,
@@ -299,6 +309,7 @@ Schema: `codemap.v2`
                         "DEFAULT_EXCLUDED_AREA_COLOR",
                         "DEFAULT_EXTENDED_AREA_COLOR",
                         "DEFAULT_MAX_DIMENSION",
+                        "DEFAULT_MAX_FILE_BYTES",
                         "DEFAULT_MAX_PIXELS"
                     ],
                     "typeOnly": false
@@ -381,6 +392,15 @@ Schema: `codemap.v2`
                     "signature": "export const DEFAULT_MAX_PIXELS = 16_777_216",
                     "members": null,
                     "jsdoc": "Default maximum decoded pixel count for a single image or normalized canvas."
+                },
+                {
+                    "name": "DEFAULT_MAX_FILE_BYTES",
+                    "kind": "const",
+                    "line": 29,
+                    "exported": true,
+                    "signature": "export const DEFAULT_MAX_FILE_BYTES",
+                    "members": null,
+                    "jsdoc": "Default maximum size, in bytes, of a PNG file read from disk."
                 }
             ],
             "imports": [
@@ -538,7 +558,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_SIGNATURE",
                     "kind": "const",
-                    "line": 9,
+                    "line": 7,
                     "exported": false,
                     "signature": "const PNG_SIGNATURE",
                     "members": null,
@@ -547,7 +567,7 @@ Schema: `codemap.v2`
                 {
                     "name": "IHDR_PEEK_LENGTH",
                     "kind": "const",
-                    "line": 15,
+                    "line": 13,
                     "exported": false,
                     "signature": "const IHDR_PEEK_LENGTH = 24",
                     "members": null,
@@ -556,7 +576,7 @@ Schema: `codemap.v2`
                 {
                     "name": "peekPngDimensions",
                     "kind": "function",
-                    "line": 22,
+                    "line": 20,
                     "exported": false,
                     "signature": "function peekPngDimensions(data: Buffer): { width: number; height: number } | null",
                     "members": null,
@@ -565,7 +585,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertImageLimits",
                     "kind": "function",
-                    "line": 34,
+                    "line": 32,
                     "exported": false,
                     "signature": "function assertImageLimits(buffer: Buffer, maxDimension: number | undefined, maxPixels: number | undefined): void",
                     "members": null,
@@ -574,7 +594,7 @@ Schema: `codemap.v2`
                 {
                     "name": "finalizeDecodedPng",
                     "kind": "function",
-                    "line": 54,
+                    "line": 52,
                     "exported": false,
                     "signature": "function finalizeDecodedPng(decoded: LoadedPng, throwErrorOnInvalidInputData: boolean): LoadedPng",
                     "members": null,
@@ -583,19 +603,17 @@ Schema: `codemap.v2`
                 {
                     "name": "getPngData",
                     "kind": "function",
-                    "line": 65,
+                    "line": 63,
                     "exported": true,
-                    "signature": "export function getPngData( pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean, maxDimension?: number, maxPixels?: number, inputBaseDir?: string, ): LoadedPng",
+                    "signature": "export function getPngData( pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean, maxDimension?: number, maxPixels?: number, inputBaseDir?: string, maxFileBytes?: number, ): LoadedPng",
                     "members": null,
                     "jsdoc": null
                 }
             ],
             "imports": [
                 "./errors",
+                "./readValidatedFile",
                 "./types/png.data",
-                "./types/validated-path",
-                "./validatePath",
-                "node:fs",
                 "pngjs"
             ],
             "reExports": []
@@ -611,6 +629,7 @@ Schema: `codemap.v2`
                         "DEFAULT_EXCLUDED_AREA_COLOR",
                         "DEFAULT_EXTENDED_AREA_COLOR",
                         "DEFAULT_MAX_DIMENSION",
+                        "DEFAULT_MAX_FILE_BYTES",
                         "DEFAULT_MAX_PIXELS",
                         "comparePng"
                     ],
@@ -639,6 +658,101 @@ Schema: `codemap.v2`
                     "typeOnly": true
                 }
             ]
+        },
+        {
+            "path": "src/internal/assertSameFile.ts",
+            "symbols": [
+                {
+                    "name": "FileIdentity",
+                    "kind": "type",
+                    "line": 4,
+                    "exported": true,
+                    "signature": "export type FileIdentity = { readonly dev: bigint; readonly ino: bigint; };",
+                    "members": null,
+                    "jsdoc": "The subset of `BigIntStats` needed to identify a file on disk."
+                },
+                {
+                    "name": "assertSameFile",
+                    "kind": "function",
+                    "line": 30,
+                    "exported": true,
+                    "signature": "export function assertSameFile(opened: FileIdentity, expected: FileIdentity, subject: string): void",
+                    "members": null,
+                    "jsdoc": "Asserts that an opened file handle refers to the same on-disk file that path validation approved."
+                }
+            ],
+            "imports": [
+                "../errors"
+            ],
+            "reExports": []
+        },
+        {
+            "path": "src/internal/realDiffDirectory.ts",
+            "symbols": [
+                {
+                    "name": "realDiffDirectory",
+                    "kind": "function",
+                    "line": 19,
+                    "exported": true,
+                    "signature": "export function realDiffDirectory(directory: string, baseDir: string): string",
+                    "members": null,
+                    "jsdoc": "Resolves the diff file's parent directory through symlinks and re-proves it sits inside `baseDir`, returning the canonical directory."
+                }
+            ],
+            "imports": [
+                "../errors",
+                "node:fs",
+                "node:path"
+            ],
+            "reExports": []
+        },
+        {
+            "path": "src/internal/secureMkdir.ts",
+            "symbols": [
+                {
+                    "name": "componentsFrom",
+                    "kind": "function",
+                    "line": 10,
+                    "exported": false,
+                    "signature": "function componentsFrom(baseDir: string, dir: string): string[] | null",
+                    "members": null,
+                    "jsdoc": "Returns each directory that must exist between `baseDir` and `dir`, outermost first, or `null` when `dir` is not inside `baseDir`."
+                },
+                {
+                    "name": "refuseSymlink",
+                    "kind": "function",
+                    "line": 25,
+                    "exported": false,
+                    "signature": "function refuseSymlink(component: string): void",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "secureMkdirSync",
+                    "kind": "function",
+                    "line": 49,
+                    "exported": true,
+                    "signature": "export function secureMkdirSync(dir: string, baseDir?: string): void",
+                    "members": null,
+                    "jsdoc": "Creates `dir`, refusing to traverse a symlinked parent component."
+                },
+                {
+                    "name": "secureMkdir",
+                    "kind": "function",
+                    "line": 79,
+                    "exported": true,
+                    "signature": "export async function secureMkdir(dir: string, baseDir?: string): Promise<void>",
+                    "members": null,
+                    "jsdoc": "Asynchronous twin of ; identical contract."
+                }
+            ],
+            "imports": [
+                "../errors",
+                "node:fs",
+                "node:fs/promises",
+                "node:path"
+            ],
+            "reExports": []
         },
         {
             "path": "src/jest.ts",
@@ -1195,7 +1309,7 @@ Schema: `codemap.v2`
                 {
                     "name": "resolveOptions",
                     "kind": "function",
-                    "line": 11,
+                    "line": 17,
                     "exported": true,
                     "signature": "export function resolveOptions(raw: ComparePngOptions | undefined): ResolvedOptions",
                     "members": null,
@@ -1252,7 +1366,7 @@ Schema: `codemap.v2`
                 {
                     "name": "LoadedSources",
                     "kind": "type",
-                    "line": 25,
+                    "line": 26,
                     "exported": true,
                     "signature": "export type LoadedSources = { readonly png1: string | Buffer; readonly png2: string | Buffer; readonly first: LoadedPng; readonly second: LoadedPng; };",
                     "members": null,
@@ -1261,7 +1375,7 @@ Schema: `codemap.v2`
                 {
                     "name": "NormalizedImages",
                     "kind": "type",
-                    "line": 32,
+                    "line": 33,
                     "exported": true,
                     "signature": "export type NormalizedImages = { readonly first: PNGWithMetadata; readonly second: PNGWithMetadata; readonly width: number; readonly height: number; };",
                     "members": null,
@@ -1270,7 +1384,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonResult",
                     "kind": "type",
-                    "line": 39,
+                    "line": 40,
                     "exported": true,
                     "signature": "export type ComparisonResult = { readonly mismatchedPixels: number; readonly diff?: PNG; };",
                     "members": null,
@@ -1279,7 +1393,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonContext",
                     "kind": "type",
-                    "line": 44,
+                    "line": 45,
                     "exported": true,
                     "signature": "export type ComparisonContext = { readonly options: ResolvedOptions; readonly sources: LoadedSources; readonly normalized: NormalizedImages; readonly result: ComparisonResult; };",
                     "members": null,
@@ -1313,7 +1427,7 @@ Schema: `codemap.v2`
                     "kind": "interface",
                     "line": 10,
                     "exported": true,
-                    "signature": "export interface AsyncDiffWriterPort { write(path: ValidatedPath, data: Buffer): Promise<void>; }",
+                    "signature": "export interface AsyncDiffWriterPort { write(path: ValidatedPath, data: Buffer, baseDir?: string): Promise<void>; }",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1332,7 +1446,7 @@ Schema: `codemap.v2`
                 {
                     "name": "SYMLINK_REFUSING_WRITE_FLAGS",
                     "kind": "const",
-                    "line": 7,
+                    "line": 13,
                     "exported": false,
                     "signature": "const SYMLINK_REFUSING_WRITE_FLAGS",
                     "members": null,
@@ -1341,7 +1455,7 @@ Schema: `codemap.v2`
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 18,
+                    "line": 24,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
@@ -1350,15 +1464,18 @@ Schema: `codemap.v2`
                 {
                     "name": "fsAsyncDiffWriter",
                     "kind": "const",
-                    "line": 20,
+                    "line": 26,
                     "exported": true,
-                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data) { await mkdir(parse(path).dir, { recursive: true }); try { const handle = await open(path, SYMLINK_REFUSING_WRITE_FLAGS,…",
+                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data, baseDir) { const directory = dirname(path); await secureMkdir(directory, baseDir); let handle; try { handle = await open…",
                     "members": null,
                     "jsdoc": null
                 }
             ],
             "imports": [
                 "../errors",
+                "../internal/assertSameFile",
+                "../internal/realDiffDirectory",
+                "../internal/secureMkdir",
                 "./asyncTypes",
                 "node:fs",
                 "node:fs/promises",
@@ -1374,17 +1491,17 @@ Schema: `codemap.v2`
                     "kind": "const",
                     "line": 7,
                     "exported": true,
-                    "signature": "export const fsAsyncImageSource: AsyncImageSourcePort = { async load(source, opts) { if (typeof source === 'string') { let validatedPath; try { validatedPath = validatePath(source, opts.inputBaseDir, …",
+                    "signature": "export const fsAsyncImageSource: AsyncImageSourcePort = { async load(source, opts) { if (typeof source === 'string') { let buffer; try { buffer = await readValidatedFile(source, opts.inputBaseDir, opt…",
                     "members": null,
                     "jsdoc": null
                 }
             ],
             "imports": [
+                "../errors",
                 "../getPngData",
-                "../validatePath",
+                "../readValidatedFile",
                 "./asyncTypes",
-                "./validateImageSourceLoad",
-                "node:fs/promises"
+                "./validateImageSourceLoad"
             ],
             "reExports": []
         },
@@ -1394,7 +1511,7 @@ Schema: `codemap.v2`
                 {
                     "name": "SYMLINK_REFUSING_WRITE_FLAGS",
                     "kind": "const",
-                    "line": 6,
+                    "line": 22,
                     "exported": false,
                     "signature": "const SYMLINK_REFUSING_WRITE_FLAGS",
                     "members": null,
@@ -1403,7 +1520,7 @@ Schema: `codemap.v2`
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 17,
+                    "line": 33,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
@@ -1412,15 +1529,18 @@ Schema: `codemap.v2`
                 {
                     "name": "fsDiffWriter",
                     "kind": "const",
-                    "line": 19,
+                    "line": 35,
                     "exported": true,
-                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data) { mkdirSync(parse(path).dir, { recursive: true }); let fd: number; try { fd = openSync(path, SYMLINK_REFUSING_WRITE_FLAGS, DIFF_FILE_MOD…",
+                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data, baseDir) { const directory = dirname(path); secureMkdirSync(directory, baseDir); let fd: number; try { fd = openSync(path, SYMLINK_REFUS…",
                     "members": null,
                     "jsdoc": null
                 }
             ],
             "imports": [
                 "../errors",
+                "../internal/assertSameFile",
+                "../internal/realDiffDirectory",
+                "../internal/secureMkdir",
                 "./types",
                 "node:fs",
                 "node:path"
@@ -1435,7 +1555,7 @@ Schema: `codemap.v2`
                     "kind": "const",
                     "line": 4,
                     "exported": true,
-                    "signature": "export const fsImageSource: ImageSourcePort = { load(source, opts) { return getPngData(source, opts.throwErrorOnInvalidInputData, opts.maxDimension, opts.maxPixels, opts.inputBaseDir); }, }",
+                    "signature": "export const fsImageSource: ImageSourcePort = { load(source, opts) { return getPngData( source, opts.throwErrorOnInvalidInputData, opts.maxDimension, opts.maxPixels, opts.inputBaseDir, opts.maxFileByt…",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1463,7 +1583,7 @@ Schema: `codemap.v2`
                     "kind": "interface",
                     "line": 10,
                     "exported": true,
-                    "signature": "export interface DiffWriterPort { write(path: ValidatedPath, data: Buffer): void; }",
+                    "signature": "export interface DiffWriterPort { write(path: ValidatedPath, data: Buffer, baseDir?: string): void; }",
                     "members": null,
                     "jsdoc": null
                 },
@@ -1520,6 +1640,47 @@ Schema: `codemap.v2`
                 "../errors",
                 "../pipeline/types",
                 "../types/png.data"
+            ],
+            "reExports": []
+        },
+        {
+            "path": "src/readValidatedFile.ts",
+            "symbols": [
+                {
+                    "name": "assertWithinByteCap",
+                    "kind": "function",
+                    "line": 8,
+                    "exported": false,
+                    "signature": "function assertWithinByteCap(size: bigint, maxFileBytes: number | undefined): void",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "readValidatedFileSync",
+                    "kind": "function",
+                    "line": 48,
+                    "exported": true,
+                    "signature": "export function readValidatedFileSync(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Buffer",
+                    "members": null,
+                    "jsdoc": "Reads a file through a handle that is pinned before validation runs, so the bytes returned provably come from the inode that path validation approved."
+                },
+                {
+                    "name": "readValidatedFile",
+                    "kind": "function",
+                    "line": 70,
+                    "exported": true,
+                    "signature": "export async function readValidatedFile(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Promise<Buffer>",
+                    "members": null,
+                    "jsdoc": "Asynchronous twin of ; identical contract and ordering."
+                }
+            ],
+            "imports": [
+                "./errors",
+                "./internal/assertSameFile",
+                "./validatePath",
+                "node:buffer",
+                "node:fs",
+                "node:fs/promises"
             ],
             "reExports": []
         },
@@ -1749,13 +1910,40 @@ Schema: `codemap.v2`
                     "jsdoc": "Asserts that an output-mode target is not an existing symlink or directory."
                 },
                 {
+                    "name": "assertPathSyntax",
+                    "kind": "function",
+                    "line": 92,
+                    "exported": true,
+                    "signature": "export function assertPathSyntax(filePath: string): void",
+                    "members": null,
+                    "jsdoc": "Rejects paths that are malformed as strings, before any filesystem call."
+                },
+                {
+                    "name": "ValidatedPathWithReal",
+                    "kind": "type",
+                    "line": 115,
+                    "exported": true,
+                    "signature": "export type ValidatedPathWithReal = { readonly validated: ValidatedPath; readonly real?: string; };",
+                    "members": null,
+                    "jsdoc": "A validated path together with the canonical (symlink-resolved) path that the containment check actually approved."
+                },
+                {
                     "name": "validatePath",
                     "kind": "function",
-                    "line": 116,
+                    "line": 155,
                     "exported": true,
                     "signature": "export function validatePath(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPath",
                     "members": null,
                     "jsdoc": "Validates and resolves a file path string with optional directory containment checks."
+                },
+                {
+                    "name": "validatePathWithReal",
+                    "kind": "function",
+                    "line": 165,
+                    "exported": true,
+                    "signature": "export function validatePathWithReal(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPathWithReal",
+                    "members": null,
+                    "jsdoc": "Identical to , but additionally returns the canonical path that the `baseDir` containment check was proven against."
                 }
             ],
             "imports": [

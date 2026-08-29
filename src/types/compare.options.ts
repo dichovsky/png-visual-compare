@@ -144,6 +144,25 @@ export type ComparePngOptions = {
      */
     maxPixels?: number;
     /**
+     * Maximum size, in bytes, of a PNG file read from a path. Ignored for `Buffer`
+     * inputs, whose memory the caller has already paid for.
+     *
+     * `maxDimension` and `maxPixels` read the declared IHDR header, so they bound
+     * the *decoded* image but say nothing about how many compressed bytes must be
+     * read to reach that header. This limit closes that gap. Like the other two,
+     * it throws regardless of `throwErrorOnInvalidInputData`.
+     *
+     * Set to `Infinity` to disable the limit entirely.
+     *
+     * @default 67_108_864 (64 MiB — the decoded RGBA size of an image at `maxPixels`)
+     * @example
+     * ```ts
+     * // Untrusted uploads: cap reads well below the decoded-image limit
+     * comparePng(uploaded1, uploaded2, { maxFileBytes: 8 * 1024 * 1024 });
+     * ```
+     */
+    maxFileBytes?: number;
+    /**
      * When provided, `diffFilePath` must resolve to a path inside this directory
      * (validated after symlink resolution). Any attempt to write outside it throws
      * a `PathValidationError`. Use in server-side contexts where `diffFilePath`
