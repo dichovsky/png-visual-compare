@@ -30,13 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **CI** — restored the macOS job in `test.yml`. macOS is a supported platform
+- **CI** — restored the macOS job in `test.yml`, marked `continue-on-error` for now. macOS is a supported platform
   (`"os": ["darwin", "linux"]`) but has had no CI coverage since it was dropped in a
   general sync commit. This release adds filesystem-semantics-sensitive code
   (`O_NOFOLLOW`, `O_EXCL`, symlink refusal, inode identity) whose behaviour differs
   between Linux and macOS, so leaving a supported platform unexercised is no longer
   reasonable. Windows remains unsupported and untested by design, dropped as a
-  breaking change in 6.0.0.
+  breaking change in 6.0.0. The job does not gate merges yet: the suite hits a
+  pre-existing macOS-only Vitest fork crash in roughly 1 run in 5 under coverage
+  (tracked as TEST-08), which reproduces on `main` and is unrelated to this change.
 
 ### Security
 
