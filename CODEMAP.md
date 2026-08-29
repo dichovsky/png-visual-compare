@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.3.0"
     },
-    "sourceHash": "2d8b22e090bca9a5f82bf02df5c9088dfea4d06af4cb4e7ced49647fa63524d9",
+    "sourceHash": "e09abcc7f24c916ffb7e7e3935f8803af59579d8a361b6958f85782e853226e5",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -1703,7 +1703,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readValidatedFile",
                     "kind": "function",
-                    "line": 73,
+                    "line": 80,
                     "exported": true,
                     "signature": "export async function readValidatedFile(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Promise<Buffer>",
                     "members": null,

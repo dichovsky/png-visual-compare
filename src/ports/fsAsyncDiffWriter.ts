@@ -1,5 +1,5 @@
-import { constants as fsConstants, statSync } from 'node:fs';
-import { open, unlink } from 'node:fs/promises';
+import { constants as fsConstants } from 'node:fs';
+import { open, stat, unlink } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { PathValidationError } from '../errors';
 import { assertSameFile } from '../internal/assertSameFile';
@@ -73,8 +73,9 @@ export const fsAsyncDiffWriter: AsyncDiffWriterPort = {
         try {
             if (baseDir !== undefined) {
                 // Ties the handle to the canonical target, catching a swap between the
-                // open and here.
-                assertSameFile(await handle.stat({ bigint: true }), statSync(target, { bigint: true }), 'diff file');
+                // open and here. `realDiffDirectory` is still synchronous internally
+                // (`realpathSync.native`); see the note on `readValidatedFile`.
+                assertSameFile(await handle.stat({ bigint: true }), await stat(target, { bigint: true }), 'diff file');
             }
             await handle.truncate(0);
             await handle.chmod(DIFF_FILE_MODE);

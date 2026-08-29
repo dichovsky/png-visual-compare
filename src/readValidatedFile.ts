@@ -1,6 +1,6 @@
 import type { Buffer } from 'node:buffer';
 import { closeSync, constants as fsConstants, fstatSync, openSync, readFileSync, statSync } from 'node:fs';
-import { open } from 'node:fs/promises';
+import { open, stat } from 'node:fs/promises';
 import { ResourceLimitError } from './errors';
 import { assertSameFile } from './internal/assertSameFile';
 import { assertPathSyntax, validatePathWithReal } from './validatePath';
@@ -69,7 +69,14 @@ export function readValidatedFileSync(filePath: string, inputBaseDir?: string, m
     }
 }
 
-/** Asynchronous twin of {@link readValidatedFileSync}; identical contract and ordering. */
+/**
+ * Asynchronous twin of {@link readValidatedFileSync}; identical contract and ordering.
+ *
+ * The open, stat, and read are all promise-based. `validatePathWithReal` is still
+ * synchronous internally (`realpathSync.native`), so this is not a fully non-blocking
+ * path — closing that gap needs an async twin of the path validator, which every sync
+ * caller would also have to keep working. Tracked with the wider async-symmetry work.
+ */
 export async function readValidatedFile(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Promise<Buffer> {
     assertPathSyntax(filePath);
 
@@ -79,7 +86,7 @@ export async function readValidatedFile(filePath: string, inputBaseDir?: string,
 
         const { real } = validatePathWithReal(filePath, inputBaseDir, 'input');
         if (inputBaseDir !== undefined && real !== undefined) {
-            assertSameFile(opened, statSync(real, { bigint: true }), 'input image');
+            assertSameFile(opened, await stat(real, { bigint: true }), 'input image');
         }
 
         assertWithinByteCap(opened.size, maxFileBytes);

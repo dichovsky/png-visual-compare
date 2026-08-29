@@ -22,7 +22,12 @@ const asValidated = (value: string) => value as ValidatedPath;
  * which is exactly what a mid-flight path swap looks like to the writer.
  */
 function stubMismatchedIdentity(): void {
-    vi.spyOn(nodeFs, 'statSync').mockImplementationOnce(() => ({ dev: 99n, ino: 12345n }) as unknown as nodeFs.Stats);
+    const mismatched = { dev: 99n, ino: 12345n };
+    // The sync writer stats through node:fs, the async one through node:fs/promises.
+    vi.spyOn(nodeFs, 'statSync').mockImplementationOnce(() => mismatched as unknown as nodeFs.Stats);
+    vi.spyOn(nodeFsPromises, 'stat').mockImplementationOnce(
+        async () => mismatched as unknown as Awaited<ReturnType<typeof nodeFsPromises.stat>>,
+    );
 }
 
 describe('diff writers on failed handle verification', () => {
