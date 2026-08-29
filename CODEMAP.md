@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.3.0"
     },
-    "sourceHash": "36e392d325e4c83a898ef6f617ceb0c79a292076939dc00d1351996488299403",
+    "sourceHash": "2d8b22e090bca9a5f82bf02df5c9088dfea4d06af4cb4e7ced49647fa63524d9",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -1484,7 +1484,7 @@ Schema: `codemap.v2`
                     "kind": "const",
                     "line": 39,
                     "exported": true,
-                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data, baseDir) { const directory = dirname(path); await secureMkdir(directory, baseDir); let handle; let created = true; try {…",
+                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data, baseDir) { const directory = dirname(path); await secureMkdir(directory, baseDir); const target = baseDir === undefined …",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1567,7 +1567,7 @@ Schema: `codemap.v2`
                     "kind": "const",
                     "line": 48,
                     "exported": true,
-                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data, baseDir) { const directory = dirname(path); secureMkdirSync(directory, baseDir); let fd: number; let created = true; try { fd = openSync…",
+                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data, baseDir) { const directory = dirname(path); secureMkdirSync(directory, baseDir); const target = baseDir === undefined ? path : resolve(r…",
                     "members": null,
                     "jsdoc": null
                 }

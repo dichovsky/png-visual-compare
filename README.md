@@ -352,7 +352,7 @@ When `inputBaseDir` is set, containment is checked before the byte cap. The cap'
 When a boundary is set, the library defends against a path that changes underneath it:
 
 - **Reads** open the file first, pinning one inode, then prove that inode is the one containment approved. Bytes are never returned from a file that failed the check.
-- **Writes** create each parent directory one component at a time and refuse any component that is a symlink, so a symlinked parent cannot redirect the write. Truncation is deferred until after the opened handle has been proven to sit inside the boundary, so an escaped target is never emptied. A refused write removes only a file it created itself, established by `O_EXCL` rather than inferred from the file's length, so a pre-existing empty placeholder survives.
+- **Writes** create each parent directory one component at a time and refuse any component that is a symlink. The parent chain is then resolved and the file is opened _inside the canonical directory_, so the path traversed at open time contains no symlink at all — redirecting the write requires renaming a real directory in that chain, not merely planting a link. Truncation is deferred until after the opened handle has been proven to sit inside the boundary, so an escaped target is never emptied. A refused write removes only a file it created itself, established by `O_EXCL` rather than inferred from the file's length, so a pre-existing empty placeholder survives.
 
 Node exposes no `openat`, so the underlying race cannot be _prevented_ portably. These checks **detect** a swap and refuse, rather than making the swap impossible. The practical guarantee is that no data crosses the boundary in either direction, not that an attacker cannot try.
 

@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     ceiling encodes roughly 9 KB above the cap and will now be rejected. Raise
     `maxFileBytes` if you compare synthetic noise at that size.
 
+### Changed
+
+- **CI** — restored the macOS job in `test.yml`. macOS is a supported platform
+  (`"os": ["darwin", "linux"]`) but has had no CI coverage since it was dropped in a
+  general sync commit. This release adds filesystem-semantics-sensitive code
+  (`O_NOFOLLOW`, `O_EXCL`, symlink refusal, inode identity) whose behaviour differs
+  between Linux and macOS, so leaving a supported platform unexercised is no longer
+  reasonable. Windows remains unsupported and untested by design, dropped as a
+  breaking change in 6.0.0.
+
 ### Security
 
 - **Path reads are pinned to one inode** — `comparePng` and `comparePngAsync` now open
@@ -39,9 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   diff writers followed symlinks in every intermediate component, and `O_NOFOLLOW`
   guards only the final one, so a symlinked parent could redirect the write outside
   `diffOutputBaseDir`. Parent directories are now created one component at a time with
-  symlinks refused, `O_TRUNC` is deferred until the opened handle has been proven
-  contained, and a failed check removes only a file this write created — established
-  by `O_EXCL` on the create attempt, since plain `O_CREAT` succeeds identically for a
+  symlinks refused, and the file is then opened inside the _resolved_ parent
+  directory rather than the caller's path, so no symlink is traversed at open time
+  at all. `O_TRUNC` is deferred until the opened handle has been proven contained,
+  and a failed check removes only a file this write created — established by
+  `O_EXCL` on the create attempt, since plain `O_CREAT` succeeds identically for a
   file that already existed empty. Only engages when `diffOutputBaseDir` is set.
   Closes SECU-09.
 - **Absent file identity is refused, not ignored** — on a filesystem that reports no

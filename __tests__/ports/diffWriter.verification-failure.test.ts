@@ -97,11 +97,12 @@ describe('diff writers on failed handle verification', () => {
         expect(existsSync(target)).toBe(false);
     });
 
-    test('refuses when the directory resolves outside the boundary after the open', () => {
+    test('refuses when the directory resolves outside the boundary', () => {
         const target = path.join(baseDir, 'diff.png');
-        // The component walk sees a clean path; the post-open re-resolution is what
-        // catches a parent that became a symlink after the walk. Injected, because a
-        // real race cannot be staged deterministically.
+        // The component walk sees a clean path; re-resolving it before the open is what
+        // catches a parent that became a symlink after the walk, and it does so before
+        // anything is created. Injected, because a real race cannot be staged
+        // deterministically.
         const realNative = nodeFs.realpathSync.native;
         let calls = 0;
         vi.spyOn(nodeFs.realpathSync, 'native').mockImplementation(((target_: string) => {

@@ -41,10 +41,19 @@ export const fsAsyncDiffWriter: AsyncDiffWriterPort = {
         const directory = dirname(path);
         await secureMkdir(directory, baseDir);
 
+        // Resolve the parent chain *before* opening and write inside the canonical
+        // directory, so the path actually traversed at open time contains no symlink
+        // at all. Opening the caller's path instead would leave a window between the
+        // component walk above and the open, in which a planted symlink could still be
+        // followed — detected afterwards, but only after `O_CREAT` had made a file
+        // outside the boundary. Defeating this now requires renaming a real directory
+        // in the canonical chain, not merely planting a link.
+        const target = baseDir === undefined ? path : resolve(realDiffDirectory(directory, baseDir), basename(path));
+
         let handle;
         let created = true;
         try {
-            handle = await open(path, CREATE_FLAGS, DIFF_FILE_MODE);
+            handle = await open(target, CREATE_FLAGS, DIFF_FILE_MODE);
         } catch (error) {
             const code = (error as NodeJS.ErrnoException).code;
             if (code !== 'EEXIST') {
@@ -55,7 +64,7 @@ export const fsAsyncDiffWriter: AsyncDiffWriterPort = {
             // itself); reopening without O_CREAT surfaces it as ELOOP via O_NOFOLLOW.
             created = false;
             try {
-                handle = await open(path, OPEN_EXISTING_FLAGS, DIFF_FILE_MODE);
+                handle = await open(target, OPEN_EXISTING_FLAGS, DIFF_FILE_MODE);
             } catch (reopenError) {
                 throw asSymlinkRefusal(reopenError);
             }
@@ -63,12 +72,9 @@ export const fsAsyncDiffWriter: AsyncDiffWriterPort = {
 
         try {
             if (baseDir !== undefined) {
-                const realDirectory = realDiffDirectory(directory, baseDir);
-                assertSameFile(
-                    await handle.stat({ bigint: true }),
-                    statSync(resolve(realDirectory, basename(path)), { bigint: true }),
-                    'diff file',
-                );
+                // Ties the handle to the canonical target, catching a swap between the
+                // open and here.
+                assertSameFile(await handle.stat({ bigint: true }), statSync(target, { bigint: true }), 'diff file');
             }
             await handle.truncate(0);
             await handle.chmod(DIFF_FILE_MODE);
@@ -81,7 +87,7 @@ export const fsAsyncDiffWriter: AsyncDiffWriterPort = {
             // it cleans up.
             if (created) {
                 try {
-                    await unlink(path);
+                    await unlink(target);
                 } catch {
                     /* best effort: the path may already be gone */
                 }

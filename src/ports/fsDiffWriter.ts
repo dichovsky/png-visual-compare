@@ -50,10 +50,19 @@ export const fsDiffWriter: DiffWriterPort = {
         const directory = dirname(path);
         secureMkdirSync(directory, baseDir);
 
+        // Resolve the parent chain *before* opening and write inside the canonical
+        // directory, so the path actually traversed at open time contains no symlink
+        // at all. Opening the caller's path instead would leave a window between the
+        // component walk above and the open, in which a planted symlink could still be
+        // followed — detected afterwards, but only after `O_CREAT` had made a file
+        // outside the boundary. Defeating this now requires renaming a real directory
+        // in the canonical chain, not merely planting a link.
+        const target = baseDir === undefined ? path : resolve(realDiffDirectory(directory, baseDir), basename(path));
+
         let fd: number;
         let created = true;
         try {
-            fd = openSync(path, CREATE_FLAGS, DIFF_FILE_MODE);
+            fd = openSync(target, CREATE_FLAGS, DIFF_FILE_MODE);
         } catch (error) {
             const code = (error as NodeJS.ErrnoException).code;
             if (code !== 'EEXIST') {
@@ -64,7 +73,7 @@ export const fsDiffWriter: DiffWriterPort = {
             // itself); reopening without O_CREAT surfaces it as ELOOP via O_NOFOLLOW.
             created = false;
             try {
-                fd = openSync(path, OPEN_EXISTING_FLAGS, DIFF_FILE_MODE);
+                fd = openSync(target, OPEN_EXISTING_FLAGS, DIFF_FILE_MODE);
             } catch (reopenError) {
                 throw asSymlinkRefusal(reopenError);
             }
@@ -90,7 +99,7 @@ export const fsDiffWriter: DiffWriterPort = {
             // it cleans up.
             if (created) {
                 try {
-                    unlinkSync(path);
+                    unlinkSync(target);
                 } catch {
                     /* best effort: the path may already be gone */
                 }

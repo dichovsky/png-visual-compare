@@ -39,7 +39,7 @@
     - **Impl:** New README "Security Model" section covering decoded-vs-compressed bounds, the detect-not-prevent nature of the race defences, the file-identity requirement, and an explicit "what is not covered" list.
     - **Rat:** The README presented `maxDimension`/`maxPixels` as the resource-exhaustion defence without stating that they inspect a header and bound nothing about the bytes read to reach it.
 - [x] 🟡 🐛 SECU [SECU-09]: Refuse symlink in mkdir parent component
-    - **Impl:** `secureMkdir` walks from `diffOutputBaseDir` downward, refusing symlinked components and creating missing ones singly; `O_TRUNC` moved off the open to an `ftruncate` gated on `realDiffDirectory` re-proving containment plus an inode match; cleanup unlinks only a zero-length file this write created.
+    - **Impl:** `secureMkdir` walks from `diffOutputBaseDir` downward, refusing symlinked components and creating missing ones singly; the file is then opened inside the `realDiffDirectory`-resolved parent so no symlink is traversed at open time; `O_TRUNC` moved off the open to an `ftruncate` gated on an inode match; `O_EXCL` establishes whether this call created the file, and cleanup unlinks only in that case.
     - **Rat:** `mkdir` with `recursive: true` follows symlinks in every intermediate component and `O_NOFOLLOW` guards only the final one, so a symlinked parent redirected the whole write outside the boundary — and `O_TRUNC` would have emptied whatever it landed on before anything noticed.
 
 ## ⚡ Performance

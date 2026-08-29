@@ -89,6 +89,19 @@ describe('diff writers refuse symlinked parent components (SECU-09)', () => {
         expect(existsSync(path.join(outsideDir, 'c'))).toBe(false);
     });
 
+    test('writes through a symlinked base directory into the canonical location', () => {
+        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
+        // The open happens inside the resolved directory, so nothing traverses a link.
+        const realBase = path.join(rootDir, 'real-base');
+        mkdirSync(path.join(realBase, 'sub'), { recursive: true });
+        const linkedBase = path.join(rootDir, 'linked-base');
+        symlinkSync(realBase, linkedBase);
+
+        fsDiffWriter.write(asValidated(path.join(linkedBase, 'sub', 'diff.png')), data, linkedBase);
+
+        expect(readFileSync(path.join(realBase, 'sub', 'diff.png'))).toEqual(data);
+    });
+
     test('refuses a target directory outside the boundary', () => {
         const target = path.join(outsideDir, 'diff.png');
         expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(/outside the allowed directory/);
