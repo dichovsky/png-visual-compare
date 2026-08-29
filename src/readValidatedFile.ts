@@ -25,10 +25,7 @@ function assertWithinByteCap(size: bigint, maxFileBytes: number | undefined): vo
  *
  * 1. `open` first. This pins one inode for the rest of the call — every later
  *    step describes *that* file, not whatever the path happens to point at now.
- * 2. `fstat` on the handle. Yields the size for the `maxFileBytes` cap before a
- *    single byte is read, which is the whole point of SECU-04: `maxDimension`
- *    and `maxPixels` only inspect the decoded header, so without this a
- *    multi-gigabyte file was fully resident before any limit was consulted.
+ * 2. `fstat` on the handle, for the size and identity used below.
  * 3. `validatePathWithReal` for the containment check.
  * 4. When a boundary was requested, compare the handle's identity against the
  *    canonical path containment was proven against (SECU-05). Skipped without
@@ -36,7 +33,12 @@ function assertWithinByteCap(size: bigint, maxFileBytes: number | undefined): vo
  *    and there is no boundary a swap could cross — running it anyway would buy
  *    nothing while exposing every default caller to a false positive from a
  *    benign atomic-rename baseline update.
- * 5. Read from the handle, never from the path string again.
+ * 5. Only now, the `maxFileBytes` cap — still before a single byte is read, which
+ *    is the point of SECU-04, but deliberately *after* containment. The cap's
+ *    error names an exact byte count and escapes even in permissive mode, so
+ *    running it first would tell a caller the size and existence of a file
+ *    outside `inputBaseDir`. Containment must fail first for such a path.
+ * 6. Read from the handle, never from the path string again.
  *
  * @param filePath     - Path to read.
  * @param inputBaseDir - Optional containment boundary; enables the identity check.
@@ -53,12 +55,13 @@ export function readValidatedFileSync(filePath: string, inputBaseDir?: string, m
     const fd = openSync(filePath, fsConstants.O_RDONLY);
     try {
         const opened = fstatSync(fd, { bigint: true });
-        assertWithinByteCap(opened.size, maxFileBytes);
 
         const { real } = validatePathWithReal(filePath, inputBaseDir, 'input');
         if (inputBaseDir !== undefined && real !== undefined) {
             assertSameFile(opened, statSync(real, { bigint: true }), 'input image');
         }
+
+        assertWithinByteCap(opened.size, maxFileBytes);
 
         return readFileSync(fd);
     } finally {
@@ -73,12 +76,13 @@ export async function readValidatedFile(filePath: string, inputBaseDir?: string,
     const handle = await open(filePath, fsConstants.O_RDONLY);
     try {
         const opened = await handle.stat({ bigint: true });
-        assertWithinByteCap(opened.size, maxFileBytes);
 
         const { real } = validatePathWithReal(filePath, inputBaseDir, 'input');
         if (inputBaseDir !== undefined && real !== undefined) {
             assertSameFile(opened, statSync(real, { bigint: true }), 'input image');
         }
+
+        assertWithinByteCap(opened.size, maxFileBytes);
 
         return await handle.readFile();
     } finally {

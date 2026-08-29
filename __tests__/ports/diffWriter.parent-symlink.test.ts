@@ -43,6 +43,20 @@ describe('diff writers refuse symlinked parent components (SECU-09)', () => {
         expect(readFileSync(target)).toEqual(data);
     });
 
+    test('overwrites an existing empty diff file', () => {
+        const target = path.join(baseDir, 'empty.png');
+        writeFileSync(target, '');
+        fsDiffWriter.write(asValidated(target), data, baseDir);
+        expect(readFileSync(target)).toEqual(data);
+    });
+
+    test('overwrites an existing empty diff file asynchronously', async () => {
+        const target = path.join(baseDir, 'empty-async.png');
+        writeFileSync(target, '');
+        await fsAsyncDiffWriter.write(asValidated(target), data, baseDir);
+        expect(readFileSync(target)).toEqual(data);
+    });
+
     test('refuses a symlinked parent and leaves the outside target untouched', () => {
         if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
         const sentinel = path.join(outsideDir, 'diff.png');

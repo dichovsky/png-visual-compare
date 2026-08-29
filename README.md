@@ -343,6 +343,8 @@ The default is 67,108,864 bytes, which is the decoded RGBA size of an image at `
 
 `maxFileBytes` applies only to path inputs. A `Buffer` you pass in is already in memory, and `maxPixels` still bounds its decode.
 
+When `inputBaseDir` is set, containment is checked before the byte cap. The cap's error names an exact size and is not recoverable, so checking it first would disclose the size and existence of a file outside the boundary. A path outside the boundary always fails as a `PathValidationError`.
+
 ### Path containment
 
 `inputBaseDir` and `diffOutputBaseDir` confine reads and writes to a directory, enforced after symlink resolution. Both are unset by default, in which case no boundary exists and none of the checks below run.
@@ -350,7 +352,7 @@ The default is 67,108,864 bytes, which is the decoded RGBA size of an image at `
 When a boundary is set, the library defends against a path that changes underneath it:
 
 - **Reads** open the file first, pinning one inode, then prove that inode is the one containment approved. Bytes are never returned from a file that failed the check.
-- **Writes** create each parent directory one component at a time and refuse any component that is a symlink, so a symlinked parent cannot redirect the write. Truncation is deferred until after the opened handle has been proven to sit inside the boundary, so an escaped target is never emptied.
+- **Writes** create each parent directory one component at a time and refuse any component that is a symlink, so a symlinked parent cannot redirect the write. Truncation is deferred until after the opened handle has been proven to sit inside the boundary, so an escaped target is never emptied. A refused write removes only a file it created itself, established by `O_EXCL` rather than inferred from the file's length, so a pre-existing empty placeholder survives.
 
 Node exposes no `openat`, so the underlying race cannot be _prevented_ portably. These checks **detect** a swap and refuse, rather than making the swap impossible. The practical guarantee is that no data crosses the boundary in either direction, not that an attacker cannot try.
 

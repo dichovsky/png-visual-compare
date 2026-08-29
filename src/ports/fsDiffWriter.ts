@@ -19,7 +19,13 @@ import type { DiffWriterPort } from './types';
 // O_TRUNC is deliberately absent: truncation happens only after the opened handle
 // has been proven to live inside `diffOutputBaseDir` (SECU-09). Truncating on open
 // would destroy the contents of an escaped target before anything could detect it.
-const SYMLINK_REFUSING_WRITE_FLAGS = fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW;
+//
+// The create attempt carries O_EXCL so that success proves *this* call created the
+// file. Without it, O_CREAT succeeds identically for a file that already existed
+// empty, and the cleanup path below could not tell the two apart — it would delete
+// a pre-existing zero-length file (a placeholder or lock) that it never created.
+const CREATE_FLAGS = fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_NOFOLLOW;
+const OPEN_EXISTING_FLAGS = fsConstants.O_WRONLY | fsConstants.O_NOFOLLOW;
 
 // SECU-12: lock diff files to owner-only access (no group, no world).
 // Passing `0o600` as the third arg to `openSync` covers the creation case
@@ -32,19 +38,36 @@ const SYMLINK_REFUSING_WRITE_FLAGS = fsConstants.O_WRONLY | fsConstants.O_CREAT 
 // both cases.
 const DIFF_FILE_MODE = 0o600;
 
+function asSymlinkRefusal(error: unknown): unknown {
+    if ((error as NodeJS.ErrnoException).code === 'ELOOP') {
+        return new PathValidationError('Diff write refused: target path is a symlink (TOCTOU defence)');
+    }
+    return error;
+}
+
 export const fsDiffWriter: DiffWriterPort = {
     write(path, data, baseDir) {
         const directory = dirname(path);
         secureMkdirSync(directory, baseDir);
 
         let fd: number;
+        let created = true;
         try {
-            fd = openSync(path, SYMLINK_REFUSING_WRITE_FLAGS, DIFF_FILE_MODE);
+            fd = openSync(path, CREATE_FLAGS, DIFF_FILE_MODE);
         } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ELOOP') {
-                throw new PathValidationError('Diff write refused: target path is a symlink (TOCTOU defence)');
+            const code = (error as NodeJS.ErrnoException).code;
+            if (code !== 'EEXIST') {
+                throw asSymlinkRefusal(error);
             }
-            throw error;
+            // The target already exists, so this call is an overwrite, not a create.
+            // A symlink at the target reaches here as EEXIST (O_EXCL reports the link
+            // itself); reopening without O_CREAT surfaces it as ELOOP via O_NOFOLLOW.
+            created = false;
+            try {
+                fd = openSync(path, OPEN_EXISTING_FLAGS, DIFF_FILE_MODE);
+            } catch (reopenError) {
+                throw asSymlinkRefusal(reopenError);
+            }
         }
 
         try {
@@ -60,18 +83,12 @@ export const fsDiffWriter: DiffWriterPort = {
             fchmodSync(fd, DIFF_FILE_MODE);
             writeFileSync(fd, data);
         } catch (error) {
-            let createdEmpty = false;
-            try {
-                createdEmpty = fstatSync(fd, { bigint: true }).size === 0n;
-            } catch {
-                /* the handle may already be unusable; treat it as not ours to remove */
-            }
             closeSync(fd);
-            // Unlink only a zero-length file. `O_CREAT` may have just created the
-            // target, and leaving an empty file behind on an escaped path is litter —
-            // but a file that already holds bytes is one this write did not create,
-            // and destroying it would be worse than the litter it cleans up.
-            if (createdEmpty) {
+            // Remove only a file this call created, which O_EXCL establishes rather
+            // than infers. Leaving an empty file behind on an escaped path is litter;
+            // deleting a file this write did not create would be worse than the litter
+            // it cleans up.
+            if (created) {
                 try {
                     unlinkSync(path);
                 } catch {

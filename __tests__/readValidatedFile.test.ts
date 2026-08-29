@@ -78,6 +78,28 @@ describe('readValidatedFile', () => {
         expect(() => readValidatedFileSync(linkPath, baseDir)).toThrow(PathValidationError);
     });
 
+    test('reports containment failure, not file size, for an oversized file outside the boundary', () => {
+        // The byte cap throws ResourceLimitError naming an exact size, and that error
+        // escapes even in permissive mode. Were it checked before containment, a caller
+        // would learn the existence and size of a file outside inputBaseDir.
+        const outside = path.join(rootDir, 'outside-large.png');
+        writeFileSync(outside, Buffer.alloc(2048));
+
+        expect(() => readValidatedFileSync(outside, baseDir, 1)).toThrow(PathValidationError);
+        expect(() => readValidatedFileSync(outside, baseDir, 1)).not.toThrow(ResourceLimitError);
+    });
+
+    test('reports containment failure asynchronously too', async () => {
+        const outside = path.join(rootDir, 'outside-large.png');
+        writeFileSync(outside, Buffer.alloc(2048));
+
+        await expect(readValidatedFile(outside, baseDir, 1)).rejects.toThrow(PathValidationError);
+    });
+
+    test('still enforces the byte cap for a file inside the boundary', () => {
+        expect(() => readValidatedFileSync(filePath, baseDir, 1)).toThrow(ResourceLimitError);
+    });
+
     test('propagates a missing file as a filesystem error', () => {
         expect(() => readValidatedFileSync(path.join(baseDir, 'missing.png'), baseDir)).toThrow(
             expect.objectContaining({ code: 'ENOENT' }),

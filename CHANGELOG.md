@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   two limits. Ignored for `Buffer` inputs, whose memory the caller already holds.
   Closes SECU-04.
 
+    The cap is checked _after_ the containment check, not before: its error names an
+    exact byte count and escapes even in permissive mode, so checking it first would
+    disclose the existence and size of a file outside `inputBaseDir`.
+
     The default is the decoded RGBA size of an image at `maxPixels`, so essentially
     nothing legitimate reaches it — a 4096 × 4096 screenshot compresses to single-digit
     megabytes. One edge does: a maximally incompressible image at exactly the pixel
@@ -36,8 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   guards only the final one, so a symlinked parent could redirect the write outside
   `diffOutputBaseDir`. Parent directories are now created one component at a time with
   symlinks refused, `O_TRUNC` is deferred until the opened handle has been proven
-  contained, and a failed check removes only a file this write created. Only engages
-  when `diffOutputBaseDir` is set. Closes SECU-09.
+  contained, and a failed check removes only a file this write created — established
+  by `O_EXCL` on the create attempt, since plain `O_CREAT` succeeds identically for a
+  file that already existed empty. Only engages when `diffOutputBaseDir` is set.
+  Closes SECU-09.
 - **Absent file identity is refused, not ignored** — on a filesystem that reports no
   inode (some network mounts) containment cannot be verified, so the operation throws
   `PathValidationError` instead of silently passing a check that compares two zeroes.

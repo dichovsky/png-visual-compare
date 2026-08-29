@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.3.0"
     },
-    "sourceHash": "e9dee8bff8607d1e4fc4be3a0575a3b137d48f64169ab44ed308b5db40e8cde5",
+    "sourceHash": "36e392d325e4c83a898ef6f617ceb0c79a292076939dc00d1351996488299403",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -1444,29 +1444,47 @@ Schema: `codemap.v2`
             "path": "src/ports/fsAsyncDiffWriter.ts",
             "symbols": [
                 {
-                    "name": "SYMLINK_REFUSING_WRITE_FLAGS",
+                    "name": "CREATE_FLAGS",
                     "kind": "const",
-                    "line": 13,
+                    "line": 18,
                     "exported": false,
-                    "signature": "const SYMLINK_REFUSING_WRITE_FLAGS",
+                    "signature": "const CREATE_FLAGS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "OPEN_EXISTING_FLAGS",
+                    "kind": "const",
+                    "line": 19,
+                    "exported": false,
+                    "signature": "const OPEN_EXISTING_FLAGS",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 24,
+                    "line": 30,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
                     "jsdoc": null
                 },
                 {
+                    "name": "asSymlinkRefusal",
+                    "kind": "function",
+                    "line": 32,
+                    "exported": false,
+                    "signature": "function asSymlinkRefusal(error: unknown): unknown",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "fsAsyncDiffWriter",
                     "kind": "const",
-                    "line": 26,
+                    "line": 39,
                     "exported": true,
-                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data, baseDir) { const directory = dirname(path); await secureMkdir(directory, baseDir); let handle; try { handle = await open…",
+                    "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data, baseDir) { const directory = dirname(path); await secureMkdir(directory, baseDir); let handle; let created = true; try {…",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1509,29 +1527,47 @@ Schema: `codemap.v2`
             "path": "src/ports/fsDiffWriter.ts",
             "symbols": [
                 {
-                    "name": "SYMLINK_REFUSING_WRITE_FLAGS",
+                    "name": "CREATE_FLAGS",
                     "kind": "const",
-                    "line": 22,
+                    "line": 27,
                     "exported": false,
-                    "signature": "const SYMLINK_REFUSING_WRITE_FLAGS",
+                    "signature": "const CREATE_FLAGS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "OPEN_EXISTING_FLAGS",
+                    "kind": "const",
+                    "line": 28,
+                    "exported": false,
+                    "signature": "const OPEN_EXISTING_FLAGS",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 33,
+                    "line": 39,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
                     "jsdoc": null
                 },
                 {
+                    "name": "asSymlinkRefusal",
+                    "kind": "function",
+                    "line": 41,
+                    "exported": false,
+                    "signature": "function asSymlinkRefusal(error: unknown): unknown",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "fsDiffWriter",
                     "kind": "const",
-                    "line": 35,
+                    "line": 48,
                     "exported": true,
-                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data, baseDir) { const directory = dirname(path); secureMkdirSync(directory, baseDir); let fd: number; try { fd = openSync(path, SYMLINK_REFUS…",
+                    "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data, baseDir) { const directory = dirname(path); secureMkdirSync(directory, baseDir); let fd: number; let created = true; try { fd = openSync…",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1658,7 +1694,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readValidatedFileSync",
                     "kind": "function",
-                    "line": 48,
+                    "line": 50,
                     "exported": true,
                     "signature": "export function readValidatedFileSync(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Buffer",
                     "members": null,
@@ -1667,7 +1703,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readValidatedFile",
                     "kind": "function",
-                    "line": 70,
+                    "line": 73,
                     "exported": true,
                     "signature": "export async function readValidatedFile(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Promise<Buffer>",
                     "members": null,

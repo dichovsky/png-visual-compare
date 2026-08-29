@@ -70,42 +70,31 @@ describe('diff writers on failed handle verification', () => {
         expect(readFileSync(target, 'utf8')).toBe('previous diff payload');
     });
 
-    test('still refuses when the handle can no longer be inspected during cleanup', () => {
+    test('leaves a pre-existing empty file intact', () => {
+        // O_CREAT alone cannot distinguish "created empty" from "already existed empty".
+        // A zero-length placeholder or lock file this write did not create must survive
+        // a refusal, so creation has to be established by O_EXCL rather than inferred
+        // from the byte length.
         const target = path.join(baseDir, 'diff.png');
+        writeFileSync(target, '');
         stubMismatchedIdentity();
-        // The first fstat is the verification itself; only the cleanup's second call fails.
-        const realFstatSync = nodeFs.fstatSync;
-        let calls = 0;
-        vi.spyOn(nodeFs, 'fstatSync').mockImplementation(((fd: number, options: never) => {
-            calls += 1;
-            if (calls > 1) {
-                throw Object.assign(new Error('EBADF'), { code: 'EBADF' });
-            }
-            return realFstatSync(fd, options);
-        }) as typeof nodeFs.fstatSync);
-
         expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(PathValidationError);
+        expect(existsSync(target)).toBe(true);
     });
 
-    test('still refuses asynchronously when the handle can no longer be inspected during cleanup', async () => {
+    test('leaves a pre-existing empty file intact asynchronously', async () => {
         const target = path.join(baseDir, 'diff.png');
+        writeFileSync(target, '');
         stubMismatchedIdentity();
-        const realOpen = nodeFsPromises.open;
-        vi.spyOn(nodeFsPromises, 'open').mockImplementation((async (...args: Parameters<typeof nodeFsPromises.open>) => {
-            const handle = await realOpen(...args);
-            let calls = 0;
-            const realStat = handle.stat.bind(handle);
-            handle.stat = (async (options: never) => {
-                calls += 1;
-                if (calls > 1) {
-                    throw Object.assign(new Error('EBADF'), { code: 'EBADF' });
-                }
-                return realStat(options);
-            }) as typeof handle.stat;
-            return handle;
-        }) as typeof nodeFsPromises.open);
-
         await expect(fsAsyncDiffWriter.write(asValidated(target), data, baseDir)).rejects.toThrow(PathValidationError);
+        expect(existsSync(target)).toBe(true);
+    });
+
+    test('removes a file it created when verification fails', () => {
+        const target = path.join(baseDir, 'created.png');
+        stubMismatchedIdentity();
+        expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(PathValidationError);
+        expect(existsSync(target)).toBe(false);
     });
 
     test('refuses when the directory resolves outside the boundary after the open', () => {
@@ -122,6 +111,24 @@ describe('diff writers on failed handle verification', () => {
 
         expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(/outside the allowed directory/);
         expect(existsSync(target)).toBe(false);
+    });
+
+    test('propagates an open failure that is not a pre-existing target', () => {
+        // With O_EXCL a symlink at the target reports EEXIST, so this branch covers the
+        // genuinely unexpected open failures — a permission denial, for instance.
+        const target = path.join(baseDir, 'diff.png');
+        vi.spyOn(nodeFs, 'openSync').mockImplementationOnce(() => {
+            throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+        });
+        expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(/EACCES/);
+    });
+
+    test('propagates an open failure that is not a pre-existing target asynchronously', async () => {
+        const target = path.join(baseDir, 'diff.png');
+        vi.spyOn(nodeFsPromises, 'open').mockImplementationOnce(() => {
+            throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+        });
+        await expect(fsAsyncDiffWriter.write(asValidated(target), data, baseDir)).rejects.toThrow(/EACCES/);
     });
 
     test('rethrows a non-ENOENT error raised while inspecting a parent component', () => {
