@@ -48,15 +48,17 @@ comparePng / comparePngAsync
 
 ## Module layout
 
-| Area                  | Files                                                                                                                                  | Responsibility                                                                 |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Public entrypoints    | `src/index.ts`, `src/comparePng.ts`, `src/comparePngAsync.ts`                                                                          | Package exports and sync/async orchestration                                   |
-| Pipeline              | `src/pipeline/*`                                                                                                                       | Option resolution, source loading, normalization, comparison, diff persistence |
-| Validation            | `src/validatePath.ts`, `src/validateArea.ts`, `src/validateColor.ts`, `src/validatePixelmatchOptions.ts`                               | Boundary validation for security and correctness                               |
-| Image helpers         | `src/getPngData.ts`, `src/extendImage.ts`, `src/fillImageSizeDifference.ts`, `src/addColoredAreasToImage.ts`, `src/drawPixelOnBuff.ts` | PNG decoding and low-level image mutation                                      |
-| Ports                 | `src/ports/*`                                                                                                                          | Sync/async filesystem adapters and internal test injection seams               |
-| Types/defaults/errors | `src/types/*`, `src/defaults.ts`, `src/errors.ts`                                                                                      | Shared contracts and stable defaults                                           |
-| Adapter boundary      | `src/adapters/toPixelmatchOptions.ts`                                                                                                  | Internal translation from public `PixelmatchOptions` to `pixelmatch`           |
+| Area                  | Files                                                                                                                                  | Responsibility                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Public entrypoints    | `src/index.ts`, `src/comparePng.ts`, `src/comparePngAsync.ts`                                                                          | Package exports and sync/async orchestration                                               |
+| Pipeline              | `src/pipeline/*`                                                                                                                       | Option resolution, source loading, normalization, comparison, diff persistence             |
+| Validation            | `src/validatePath.ts`, `src/validateArea.ts`, `src/validateColor.ts`, `src/validatePixelmatchOptions.ts`                               | Boundary validation for security and correctness                                           |
+| Image helpers         | `src/getPngData.ts`, `src/extendImage.ts`, `src/fillImageSizeDifference.ts`, `src/addColoredAreasToImage.ts`, `src/drawPixelOnBuff.ts` | PNG decoding and low-level image mutation                                                  |
+| Guarded file read     | `src/readValidatedFile.ts`                                                                                                             | Opens a file before validating it, so bytes provably come from the approved inode          |
+| Internal helpers      | `src/internal/*`                                                                                                                       | `assertSameFile`, `secureMkdir`, `realDiffDirectory` — shared filesystem-safety primitives |
+| Ports                 | `src/ports/*`                                                                                                                          | Sync/async filesystem adapters and internal test injection seams                           |
+| Types/defaults/errors | `src/types/*`, `src/defaults.ts`, `src/errors.ts`                                                                                      | Shared contracts and stable defaults                                                       |
+| Adapter boundary      | `src/adapters/toPixelmatchOptions.ts`                                                                                                  | Internal translation from public `PixelmatchOptions` to `pixelmatch`                       |
 
 ## Sync architecture
 
@@ -93,7 +95,7 @@ Responsibilities:
 - computes:
     - `shouldCreateDiffFile`
     - resolved/branded `diffFilePath`
-    - validated numeric limits
+    - validated numeric limits (`maxDimension`, `maxPixels`, `maxFileBytes`)
 
 This is the main **public input boundary** for options.
 
@@ -160,11 +162,28 @@ type LoadedPng = { kind: 'valid'; png: PNGWithMetadata } | { kind: 'invalid'; re
 
 Key behavior:
 
-- string paths go through `validatePath(..., 'input')`
-- file-backed PNGs are pre-screened with IHDR dimension peeking before decode
+- string paths are read through `readValidatedFileSync` / `readValidatedFile` (see below), never with a bare `readFile`
+- file-backed PNGs are capped by `maxFileBytes` before any bytes are read, then pre-screened with IHDR dimension peeking before decode
 - zero-dimension decoded PNGs are explicitly rejected
 - malformed `Buffer`s are handled separately from malformed file paths
 - `throwErrorOnInvalidInputData: false` downgrades ordinary invalid image inputs, but not security/resource-boundary failures
+
+### Guarded file read
+
+`src/readValidatedFile.ts`
+
+`validatePath` walks a path and the subsequent `readFile` walks it again from scratch, so anything swapped in between is what actually gets read. Node exposes no `openat`, and `/proc/self/fd` is Linux-only, so the race cannot be _prevented_ portably. It is detected instead:
+
+1. `open` first, pinning one inode for the rest of the call
+2. `fstat` the handle with `{ bigint: true }` for its size and identity
+3. `validatePathWithReal` for containment
+4. when `inputBaseDir` is set, `assertSameFile` compares the handle's `dev`/`ino` against the canonical path containment approved
+5. `maxFileBytes` is enforced — **after** step 4, because its error names an exact byte count and escapes permissive mode, so checking earlier would disclose the size and existence of a file outside the boundary
+6. read from the handle, never from the path string again
+
+The identity check is skipped without `inputBaseDir`: `validatePath` consults no filesystem in that case, so there is no boundary a swap could cross, and running it anyway would expose every default caller to a false positive whenever a baseline is replaced by atomic rename.
+
+`assertSameFile` refuses a zero `ino` rather than treating it as a match — some network mounts report no file identity, and two zeroes would otherwise compare equal and silently disable the check.
 
 ## Validation and security boundaries
 
@@ -185,6 +204,14 @@ The validator:
     - existing output symlinks
 - permits not-yet-created output parent directories by validating the nearest existing ancestor
 
+The module exposes three entry points:
+
+- `assertPathSyntax(filePath)` — the filesystem-free checks (empty, whitespace-only, null byte). Split out so `readValidatedFile`, which must `open` before validating, can still reject a malformed path as a `PathValidationError` instead of letting the runtime raise its own `TypeError`.
+- `validatePathWithReal(...)` — returns `{ validated, real }`, where `real` is the canonical path the containment check was proven against.
+- `validatePath(...)` — the original signature, a thin wrapper returning `.validated`.
+
+> **Why `real` matters:** `validated` is the _lexically_ resolved path. Stat'ing it walks the same, possibly already-compromised, route a second time, so a symlink planted after validation would be followed by both walks and the two inodes would agree on the escaped file. Any caller proving an opened handle sits inside the boundary must compare against `real`.
+
 > **Check ordering (SECU-11):** when `baseDir` is set, the lexical and realpath containment checks run **before** the output-mode symlink/directory shape checks. As a consequence, every out-of-bounds path surfaces as a uniform `Path traversal detected: …` error and never as `must not be an existing symlink/directory` — closing a filesystem-enumeration oracle for paths outside the security boundary.
 
 ### Diff write contract
@@ -193,9 +220,11 @@ The validator:
 
 The diff write:
 
-- creates parent directories on demand via `mkdir(..., { recursive: true })` (parent-component race tracked as SECU-09)
-- opens the target with `O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW` (target-component symlink race closed by SECU-03)
-- passes an explicit POSIX create-mode `0o600` to `open` and then issues an explicit `fchmod(0o600)` on the open handle (SECU-12). The `open` mode alone is insufficient: POSIX masks it with `~umask` (a restrictive umask can only narrow it further, never widen it) and `O_TRUNC` does not reset the mode of a pre-existing file. The post-open `fchmod` makes the final mode `0o600` in both the create and overwrite cases.
+- creates parent directories one component at a time via `secureMkdir`, refusing any component that is a symlink. `mkdir(..., { recursive: true })` follows symlinks in every intermediate component while `O_NOFOLLOW` guards only the final one, so a symlinked parent could redirect the whole write outside `diffOutputBaseDir` (SECU-09). Without `diffOutputBaseDir` there is no boundary to protect and the recursive form is kept.
+- resolves the parent chain with `realDiffDirectory` **before** opening, then opens inside that canonical directory. The path traversed at open time therefore contains no symlink at all: redirecting the write requires renaming a real directory in the resolved chain, not merely planting a link.
+- opens the target with `O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW`, falling back to a reopen without `O_CREAT` on `EEXIST` (target-component symlink race closed by SECU-03; a symlink reports `EEXIST` under `O_EXCL` and then surfaces as `ELOOP` on the reopen). `O_EXCL` also establishes whether _this_ call created the file, which plain `O_CREAT` cannot — so cleanup after a refused write removes only a file it created, never a pre-existing empty placeholder.
+- defers truncation: `O_TRUNC` is absent from the open, and `ftruncate(0)` runs only once `assertSameFile` has tied the handle to the canonical target. Truncating on open would empty an escaped target before anything could detect it.
+- passes an explicit POSIX create-mode `0o600` to `open` and then issues an explicit `fchmod(0o600)` on the open handle (SECU-12). The `open` mode alone is insufficient: POSIX masks it with `~umask` (a restrictive umask can only narrow it further, never widen it) and truncation does not reset the mode of a pre-existing file. The post-open `fchmod` makes the final mode `0o600` in both the create and overwrite cases.
 
 ### Area validation
 

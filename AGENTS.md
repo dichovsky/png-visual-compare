@@ -73,7 +73,9 @@ src/
   pipeline/                   # option resolution, loading, normalization, comparison, diff persistence
   ports/                      # sync/async filesystem adapters and test seams
   adapters/                   # public-to-external library boundaries
+  internal/                   # assertSameFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
   getPngData.ts               # decodes image sources into LoadedPng
+  readValidatedFile.ts        # opens a file before validating it, so bytes come from the approved inode
   validate*.ts                # path, area, color, and pixelmatch option validation
   types/                      # one type per file; collected in types/index.ts
 ```

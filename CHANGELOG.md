@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **CI** — the test workflow now takes its Node version from `.nvmrc` instead of a
+  hardcoded `24.x`.
 - **CI** — restored the macOS job in `test.yml`, marked `continue-on-error` for now. macOS is a supported platform
   (`"os": ["darwin", "linux"]`) but has had no CI coverage since it was dropped in a
   general sync commit. This release adds filesystem-semantics-sensitive code
@@ -39,6 +41,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   breaking change in 6.0.0. The job does not gate merges yet: the suite hits a
   pre-existing macOS-only Vitest fork crash in roughly 1 run in 5 under coverage
   (tracked as TEST-08), which reproduces on `main` and is unrelated to this change.
+- **CI** — `actions/checkout` and `actions/setup-node` are now SHA-pinned in
+  `publish.yml` as well as `test.yml`, both annotated with the matching release tag
+  (`v7.0.1` / `v7.0.0`). Closes CI-05.
+- **Docs** — `.github/copilot-instructions.md` was resynced with the code: the CI
+  matrix, the OIDC Trusted Publishing flow (no `NPM_TOKEN`), the `pixelmatch ~7.2.0`
+  floor, the `./vitest` and `./jest` subpath exports, the `sideEffects` array, and the
+  `npm run` script list. `CLAUDE.md` and `AGENTS.md` now list `codemap:check` in the
+  `pretest:unit` chain.
 
 ### Security
 
@@ -64,21 +74,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **README gained a Security Model section** documenting what each limit does and does
   not cover, including that the race defences _detect_ a swap rather than prevent it,
   since Node exposes no `openat`. Closes SECU-06.
-
-### Changed
-
-- **CI** — the test workflow now takes its Node version from `.nvmrc` instead of a
-  hardcoded `24.x`, and the macOS job was removed (CI is Ubuntu-only). macOS stays a
-  supported platform per `"os": ["darwin", "linux"]`; it is simply no longer exercised
-  in CI.
-- **CI** — `actions/checkout` and `actions/setup-node` are now SHA-pinned in
-  `publish.yml` as well as `test.yml`, both annotated with the matching release tag
-  (`v7.0.1` / `v7.0.0`). Closes CI-05.
-- **Docs** — `.github/copilot-instructions.md` was resynced with the code: the CI
-  matrix, the OIDC Trusted Publishing flow (no `NPM_TOKEN`), the `pixelmatch ~7.2.0`
-  floor, the `./vitest` and `./jest` subpath exports, the `sideEffects` array, and the
-  `npm run` script list. `CLAUDE.md` and `AGENTS.md` now list `codemap:check` in the
-  `pretest:unit` chain.
 
 ### Dependencies
 
