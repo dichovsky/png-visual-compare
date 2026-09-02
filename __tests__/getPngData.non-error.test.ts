@@ -8,6 +8,7 @@ vi.mock('node:fs', async (importOriginal) => {
 });
 
 import * as nodeFs from 'node:fs';
+import path from 'node:path';
 import { PNG } from 'pngjs';
 import { InvalidInputError } from '../src';
 import { getPngData } from '../src/getPngData';
@@ -24,11 +25,15 @@ function expectInvalidInputError(fn: () => void, message?: string): void {
     }
 }
 
+// A real, readable file: the read now happens through an already-open handle, so a
+// path that does not exist fails at `open` and never reaches the decoder.
+const readablePngPath = path.resolve('./test-data/actual/youtube-play-button.png');
+
 it('should throw with fallback error detail when the caught value is not an Error instance', () => {
     vi.spyOn(nodeFs, 'readFileSync').mockImplementationOnce(() => {
         throw 'non-error string';
     });
-    expectInvalidInputError(() => getPngData('/any/path.png', true), 'Invalid PNG input: the source could not be loaded');
+    expectInvalidInputError(() => getPngData(readablePngPath, true), 'Invalid PNG input: the source could not be loaded');
 });
 
 it('should throw with fallback error detail when PNG parsing throws a non-Error value', () => {
@@ -39,19 +44,17 @@ it('should throw with fallback error detail when PNG parsing throws a non-Error 
 });
 
 it('should throw the unified message when a string-path file exists but PNG parse fails (throwError=true)', () => {
-    vi.spyOn(nodeFs, 'readFileSync').mockImplementationOnce(() => Buffer.from('fake png bytes'));
     vi.spyOn(PNG.sync, 'read').mockImplementationOnce(() => {
         throw new Error('Invalid PNG signature');
     });
-    expectInvalidInputError(() => getPngData('/any/valid-path.png', true), 'Invalid PNG input: the source could not be loaded');
+    expectInvalidInputError(() => getPngData(readablePngPath, true), 'Invalid PNG input: the source could not be loaded');
 });
 
 it('should return invalidPng when a string-path file exists but PNG parse fails (throwError=false)', () => {
-    vi.spyOn(nodeFs, 'readFileSync').mockImplementationOnce(() => Buffer.from('fake png bytes'));
     vi.spyOn(PNG.sync, 'read').mockImplementationOnce(() => {
         throw new Error('Invalid PNG signature');
     });
-    const result = getPngData('/any/valid-path.png', false);
+    const result = getPngData(readablePngPath, false);
     expect(result).toEqual({ kind: 'invalid', reason: 'decode' });
 });
 

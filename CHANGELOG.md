@@ -7,12 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`maxFileBytes` option** (default `67_108_864`, exported as `DEFAULT_MAX_FILE_BYTES`) —
+  caps the size of a PNG read from a path, checked from the file's size before any
+  bytes are read. `maxDimension` and `maxPixels` inspect the declared IHDR header and
+  so bound the _decoded_ image; nothing previously bounded the _compressed_ bytes, so a
+  multi-gigabyte file was fully resident before either limit was consulted. Throws
+  `ResourceLimitError` regardless of `throwErrorOnInvalidInputData`, matching the other
+  two limits. Ignored for `Buffer` inputs, whose memory the caller already holds.
+  Closes SECU-04.
+
+    The cap is checked _after_ the containment check, not before: its error names an
+    exact byte count and escapes even in permissive mode, so checking it first would
+    disclose the existence and size of a file outside `inputBaseDir`.
+
+    The default is the decoded RGBA size of an image at `maxPixels`, so essentially
+    nothing legitimate reaches it — a 4096 × 4096 screenshot compresses to single-digit
+    megabytes. One edge does: a maximally incompressible image at exactly the pixel
+    ceiling encodes roughly 9 KB above the cap and will now be rejected. Raise
+    `maxFileBytes` if you compare synthetic noise at that size.
+
 ### Changed
 
 - **CI** — the test workflow now takes its Node version from `.nvmrc` instead of a
-  hardcoded `24.x`, and the macOS job was removed (CI is Ubuntu-only). macOS stays a
-  supported platform per `"os": ["darwin", "linux"]`; it is simply no longer exercised
-  in CI.
+  hardcoded `24.x`.
+- **CI** — restored the macOS job in `test.yml`, marked `continue-on-error` for now. macOS is a supported platform
+  (`"os": ["darwin", "linux"]`) but has had no CI coverage since it was dropped in a
+  general sync commit. This release adds filesystem-semantics-sensitive code
+  (`O_NOFOLLOW`, `O_EXCL`, symlink refusal, inode identity) whose behaviour differs
+  between Linux and macOS, so leaving a supported platform unexercised is no longer
+  reasonable. Windows remains unsupported and untested by design, dropped as a
+  breaking change in 6.0.0. The job does not gate merges yet: the suite hits a
+  pre-existing macOS-only Vitest fork crash in roughly 1 run in 5 under coverage
+  (tracked as TEST-08), which reproduces on `main` and is unrelated to this change.
 - **CI** — `actions/checkout` and `actions/setup-node` are now SHA-pinned in
   `publish.yml` as well as `test.yml`, both annotated with the matching release tag
   (`v7.0.1` / `v7.0.0`). Closes CI-05.
@@ -21,6 +49,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   floor, the `./vitest` and `./jest` subpath exports, the `sideEffects` array, and the
   `npm run` script list. `CLAUDE.md` and `AGENTS.md` now list `codemap:check` in the
   `pretest:unit` chain.
+
+### Security
+
+- **Path reads are pinned to one inode** — `comparePng` and `comparePngAsync` now open
+  an input file _before_ validating it, then prove the opened handle is the file
+  containment approved. Previously `validatePath` walked the path and `readFile` walked
+  it again from scratch, so anything swapped in between was what actually got read.
+  Only engages when `inputBaseDir` is set. Closes SECU-05.
+- **Diff writes no longer traverse a symlinked parent** — the recursive `mkdir` in both
+  diff writers followed symlinks in every intermediate component, and `O_NOFOLLOW`
+  guards only the final one, so a symlinked parent could redirect the write outside
+  `diffOutputBaseDir`. Parent directories are now created one component at a time with
+  symlinks refused, and the file is then opened inside the _resolved_ parent
+  directory rather than the caller's path, so no symlink is traversed at open time
+  at all. `O_TRUNC` is deferred until the opened handle has been proven contained,
+  and a failed check removes only a file this write created — established by
+  `O_EXCL` on the create attempt, since plain `O_CREAT` succeeds identically for a
+  file that already existed empty. Only engages when `diffOutputBaseDir` is set.
+  Closes SECU-09.
+- **Absent file identity is refused, not ignored** — on a filesystem that reports no
+  inode (some network mounts) containment cannot be verified, so the operation throws
+  `PathValidationError` instead of silently passing a check that compares two zeroes.
+- **README gained a Security Model section** documenting what each limit does and does
+  not cover, including that the race defences _detect_ a swap rather than prevent it,
+  since Node exposes no `openat`. Closes SECU-06.
 
 ### Dependencies
 

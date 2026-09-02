@@ -25,6 +25,23 @@
     - **Impl:** Both writers pass explicit `0o600` mode to `openSync`/`open`.
     - **Rat:** `O_CREAT` without `mode` used `0o666 & ~umask` → world-readable diff PNGs on default Linux hosts (umask `0022` → `0o644`), leaking visual evidence of screenshotted content.
 
+- [x] 🟢 🐛 SECU [SECU-07]: `comparePngWithPorts` barrel hygiene (`@internal` or relocate)
+    - **Impl:** No change needed — `comparePngWithPorts` is exported from `src/comparePng.ts` but never re-exported by `src/index.ts`, and `package.json` `exports` maps only `.`, `./vitest`, `./jest`. It is unreachable from installed consumers. Tagging it `@internal` is folded into BUILD-05 (`stripInternal`).
+    - **Rat:** Audited against the barrel and the `exports` map rather than assumed — the leak the task guarded against does not exist.
+
+- [x] 🟡 🐛 SECU [SECU-04]: Cap pre-decode file read (`maxFileBytes`)
+    - **Impl:** New `maxFileBytes` option (default `DEFAULT_MAX_PIXELS * 4` = 67,108,864) enforced in `readValidatedFile` from the opened handle's `fstat` size, before any bytes are read. Throws `ResourceLimitError` regardless of `throwErrorOnInvalidInputData`; path inputs only.
+    - **Rat:** `maxDimension`/`maxPixels` read the declared IHDR header, so they bounded the decoded image but not the compressed bytes needed to reach that header — a multi-gigabyte file was fully resident before either limit ran.
+- [x] 🟡 🐛 SECU [SECU-05]: Close async-path TOCTOU (validate→read)
+    - **Impl:** New `src/readValidatedFile.ts` opens the file first to pin one inode, then runs `validatePathWithReal` and compares the handle's `dev`/`ino` (bigint) against the canonical path containment approved. Used by both `getPngData` and `fsAsyncImageSource`, so the sync path is covered too. Engages only when `inputBaseDir` is set.
+    - **Rat:** `validatePath` walked the path and `readFile` walked it again from scratch; anything swapped in between was what got read. Affected the sync path as well as the async one the item named. Node has no `openat`, so the race is detected rather than prevented — bytes never come from an unverified inode.
+- [x] 🟡 🐛 SECU [SECU-06]: Document decoder-bomb surface in README
+    - **Impl:** New README "Security Model" section covering decoded-vs-compressed bounds, the detect-not-prevent nature of the race defences, the file-identity requirement, and an explicit "what is not covered" list.
+    - **Rat:** The README presented `maxDimension`/`maxPixels` as the resource-exhaustion defence without stating that they inspect a header and bound nothing about the bytes read to reach it.
+- [x] 🟡 🐛 SECU [SECU-09]: Refuse symlink in mkdir parent component
+    - **Impl:** `secureMkdir` walks from `diffOutputBaseDir` downward, refusing symlinked components and creating missing ones singly; the file is then opened inside the `realDiffDirectory`-resolved parent so no symlink is traversed at open time; `O_TRUNC` moved off the open to an `ftruncate` gated on an inode match; `O_EXCL` establishes whether this call created the file, and cleanup unlinks only in that case.
+    - **Rat:** `mkdir` with `recursive: true` follows symlinks in every intermediate component and `O_NOFOLLOW` guards only the final one, so a symlinked parent redirected the whole write outside the boundary — and `O_TRUNC` would have emptied whatever it landed on before anything noticed.
+
 ## ⚡ Performance
 
 - [x] 🔴 ♻️ PERF [PERF-01]: Lazy diff allocation
@@ -82,6 +99,10 @@
     - **Impl:** Added `SECURITY.md` with supported versions (`6.x`) and GitHub private vulnerability reporting guidance.
     - **Rat:** Security reporters needed a clear disclosure path without relying on public issues or an unverified contact address.
 
+- [x] 🟡 📝 DOC [DOC-01]: Sweep stale RELI-03 frontmatter
+    - **Impl:** No change needed — `RELI-03` now appears only in its own `BACKLOG-ARCHIVE.md` entry and in one rationale line that cites it as prior art. No stale frontmatter remains in any tracked Markdown.
+    - **Rat:** Repo-wide grep found nothing to sweep; the task outlived the condition that created it.
+
 ## 🛠️ Build · Deps · CI · DX
 
 - [x] 🟢 ♻️ DX [DX-03]: Add `test:fast` script (skip pretest chain)
@@ -90,3 +111,6 @@
 - [x] 🟢 ♻️ CI [CI-01]: Add `pull_request` trigger to `test.yml`
     - **Impl:** Added `pull_request` to the main test workflow and renamed the workflow from push-only to `Tests`.
     - **Rat:** PRs should run the existing cross-platform test matrix before merge, not only after branch pushes.
+- [x] 🟢 ♻️ CI [CI-05]: SHA-pin actions in `publish.yml`
+    - **Impl:** Every `uses:` in `publish.yml` pins a full commit SHA with a trailing `# vX.Y.Z` comment.
+    - **Rat:** Mutable tags let a compromised action publish arbitrary code with the release job's npm credentials.

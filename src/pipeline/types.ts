@@ -14,6 +14,7 @@ export type ResolvedOptions = {
     readonly diffFilePath?: ValidatedPath;
     readonly maxDimension: number;
     readonly maxPixels: number;
+    readonly maxFileBytes: number;
     readonly inputBaseDir?: string;
     readonly diffOutputBaseDir?: string;
     readonly pixelmatchOptions?: PixelmatchOptions;

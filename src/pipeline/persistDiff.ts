@@ -26,5 +26,5 @@ export function persistDiff(result: ComparisonResult, opts: ResolvedOptions): vo
     }
 
     const diffWriter = opts.diffWriterPort ?? fsDiffWriter;
-    diffWriter.write(persistableDiff.diffFilePath, PNG.sync.write(persistableDiff.diff));
+    diffWriter.write(persistableDiff.diffFilePath, PNG.sync.write(persistableDiff.diff), opts.diffOutputBaseDir);
 }

@@ -58,13 +58,19 @@ export type ComparePngOptions = {
      * The directory is created automatically if it does not exist.
      * The file is **not** created when `pixelmatchResult === 0`.
      *
-     * **Symlink-atomic write contract (SECU-03):**
+     * **Symlink-atomic write contract (SECU-03, SECU-09):**
      * The diff is written through an `O_NOFOLLOW` open. If the final path component
      * is a symlink at write-time, the write is refused with a {@link PathValidationError}
      * and the symlink's target is never touched. This closes the TOCTOU window where
      * a hostile process could plant a symlink between path validation and the write.
      * Regular files at the target path continue to be overwritten as before — only
      * the symlink-redirect attack is closed.
+     *
+     * When `diffOutputBaseDir` is set, parent components are covered too: each is
+     * created singly with symlinks refused, the parent chain is then resolved and the
+     * file is opened *inside* that canonical directory, so no symlink is traversed at
+     * open time at all. Truncation is deferred until the opened handle has been proven
+     * to sit inside the boundary, so an escaped target is never emptied.
      *
      * **File mode contract (SECU-12):**
      * After the file is opened the writer issues an explicit `fchmod` to mode
@@ -76,9 +82,11 @@ export type ComparePngOptions = {
      * `0o644` file at its existing wider mode. Callers who need a different
      * file mode can inject a custom `DiffWriterPort` via `comparePngWithPorts`.
      *
-     * **Residual scope:** the parent-directory race (a symlink planted in a parent
-     * component between validation and `mkdirSync(..., { recursive: true })`) is not
-     * yet closed; tracked as `SECU-09` in `BACKLOG.md`.
+     * **Residual scope:** Node exposes no `openat`, so a path swap cannot be
+     * *prevented* portably — it is detected and refused. Redirecting the write now
+     * requires renaming a real directory in the resolved chain rather than planting a
+     * symlink. Without `diffOutputBaseDir` there is no boundary to enforce and none of
+     * the parent-component checks run.
      *
      * @default undefined (no diff file written)
      * @throws {PathValidationError} if a symlink exists at the target path at write-time.
@@ -144,19 +152,42 @@ export type ComparePngOptions = {
      */
     maxPixels?: number;
     /**
+     * Maximum size, in bytes, of a PNG file read from a path. Ignored for `Buffer`
+     * inputs, whose memory the caller has already paid for.
+     *
+     * `maxDimension` and `maxPixels` read the declared IHDR header, so they bound
+     * the *decoded* image but say nothing about how many compressed bytes must be
+     * read to reach that header. This limit closes that gap. Like the other two,
+     * it throws regardless of `throwErrorOnInvalidInputData`.
+     *
+     * Set to `Infinity` to disable the limit entirely.
+     *
+     * @default 67_108_864 (64 MiB — the decoded RGBA size of an image at `maxPixels`)
+     * @example
+     * ```ts
+     * // Untrusted uploads: cap reads well below the decoded-image limit
+     * comparePng(uploaded1, uploaded2, { maxFileBytes: 8 * 1024 * 1024 });
+     * ```
+     */
+    maxFileBytes?: number;
+    /**
      * When provided, `diffFilePath` must resolve to a path inside this directory
      * (validated after symlink resolution). Any attempt to write outside it throws
      * a `PathValidationError`. Use in server-side contexts where `diffFilePath`
      * is caller-controlled to prevent arbitrary file writes via path traversal
      * (VUL-01: `../../etc/passwd`).
      *
-     * **Note:** This containment check is point-in-time. The **target-path** race
-     * (a symlink planted at `diffFilePath` itself between validation and write) is
-     * closed at write-time via `O_NOFOLLOW` — see {@link ComparePngOptions.diffFilePath}
-     * and SECU-03. The **parent-directory** race (a symlink planted in a parent
-     * component between validation and `mkdir`) remains open and is tracked as
-     * SECU-09. For critical security contexts, use OS-level chroot/jails or
-     * filesystem ACLs for defense-in-depth.
+     * **Note:** The option-time containment check is point-in-time, so the write path
+     * re-proves it. The **target-path** race (a symlink planted at `diffFilePath`
+     * itself) is closed via `O_NOFOLLOW` — see {@link ComparePngOptions.diffFilePath}
+     * and SECU-03. The **parent-directory** race is closed by SECU-09: parents are
+     * created one component at a time with symlinks refused, and the file is opened
+     * inside the resolved parent directory so no symlink is traversed.
+     *
+     * Node exposes no `openat`, so the underlying race is detected rather than made
+     * impossible; the guarantee is that no bytes are written outside the boundary. For
+     * critical security contexts, use OS-level chroot/jails or filesystem ACLs for
+     * defense-in-depth.
      *
      * @default undefined (no containment enforced)
      * @example
@@ -177,9 +208,16 @@ export type ComparePngOptions = {
      * image paths are caller-controlled to prevent arbitrary file reads via path
      * traversal (VUL-02: reading `/etc/passwd` as a PNG).
      *
-     * **Note:** This check is point-in-time; a race condition could allow a symlink
-     * to be created after validation. For critical security contexts, use OS-level
-     * chroot/jails or filesystem ACLs for defense-in-depth.
+     * **Note:** The read path does not trust the path a second time (SECU-05). The
+     * file is opened first, pinning one inode, and the handle's device/inode pair is
+     * then compared against the canonical path containment approved. A path swapped
+     * between validation and read is refused with a `PathValidationError`, so bytes
+     * are never returned from an inode that failed the check.
+     *
+     * Node exposes no `openat`, so the race is detected rather than prevented, and the
+     * check needs a filesystem that reports file identity — on a mount that reports
+     * none, the read is refused rather than passed silently. For critical security
+     * contexts, use OS-level chroot/jails or filesystem ACLs for defense-in-depth.
      *
      * @default undefined (no containment enforced)
      * @example

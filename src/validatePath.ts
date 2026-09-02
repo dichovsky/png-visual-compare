@@ -79,6 +79,45 @@ function assertOutputTargetShape(resolved: string): void {
 }
 
 /**
+ * Rejects paths that are malformed as strings, before any filesystem call.
+ *
+ * Split out of {@link validatePath} so callers that must `open` a file *before*
+ * validating it — see `readValidatedFile`, which pins the inode first to close a
+ * TOCTOU window — can still reject a malformed path with `PathValidationError`
+ * rather than letting the runtime raise its own `TypeError` from `open`.
+ * Consults no filesystem, so running it early costs nothing and changes nothing.
+ *
+ * @throws {PathValidationError} If the path is empty, whitespace-only, or contains a null byte.
+ */
+export function assertPathSyntax(filePath: string): void {
+    if (filePath.trim().length === 0) {
+        throw new PathValidationError('Invalid file path: path must not be empty or whitespace only');
+    }
+    if (filePath.includes('\0')) {
+        throw new PathValidationError('Invalid file path: path must not contain null bytes');
+    }
+}
+
+/**
+ * A validated path together with the canonical (symlink-resolved) path that the
+ * containment check actually approved.
+ *
+ * `validated` is the lexically resolved path — the value callers pass to `open`.
+ * `real` is the path `baseDir` containment was proven against; it is `undefined`
+ * when no `baseDir` was supplied, because no containment check ran.
+ *
+ * Callers that must prove an opened handle lives inside the boundary have to
+ * compare against `real`, never against `validated`: stat'ing `validated` walks
+ * the same (possibly already-compromised) path a second time, so a symlink
+ * planted after validation would be followed by both walks and the two inodes
+ * would agree on the escaped file.
+ */
+export type ValidatedPathWithReal = {
+    readonly validated: ValidatedPath;
+    readonly real?: string;
+};
+
+/**
  * Validates and resolves a file path string with optional directory containment checks.
  *
  * **Basic validation (always applied):**
@@ -114,12 +153,17 @@ function assertOutputTargetShape(resolved: string): void {
  *   `PathValidationError` (for example inaccessible targets during direct resolution).
  */
 export function validatePath(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPath {
-    if (filePath.trim().length === 0) {
-        throw new PathValidationError('Invalid file path: path must not be empty or whitespace only');
-    }
-    if (filePath.includes('\0')) {
-        throw new PathValidationError('Invalid file path: path must not contain null bytes');
-    }
+    return validatePathWithReal(filePath, baseDir, mode).validated;
+}
+
+/**
+ * Identical to {@link validatePath}, but additionally returns the canonical path
+ * that the `baseDir` containment check was proven against.
+ *
+ * @see validatePath for the full validation contract.
+ */
+export function validatePathWithReal(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPathWithReal {
+    assertPathSyntax(filePath);
 
     const resolved = resolve(filePath);
 
@@ -142,12 +186,12 @@ export function validatePath(filePath: string, baseDir?: string, mode: ValidateP
         if (mode === 'output') {
             assertOutputTargetShape(resolved);
         }
-        return resolved as ValidatedPath;
+        return { validated: resolved as ValidatedPath, real: realTargetPath };
     }
 
     if (mode === 'output') {
         assertOutputTargetShape(resolved);
     }
 
-    return resolved as ValidatedPath;
+    return { validated: resolved as ValidatedPath };
 }

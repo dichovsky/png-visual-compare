@@ -35,6 +35,12 @@ npx vitest run __tests__/comparePng.test.ts
 
 Use `npm test` or `npm run test:unit` when you need the repo-wide 100% coverage gate. Direct `npx vitest run ... --coverage` commands only report coverage for the files exercised by that focused run.
 
+> **Known flake on macOS.** Roughly 1 run in 5 under coverage, a Vitest fork exits with
+> `Error: Worker exited unexpectedly`. The affected file's results are lost, so the 100% threshold
+> then fails on code the run never executed — usually `jest.ts`, `vitest.mts`, and `src/matchers/*`.
+> It is unrelated to your change; re-run. Tracked as TEST-08 in `BACKLOG.md`, and the reason the
+> macOS CI job is currently `continue-on-error`. Linux is unaffected.
+
 ### Updating snapshots
 
 ```sh

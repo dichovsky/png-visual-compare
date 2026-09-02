@@ -1,23 +1,24 @@
-import { readFile } from 'node:fs/promises';
 import { getPngData } from '../getPngData';
-import { validatePath } from '../validatePath';
+import { PathValidationError, ResourceLimitError } from '../errors';
+import { readValidatedFile } from '../readValidatedFile';
 import type { AsyncImageSourcePort } from './asyncTypes';
 import { handleFileReadError, handlePathValidationError, handlePngDecodeError } from './validateImageSourceLoad';
 
 export const fsAsyncImageSource: AsyncImageSourcePort = {
     async load(source, opts) {
         if (typeof source === 'string') {
-            let validatedPath;
-            try {
-                validatedPath = validatePath(source, opts.inputBaseDir, 'input');
-            } catch (error) {
-                return handlePathValidationError(error, opts);
-            }
-
             let buffer;
             try {
-                buffer = await readFile(validatedPath);
+                buffer = await readValidatedFile(source, opts.inputBaseDir, opts.maxFileBytes);
             } catch (error) {
+                // Resource limits are a security signal and must surface even in
+                // permissive mode, matching maxDimension/maxPixels.
+                if (error instanceof ResourceLimitError) {
+                    throw error;
+                }
+                if (error instanceof PathValidationError) {
+                    return handlePathValidationError(error, opts);
+                }
                 return handleFileReadError(error, opts);
             }
 

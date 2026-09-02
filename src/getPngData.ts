@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
 import { InvalidInputError, PathValidationError, ResourceLimitError } from './errors';
+import { readValidatedFileSync } from './readValidatedFile';
 import type { LoadedPng } from './types/png.data';
-import type { ValidatedPath } from './types/validated-path';
-import { validatePath } from './validatePath';
 
 /** PNG file signature (first 8 bytes of every valid PNG). */
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -68,29 +66,21 @@ export function getPngData(
     maxDimension?: number,
     maxPixels?: number,
     inputBaseDir?: string,
+    maxFileBytes?: number,
 ): LoadedPng {
     if (typeof pngSource === 'string') {
-        let resolvedPath: ValidatedPath;
-        try {
-            resolvedPath = validatePath(pngSource, inputBaseDir, 'input');
-        } catch (error) {
-            if (error instanceof PathValidationError && inputBaseDir !== undefined) {
-                throw error;
-            }
-            if (throwErrorOnInvalidInputData) {
-                const code = (error as NodeJS.ErrnoException).code;
-                if (code === 'ENOENT' || code === 'EACCES' || code === 'ENOTDIR') {
-                    throw new InvalidInputError('Invalid PNG input: the source could not be loaded');
-                }
-                throw error;
-            }
-            return { kind: 'invalid', reason: 'path' };
-        }
-
         let fileBuffer: Buffer<ArrayBufferLike>;
         try {
-            fileBuffer = readFileSync(resolvedPath);
-        } catch {
+            fileBuffer = readValidatedFileSync(pngSource, inputBaseDir, maxFileBytes);
+        } catch (error) {
+            // Resource limits are a security signal, not an invalid-input signal: they
+            // must surface even in permissive mode, matching maxDimension/maxPixels.
+            if (error instanceof ResourceLimitError) {
+                throw error;
+            }
+            if (error instanceof PathValidationError && (inputBaseDir !== undefined || throwErrorOnInvalidInputData)) {
+                throw error;
+            }
             if (throwErrorOnInvalidInputData) {
                 // Use one generic message for both read-failure and parse-failure on file
                 // paths so callers cannot distinguish "file not found" from "file exists

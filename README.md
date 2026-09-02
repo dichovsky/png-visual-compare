@@ -27,6 +27,7 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 - [Quick Start](#quick-start)
 - [Snapshot Matchers](#snapshot-matchers)
 - [API Reference](#api-reference)
+- [Security Model](#security-model)
 - [Excluded Areas Builder](#excluded-areas-builder)
 - [Contributing](#contributing)
 - [License](#license)
@@ -78,7 +79,7 @@ The library now fails fast for malformed option data instead of relying on downs
 
 - `inputBaseDir` / `diffOutputBaseDir` containment violations → `PathValidationError`
 - symlink traversal and invalid output target checks → `PathValidationError`
-- `maxDimension` / `maxPixels` limits → `ResourceLimitError`
+- `maxDimension` / `maxPixels` / `maxFileBytes` limits → `ResourceLimitError`
 - failures inside the underlying `pixelmatch` call → `ComparisonError` (the original error is preserved on `cause`)
 
 ### 4. Use `comparePngAsync` for promise-based I/O
@@ -109,6 +110,7 @@ const mismatchedPixels: number = comparePng(
         excludedAreaColor, // Color used for excluded areas. Default: { r: 0, g: 0, b: 255 }
         maxDimension, // Max allowed image width/height in px. Always throws if exceeded. Default: 16384
         maxPixels, // Max allowed decoded pixel count per image/canvas. Default: 16777216
+        maxFileBytes, // Max allowed size of a PNG read from a path. Always throws if exceeded. Default: 67108864
         diffOutputBaseDir, // Restrict diffFilePath writes to this directory (path-traversal guard). Default: undefined
         inputBaseDir, // Restrict png1/png2 reads to this directory (path-traversal guard). Default: undefined
         pixelmatchOptions, // Public PixelmatchOptions validated and adapted for pixelmatch. Default: undefined
@@ -237,18 +239,19 @@ for file-backed reads and diff writes.
 
 ### `ComparePngOptions`
 
-| Option                         | Type                | Default                  | Description                                                                                                                                                                                                                          |
-| ------------------------------ | ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `excludedAreas`                | `Area[]`            | `[]`                     | Rectangular regions to exclude from comparison (painted on both images before diffing, so they always match)                                                                                                                         |
-| `diffFilePath`                 | `string`            | `undefined`              | File path for the diff PNG. Only written when `result > 0`                                                                                                                                                                           |
-| `throwErrorOnInvalidInputData` | `boolean`           | `true`                   | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid                                                                             |
-| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Fill colour for padded regions when images differ in size. Override when the default green clashes with your image content                                                                                                           |
-| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill colour applied to `excludedAreas` on both images before comparison. Override when the default blue clashes with your image content                                                                                              |
-| `maxDimension`                 | `number`            | `16384`                  | Maximum allowed width or height (px) for either input image. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Protects against DoS via crafted PNG headers               |
-| `maxPixels`                    | `number`            | `16777216`               | Maximum decoded pixel count for a single input image and for the normalized comparison canvas. Set to `Infinity` to disable. Protects against large-but-axis-valid PNGs that would still exhaust memory                              |
-| `diffOutputBaseDir`            | `string`            | `undefined`              | When set, `diffFilePath` must resolve to a path **inside** this directory. Any attempt to write outside it throws `"Path traversal detected"`. Use in server-side contexts where `diffFilePath` may be caller-controlled             |
-| `inputBaseDir`                 | `string`            | `undefined`              | When set, string input paths (`png1` / `png2`) must resolve to a path **inside** this directory. Any attempt to read outside it throws `"Path traversal detected"`. Use in server-side contexts where paths may be caller-controlled |
-| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                                                                                              |
+| Option                         | Type                | Default                  | Description                                                                                                                                                                                                                                                  |
+| ------------------------------ | ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `excludedAreas`                | `Area[]`            | `[]`                     | Rectangular regions to exclude from comparison (painted on both images before diffing, so they always match)                                                                                                                                                 |
+| `diffFilePath`                 | `string`            | `undefined`              | File path for the diff PNG. Only written when `result > 0`                                                                                                                                                                                                   |
+| `throwErrorOnInvalidInputData` | `boolean`           | `true`                   | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid                                                                                                     |
+| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Fill colour for padded regions when images differ in size. Override when the default green clashes with your image content                                                                                                                                   |
+| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill colour applied to `excludedAreas` on both images before comparison. Override when the default blue clashes with your image content                                                                                                                      |
+| `maxDimension`                 | `number`            | `16384`                  | Maximum allowed width or height (px) for either input image. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Protects against DoS via crafted PNG headers                                       |
+| `maxPixels`                    | `number`            | `16777216`               | Maximum decoded pixel count for a single input image and for the normalized comparison canvas. Set to `Infinity` to disable. Protects against large-but-axis-valid PNGs that would still exhaust memory                                                      |
+| `maxFileBytes`                 | `number`            | `67108864`               | Maximum size, in bytes, of a PNG read from a path. Ignored for `Buffer` inputs. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Bounds the compressed bytes read before the header is inspected |
+| `diffOutputBaseDir`            | `string`            | `undefined`              | When set, `diffFilePath` must resolve to a path **inside** this directory. Any attempt to write outside it throws `"Path traversal detected"`. Use in server-side contexts where `diffFilePath` may be caller-controlled                                     |
+| `inputBaseDir`                 | `string`            | `undefined`              | When set, string input paths (`png1` / `png2`) must resolve to a path **inside** this directory. Any attempt to read outside it throws `"Path traversal detected"`. Use in server-side contexts where paths may be caller-controlled                         |
+| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                                                                                                                      |
 
 ---
 
@@ -298,7 +301,7 @@ All public errors extend the built-in `Error` and expose a stable string `code` 
 | --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `InvalidInputError`   | `ERR_INVALID_PNG_INPUT` | A PNG input is missing, malformed, or cannot be decoded. Recoverable via `throwErrorOnInvalidInputData: false` (treated as a zero-size PNG) |
 | `PathValidationError` | `ERR_PATH_VALIDATION`   | A file path fails validation: traversal outside a base directory, symlink at the output target, empty/null-byte path                        |
-| `ResourceLimitError`  | `ERR_RESOURCE_LIMIT`    | A PNG would exceed `maxDimension` or `maxPixels`. **Always throws** regardless of `throwErrorOnInvalidInputData`                            |
+| `ResourceLimitError`  | `ERR_RESOURCE_LIMIT`    | A PNG would exceed `maxDimension`, `maxPixels`, or `maxFileBytes`. **Always throws** regardless of `throwErrorOnInvalidInputData`           |
 | `ComparisonError`     | `ERR_COMPARISON`        | The underlying `pixelmatch` call threw. The original failure is preserved on the standard `cause` property. **Always throws**               |
 
 ```typescript
@@ -316,12 +319,50 @@ try {
 
 ### Exported constants
 
-| Constant                      | Value                    | Description                                                                                             |
-| ----------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions                                                   |
-| `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                                                                  |
-| `DEFAULT_MAX_DIMENSION`       | `16384`                  | Default maximum image dimension (px). Import this constant when you want to reference the default value |
-| `DEFAULT_MAX_PIXELS`          | `16777216`               | Default maximum decoded pixel count for one image or the normalized comparison canvas                   |
+| Constant                      | Value                    | Description                                                                                                        |
+| ----------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions                                                              |
+| `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                                                                             |
+| `DEFAULT_MAX_DIMENSION`       | `16384`                  | Default maximum image dimension (px). Import this constant when you want to reference the default value            |
+| `DEFAULT_MAX_PIXELS`          | `16777216`               | Default maximum decoded pixel count for one image or the normalized comparison canvas                              |
+| `DEFAULT_MAX_FILE_BYTES`      | `67108864`               | Default maximum size (bytes) of a PNG read from a path — the decoded RGBA size of an image at `DEFAULT_MAX_PIXELS` |
+
+---
+
+## Security Model
+
+The security options are opt-in and bound distinct things. Knowing what each one does _not_ cover matters as much as what it does.
+
+### Resource limits
+
+`maxDimension` and `maxPixels` read the width and height declared in the PNG's IHDR header. They bound the **decoded** image, which is what protects you from a small file that claims to be 60000 × 60000 pixels.
+
+They say nothing about how many bytes must be read to reach that header. Without a separate limit, a multi-gigabyte file is fully resident in memory before either check runs. `maxFileBytes` closes that gap by bounding the **compressed** bytes, checked from the file's size before a single byte is read.
+
+The default is 67,108,864 bytes, which is the decoded RGBA size of an image at `maxPixels`. In practice nothing legitimate approaches it: a 4096 × 4096 screenshot compresses to single-digit megabytes. A maximally incompressible image at exactly the pixel ceiling encodes about 9 KB above the cap and will be rejected — raise `maxFileBytes` if you compare synthetic noise at that size.
+
+`maxFileBytes` applies only to path inputs. A `Buffer` you pass in is already in memory, and `maxPixels` still bounds its decode.
+
+When `inputBaseDir` is set, containment is checked before the byte cap. The cap's error names an exact size and is not recoverable, so checking it first would disclose the size and existence of a file outside the boundary. A path outside the boundary always fails as a `PathValidationError`.
+
+### Path containment
+
+`inputBaseDir` and `diffOutputBaseDir` confine reads and writes to a directory, enforced after symlink resolution. Both are unset by default, in which case no boundary exists and none of the checks below run.
+
+When a boundary is set, the library defends against a path that changes underneath it:
+
+- **Reads** open the file first, pinning one inode, then prove that inode is the one containment approved. Bytes are never returned from a file that failed the check.
+- **Writes** create each parent directory one component at a time and refuse any component that is a symlink. The parent chain is then resolved and the file is opened _inside the canonical directory_, so the path traversed at open time contains no symlink at all — redirecting the write requires renaming a real directory in that chain, not merely planting a link. Truncation is deferred until after the opened handle has been proven to sit inside the boundary, so an escaped target is never emptied. A refused write removes only a file it created itself, established by `O_EXCL` rather than inferred from the file's length, so a pre-existing empty placeholder survives.
+
+Node exposes no `openat`, so the underlying race cannot be _prevented_ portably. These checks **detect** a swap and refuse, rather than making the swap impossible. The practical guarantee is that no data crosses the boundary in either direction, not that an attacker cannot try.
+
+Both checks need the filesystem to report file identity. On a mount that reports none (some network filesystems), containment cannot be verified and the operation is refused with a `PathValidationError` rather than passing silently. Unset the base directory option if you need to run there without containment.
+
+### What is not covered
+
+- Decompression cost inside `pngjs` itself is bounded only indirectly, through the limits above.
+- Without `inputBaseDir` or `diffOutputBaseDir` there is no containment boundary, and the swap-detection checks do not run.
+- The library is intended for test-time and server-side comparison of images you control. It is not a sandbox for arbitrary untrusted input.
 
 ---
 

@@ -33,7 +33,7 @@ export async function comparePngAsync(png1: string | Buffer, png2: string | Buff
     const persistableDiff = getPersistableDiff(result, options);
 
     if (persistableDiff) {
-        await fsAsyncDiffWriter.write(persistableDiff.diffFilePath, PNG.sync.write(persistableDiff.diff));
+        await fsAsyncDiffWriter.write(persistableDiff.diffFilePath, PNG.sync.write(persistableDiff.diff), options.diffOutputBaseDir);
     }
 
     return result.mismatchedPixels;

@@ -86,15 +86,17 @@ src/
   defaults.ts                     # default option values and limits
   errors.ts                       # named error classes and ERR_* codes
   getPngData.ts                   # reads file path or Buffer → LoadedPng
+  readValidatedFile.ts            # opens a file before validating it; enforces maxFileBytes
   extendImage.ts                  # pads a PNG canvas to a larger size
   fillImageSizeDifference.ts      # colours the padded region green (0,255,0)
   addColoredAreasToImage.ts       # paints rectangular areas with a solid colour
   drawPixelOnBuff.ts              # writes a single RGBA pixel into a raw buffer
   validateArea.ts                 # Area validation
   validateColor.ts                # Color validation
-  validatePath.ts                 # path validation, base-dir containment, symlink checks
+  validatePath.ts                 # assertPathSyntax / validatePathWithReal / validatePath: containment, symlink checks
   validatePixelmatchOptions.ts    # PixelmatchOptions validation
   adapters/                       # public-to-external library boundaries (toPixelmatchOptions)
+  internal/                       # assertSameFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
   matchers/                       # framework-agnostic snapshot matcher core shared by vitest.mts/jest.ts
   pipeline/                       # resolveOptions, loadSources, normalizeImages, runComparison, persistDiff
   ports/                          # sync/async filesystem adapters and test seams
@@ -150,7 +152,8 @@ comparePng / comparePngAsync
 - missing/unreadable string path:
     - `throwError=true` → throws a path/input error
     - `throwError=false` → `{ kind: 'invalid', reason: 'path' }`
-- valid PNG `Buffer` → `{ kind: 'valid', png: <decoded> }`
+- string path to a file larger than `maxFileBytes` → throws `ResourceLimitError` **before any bytes are read**, regardless of `throwError`
+- valid PNG `Buffer` → `{ kind: 'valid', png: <decoded> }` (`maxFileBytes` does not apply to buffers)
 - invalid source or undecodable bytes:
     - `throwError=true` → throws an input/decode error
     - `throwError=false` → `{ kind: 'invalid', reason: 'type' | 'decode' }`
@@ -246,13 +249,20 @@ Current coverage is 100% across all source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches) and on every pull request
 
-| Job    | OS            | Node                      |
-| ------ | ------------- | ------------------------- |
-| ubuntu | ubuntu-latest | from `.nvmrc` (Node `24`) |
+| Job    | OS            | Node                      | Gates merges             |
+| ------ | ------------- | ------------------------- | ------------------------ |
+| ubuntu | ubuntu-latest | from `.nvmrc` (Node `24`) | yes                      |
+| macos  | macos-latest  | from `.nvmrc` (Node `24`) | no — `continue-on-error` |
 
-The job installs Playwright Chromium (`--with-deps`) and runs `npm run test`. There is no macOS
-job: CI is Ubuntu-only. macOS remains a **supported** platform (`"os": ["darwin","linux"]`), it is
-just not exercised in CI.
+Both jobs run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`; macOS omits
+that flag, which installs Linux system packages and does not apply there.
+
+macOS is a **supported** platform (`"os": ["darwin","linux"]`) and is exercised again, but its job
+is `continue-on-error` for now: the suite hits a macOS-only Vitest fork crash
+(`Error: Worker exited unexpectedly`) in roughly 1 run in 5 under coverage, which drops a file's
+results and fails the 100% threshold for reasons unrelated to the code under test. Tracked as
+TEST-08; it reproduces on `main`. Windows is **not** supported — dropped as a breaking change in
+6.0.0.
 
 ### `publish.yml` — runs on GitHub release `published` (skipped for prereleases)
 

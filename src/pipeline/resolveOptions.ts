@@ -1,5 +1,11 @@
 import type { ComparePngOptions } from '../types';
-import { DEFAULT_EXCLUDED_AREA_COLOR, DEFAULT_EXTENDED_AREA_COLOR, DEFAULT_MAX_DIMENSION, DEFAULT_MAX_PIXELS } from '../defaults';
+import {
+    DEFAULT_EXCLUDED_AREA_COLOR,
+    DEFAULT_EXTENDED_AREA_COLOR,
+    DEFAULT_MAX_DIMENSION,
+    DEFAULT_MAX_FILE_BYTES,
+    DEFAULT_MAX_PIXELS,
+} from '../defaults';
 import { InvalidInputError } from '../errors';
 import type { ValidatedPath } from '../types/validated-path';
 import { validateArea } from '../validateArea';
@@ -51,6 +57,11 @@ export function resolveOptions(raw: ComparePngOptions | undefined): ResolvedOpti
         throw new TypeError('opts.maxPixels must be a positive integer or Infinity');
     }
 
+    const rawMaxFileBytes = raw?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES;
+    if (rawMaxFileBytes !== Infinity && (!Number.isInteger(rawMaxFileBytes) || rawMaxFileBytes <= 0)) {
+        throw new TypeError('opts.maxFileBytes must be a positive integer or Infinity');
+    }
+
     validateColor(extendedAreaColor, 'extendedAreaColor');
     validateColor(excludedAreaColor, 'excludedAreaColor');
     if (raw?.pixelmatchOptions !== undefined) {
@@ -66,6 +77,7 @@ export function resolveOptions(raw: ComparePngOptions | undefined): ResolvedOpti
         diffFilePath,
         maxDimension: rawMaxDimension,
         maxPixels: rawMaxPixels,
+        maxFileBytes: rawMaxFileBytes,
         inputBaseDir,
         diffOutputBaseDir,
         pixelmatchOptions: raw?.pixelmatchOptions,

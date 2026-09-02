@@ -8,11 +8,6 @@
 
 ## 🔒 Security
 
-- [ ] 🟡 🐛 SECU [SECU-04]: Cap pre-decode file read (`maxFileBytes`)
-- [ ] 🟡 🐛 SECU [SECU-05]: Close async-path TOCTOU (validate→read)
-- [ ] 🟡 🐛 SECU [SECU-06]: Document decoder-bomb surface in README
-- [ ] 🟡 🐛 SECU [SECU-09]: Refuse symlink in mkdir parent component
-- [ ] 🟢 🐛 SECU [SECU-07]: `comparePngWithPorts` barrel hygiene (`@internal` or relocate)
 - [ ] 🟢 🐛 SECU [SECU-08]: Cap path length in `validatePath` (4096)
 
 ## ⚡ Performance
@@ -53,6 +48,8 @@
 
 ## 🧪 Tests & QA
 
+- [ ] 🟢 🧪 TEST [TEST-09]: Remove vestigial `win32` guards — `if (process.platform === 'win32') return;` appears in 5 test files, but Windows was dropped as a supported platform in 6.0.0 (`"os": ["darwin", "linux"]`), so the guards imply support that does not exist
+- [ ] 🔴 🧪 TEST [TEST-08]: Fix macOS Vitest fork crash so the macOS CI job can gate again — `Error: Worker exited unexpectedly` kills the worker running `pngSnapshotMatcher.test.ts`, dropping its coverage and failing the 100% gate. Measured ~1 in 7 without coverage, ~1 in 5 with. Localized: the file calls `vi.resetModules()` 32 times, each re-evaluating the matcher module graph. Ruled out — `pool: 'threads'` (breaks `process.umask` in the SECU-12 tests), `maxForks: 4` (1/20), `--max-old-space-size=4096` (0/20 plain, 3/15 under coverage). Likely fix: rework the file to call the exported `registerJestPngSnapshotMatcher` / an extracted auto-register seam instead of resetting the module registry. Reproduces on `main`; Linux unaffected
 - [ ] 🟡 🧪 TEST [TEST-02]: Bench suite (`vitest bench`) for PERF gating
 - [ ] 🟡 🧪 TEST [TEST-03]: Pack-test integration against built artifact
 - [ ] 🟢 🧪 TEST [TEST-04]: Mutation testing (Stryker)
@@ -62,7 +59,6 @@
 
 ## 📝 Docs
 
-- [ ] 🟡 📝 DOC [DOC-01]: Sweep stale RELI-03 frontmatter
 - [ ] 🟢 📝 DOC [DOC-03]: Dedupe `CLAUDE.md` vs `.github/copilot-instructions.md`
 - [ ] 🟢 📝 DOC [DOC-04]: Expand public function JSDoc
 - [ ] 🟢 📝 DOC [DOC-05]: Cross-link `ARCHITECTURE.md` ↔ `BACKLOG.md`
@@ -85,4 +81,3 @@
 - [ ] 🟢 ♻️ CI [CI-02]: Add CodeQL workflow
 - [ ] 🟢 ♻️ CI [CI-03]: `dependency-review-action` on PRs
 - [ ] 🟢 ♻️ CI [CI-04]: Upload coverage to Codecov
-- [x] 🟢 ♻️ CI [CI-05]: SHA-pin actions in `publish.yml`

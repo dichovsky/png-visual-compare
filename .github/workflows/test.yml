@@ -22,3 +22,26 @@ jobs:
               run: npx playwright install --with-deps chromium
             - name: Run tests
               run: npm run test
+    macos:
+        runs-on: macos-latest
+        # Non-blocking until TEST-08 is fixed. The suite hits a pre-existing macOS-only
+        # Vitest fork crash ("Worker exited unexpectedly") in roughly 1 run in 5 under
+        # coverage, which drops a file's results and fails the 100% threshold for
+        # reasons unrelated to the code under test. It reproduces on `main`. The job
+        # still runs and reports, so macOS regressions stay visible; it just does not
+        # gate merges on a known-flaky signal.
+        continue-on-error: true
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - name: Test on macOS
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version-file: .nvmrc
+                  cache: 'npm'
+            - name: Install dependencies
+              run: npm ci
+            # No --with-deps: it installs Linux system packages and is not applicable here.
+            - name: Install Playwright browsers
+              run: npx playwright install chromium
+            - name: Run tests
+              run: npm run test
