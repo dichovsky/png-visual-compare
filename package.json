@@ -85,7 +85,7 @@
         "@types/node": "~26.3.0",
         "@types/pngjs": "~6.0.5",
         "@typescript/native": "npm:typescript@~7.0.2",
-        "@vitest/coverage-v8": "~4.1.10",
+        "@vitest/coverage-v8": "~5.0.0",
         "eslint": "~10.9.1",
         "prettier": "~3.9.6",
         "rimraf": "~6.1.3",
