@@ -81,7 +81,7 @@
         "pngjs": "~7.0.0"
     },
     "devDependencies": {
-        "@playwright/test": "~1.62.1",
+        "@playwright/test": "~1.63.0",
         "@types/node": "~26.5.1",
         "@types/pngjs": "~6.0.5",
         "@typescript/native": "npm:typescript@~7.0.2",
