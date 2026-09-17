@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Vitest peer range is now `>=5.0.0 <6`** (was `>=4.1.0 <5`). Vitest 5 changed the
+  `Assertion`/`Matchers` interfaces to two type parameters (`<R, T>`), so the
+  `toMatchPngSnapshot` module augmentation in `png-visual-compare/vitest` now targets
+  `Matchers<R, T>` and no longer type-checks against Vitest 4. Stay on the previous
+  release if you are still on Vitest 4.
 - **CI** — the test workflow now takes its Node version from `.nvmrc` instead of a
   hardcoded `24.x`.
 - **CI** — restored the macOS job in `test.yml`, marked `continue-on-error` for now. macOS is a supported platform

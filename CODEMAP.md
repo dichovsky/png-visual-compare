@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.3.0"
     },
-    "sourceHash": "e09abcc7f24c916ffb7e7e3935f8803af59579d8a361b6958f85782e853226e5",
+    "sourceHash": "eda4a8d1ede160014021a9bfb46b87007cc8bcc47c8d50fdaad1faf470bdd885",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -2042,7 +2042,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VITEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "kind": "const",
-                    "line": 28,
+                    "line": 24,
                     "exported": false,
                     "signature": "const VITEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "members": null,
@@ -2051,7 +2051,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestTestLike",
                     "kind": "type",
-                    "line": 30,
+                    "line": 26,
                     "exported": false,
                     "signature": "type VitestTestLike = { id: string; };",
                     "members": null,
@@ -2060,7 +2060,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestExpectedSnapshot",
                     "kind": "type",
-                    "line": 34,
+                    "line": 30,
                     "exported": false,
                     "signature": "type VitestExpectedSnapshot = { count: number; data?: string; key: string; markAsChecked: () => void; };",
                     "members": null,
@@ -2069,7 +2069,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestSnapshotReturn",
                     "kind": "type",
-                    "line": 41,
+                    "line": 37,
                     "exported": false,
                     "signature": "type VitestSnapshotReturn = { actual: string; expected?: string; key: string; pass: boolean; };",
                     "members": null,
@@ -2078,7 +2078,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestSnapshotState",
                     "kind": "type",
-                    "line": 48,
+                    "line": 44,
                     "exported": false,
                     "signature": "type VitestSnapshotState = { probeExpectedSnapshot: (options: { inlineSnapshot?: string; isInline: boolean; testId: string; testName: string; }) => VitestExpectedSnapshot; processDomainSnapshot: (opti…",
                     "members": null,
@@ -2087,7 +2087,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MatcherStateWithSnapshot",
                     "kind": "type",
-                    "line": 70,
+                    "line": 66,
                     "exported": false,
                     "signature": "type MatcherStateWithSnapshot = MatcherState & { error?: Error; snapshotState?: VitestSnapshotState | null; };",
                     "members": null,
@@ -2096,7 +2096,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getVitestTest",
                     "kind": "function",
-                    "line": 75,
+                    "line": 71,
                     "exported": false,
                     "signature": "function getVitestTest(matcherContext: MatcherState): VitestTestLike",
                     "members": null,
@@ -2105,7 +2105,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getAssertionName",
                     "kind": "function",
-                    "line": 85,
+                    "line": 81,
                     "exported": false,
                     "signature": "function getAssertionName(matcherContext: MatcherState): string",
                     "members": null,
@@ -2114,7 +2114,7 @@ Schema: `codemap.v2`
                 {
                     "name": "toMatchPngSnapshot",
                     "kind": "const",
-                    "line": 95,
+                    "line": 91,
                     "exported": false,
                     "signature": "const toMatchPngSnapshot",
                     "members": null,

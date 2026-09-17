@@ -13,15 +13,11 @@ import {
 import type { ComparePngOptions } from './types/index.js';
 
 declare module 'vitest' {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    interface Assertion<T = any> {
-        toMatchPngSnapshot(opts?: ComparePngOptions): T;
-        toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): T;
-    }
-
-    interface AsymmetricMatchersContaining {
-        toMatchPngSnapshot(opts?: ComparePngOptions): void;
-        toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): void;
+    // `Matchers<R, T>` covers `expect().*`, `expect.*` and `expect.extend` at once (Vitest 5).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    interface Matchers<R, T> {
+        toMatchPngSnapshot(opts?: ComparePngOptions): R;
+        toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): R;
     }
 }
 
