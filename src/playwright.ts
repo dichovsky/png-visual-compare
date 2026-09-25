@@ -106,7 +106,7 @@ function matchAgainstBaseline(testInfo: TestInfo, isNot: boolean, received: Buff
 
     const name = resolveBaselineName(testInfo, args.hint);
     const baselinePath = testInfo.snapshotPath(name);
-    const artifactBase = basename(baselinePath, '.png');
+    const artifactBase = basename(baselinePath).replace(PNG_EXTENSION, '');
     let baseline: Buffer;
 
     try {

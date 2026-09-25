@@ -103,6 +103,19 @@ describe('baseline naming', () => {
         expect(match(RED, 'header.png').pass).toBe(true);
     });
 
+    test('strips an upper-case .PNG extension from attachment names', () => {
+        const testInfo = useTestInfo();
+        seedBaseline('header.PNG', RED);
+
+        match(BLUE, 'header.PNG');
+
+        expect(testInfo.attachments.map((attachment) => attachment.name)).toEqual([
+            'header-expected.png',
+            'header-actual.png',
+            'header-diff.png',
+        ]);
+    });
+
     test('numbers a hint repeated within the same test', () => {
         useTestInfo();
         seedBaseline('header.png', RED);

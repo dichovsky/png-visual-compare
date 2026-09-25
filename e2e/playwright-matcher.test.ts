@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
@@ -11,13 +11,24 @@ const IMAGE_B = path.resolve(__dirname, '../test-data/actual/ILTQq.png');
 type UpdateSnapshotsMode = 'all' | 'changed' | 'missing' | 'none';
 type FixtureRun = { status: string; attachments: string[]; error: string };
 
-function runFixture(workDir: string, received: string, mode: UpdateSnapshotsMode, isNot = false): FixtureRun {
+function runFixture(
+    workDir: string,
+    received: string,
+    mode: UpdateSnapshotsMode,
+    flags: { isNot?: boolean; unnamed?: boolean } = {},
+): FixtureRun {
     const run = spawnSync(
         process.execPath,
         [PLAYWRIGHT_CLI, 'test', '-c', FIXTURE_CONFIG, `--update-snapshots=${mode}`, '--reporter=json'],
         {
             encoding: 'utf8',
-            env: { ...process.env, PVC_E2E_DIR: workDir, PVC_RECEIVED: received, PVC_NOT: String(isNot) },
+            env: {
+                ...process.env,
+                PVC_E2E_DIR: workDir,
+                PVC_RECEIVED: received,
+                PVC_NOT: String(flags.isNot === true),
+                PVC_UNNAMED: String(flags.unnamed === true),
+            },
         },
     );
     const report = JSON.parse(run.stdout);
@@ -50,6 +61,14 @@ test.describe('toMatchPngSnapshot in a real Playwright run', () => {
         expect(run.error).toContain('was missing and has been written');
         expect(run.attachments).toEqual(['shot-expected.png', 'shot-actual.png']);
         expect(readFileSync(path.join(workDir, 'snapshots', 'shot.png'))).toEqual(readFileSync(IMAGE_A));
+    });
+
+    test('names an unnamed baseline from the sanitised test title', () => {
+        const workDir = test.info().outputPath();
+
+        runFixture(workDir, IMAGE_A, 'missing', { unnamed: true });
+
+        expect(readdirSync(path.join(workDir, 'snapshots'))).toEqual(['compares-the-received-PNG-against-the-shot-baseline-png-1.png']);
     });
 
     test('fails without writing a missing baseline in none mode', () => {
@@ -94,13 +113,13 @@ test.describe('toMatchPngSnapshot in a real Playwright run', () => {
         const workDir = test.info().outputPath();
         seedBaseline(workDir, IMAGE_A);
 
-        expect(runFixture(workDir, IMAGE_B, 'missing', true).status).toBe('passed');
+        expect(runFixture(workDir, IMAGE_B, 'missing', { isNot: true }).status).toBe('passed');
     });
 
     test('fails .not when the baseline is missing, without writing it', () => {
         const workDir = test.info().outputPath();
 
-        const run = runFixture(workDir, IMAGE_A, 'all', true);
+        const run = runFixture(workDir, IMAGE_A, 'all', { isNot: true });
 
         expect(run.status).toBe('failed');
         expect(run.error).toContain('.not.toMatchPngSnapshot() requires an existing snapshot');
