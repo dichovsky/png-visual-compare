@@ -79,11 +79,11 @@ async function readCapped(handle: FileHandle, sizeHint: bigint, maxFileBytes: nu
  *    lexical containment. A path outside `inputBaseDir` must fail as containment
  *    before the open can tell whether it exists, or block on a FIFO; otherwise the
  *    open's own ENOENT would be an existence oracle for files outside the boundary.
- * 2. `open` the lexically resolved path — the one validation approves, and the one
- *    6.3.0 read. The raw string could name a different file when `..` follows a
- *    symlinked directory, because the kernel resolves `..` after the link. The open
- *    pins one inode for the rest of the call — every later step describes *that*
- *    file, not whatever the path happens to point at now.
+ * 2. `open` the lexically resolved path — the one validation approves, and the same
+ *    file 6.3.0 read via `validatePath`. The raw string could name a different file
+ *    when `..` follows a symlinked directory, because the kernel resolves `..` after
+ *    the link. The open pins one inode for the rest of the call — every later step
+ *    describes *that* file, not whatever the path happens to point at now.
  * 3. `fstat` on the handle, for the size and identity used below.
  * 4. `validatePathWithReal` for the symlink-resolved containment check.
  * 5. When a boundary was requested, compare the handle's identity against the

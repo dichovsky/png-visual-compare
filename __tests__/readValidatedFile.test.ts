@@ -126,7 +126,7 @@ describe('readValidatedFile', () => {
 
     describe('".." after a symlinked directory', () => {
         // base/a/link -> base/b/sub. Lexically "base/a/link/../image.png" is base/a/image.png,
-        // which is what validation checks and what 6.3.0 read; the kernel would instead
+        // which is what validation checks and the file 6.3.0 read; the kernel would instead
         // resolve ".." after following the link and land on base/b/image.png.
         const viaLink = () => `${path.join(baseDir, 'a', 'link')}${path.sep}..${path.sep}image.png`;
 

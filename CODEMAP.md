@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.0.0"
     },
-    "sourceHash": "5a207f397a2f3c4bd7b4bfcf7c69474251ed077a9f3a087a47b21c1bc615a817",
+    "sourceHash": "bb93fb6bb7a0343f303bd148f02571628e580b17f0357447d030560706e6496e",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
