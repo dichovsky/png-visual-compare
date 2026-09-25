@@ -75,7 +75,7 @@ export class PathValidationError extends Error {
  * @example
  * ```ts
  * try {
- *   // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or files > 64 MiB
+ *   // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or files > 129 MiB
  *   comparePng('huge.png', 'image.png');
  * } catch (error) {
  *   if (error instanceof ResourceLimitError) {

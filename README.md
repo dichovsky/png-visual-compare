@@ -52,6 +52,7 @@ npm install -D png-visual-compare
 1. Run on Node.js 22.12.0 or later.
 2. If you use `png-visual-compare/vitest`, upgrade to Vitest 5.
 3. Expect `maxFileBytes` and the stricter containment checks to surface as new errors in edge cases.
+4. If `vitest` 4 or `@playwright/test` older than 1.60 is installed, upgrade it first — npm now refuses the install even if you only use `comparePng`.
 
 ### 1. Node.js 22.12.0 or later is required
 
@@ -63,8 +64,12 @@ The `vitest` peer range is now `>=5.0.0 <6` (was `>=4.1.0 <5`). Vitest 5 changed
 
 ### 3. New limits and containment checks
 
-- `maxFileBytes` (default `67108864`) caps the size of a PNG read from a path and throws `ResourceLimitError` when exceeded, regardless of `throwErrorOnInvalidInputData`. `Buffer` inputs are not affected. See [Resource limits](#resource-limits).
+- `maxFileBytes` (default `135266304`) caps the size of a PNG read from a path and throws `ResourceLimitError` when exceeded, regardless of `throwErrorOnInvalidInputData`. `Buffer` inputs are not affected. See [Resource limits](#resource-limits).
 - With `inputBaseDir` or `diffOutputBaseDir` set, these are now refused with `PathValidationError`: a file swapped between validation and use, a filesystem that reports no file identity, and (with `diffOutputBaseDir`) a symlinked parent directory of `diffFilePath`. See [Security Model](#security-model).
+
+### 4. Peer dependency conflicts at install
+
+`vitest` and `@playwright/test` are optional peer dependencies, and npm checks an optional peer whenever it is installed — whether or not you import the matching subpath. A project with `vitest` 4 or with `@playwright/test` older than 1.60 therefore gets `ERESOLVE` from `npm install png-visual-compare@7`, even if it only calls `comparePng`. With a caret range such as `^1.55.0`, npm instead upgrades Playwright to the latest 1.x, which changes the browser builds you test against. Upgrade the peer first, or keep 6.3.0. `legacy-peer-deps=true` in `.npmrc` bypasses the check, but it applies to every later install, not just this one.
 
 ---
 
@@ -132,7 +137,7 @@ const mismatchedPixels: number = comparePng(
         excludedAreaColor, // Color used for excluded areas. Default: { r: 0, g: 0, b: 255 }
         maxDimension, // Max allowed image width/height in px. Always throws if exceeded. Default: 16384
         maxPixels, // Max allowed decoded pixel count per image/canvas. Default: 16777216
-        maxFileBytes, // Max allowed size of a PNG read from a path. Always throws if exceeded. Default: 67108864
+        maxFileBytes, // Max allowed size of a PNG read from a path. Always throws if exceeded. Default: 135266304
         diffOutputBaseDir, // Restrict diffFilePath writes to this directory (path-traversal guard). Default: undefined
         inputBaseDir, // Restrict png1/png2 reads to this directory (path-traversal guard). Default: undefined
         pixelmatchOptions, // Public PixelmatchOptions validated and adapted for pixelmatch. Default: undefined
@@ -184,6 +189,29 @@ npx vitest run -u
 **Requires Vitest 5** (peer range `>=5.0.0 <6`). Vitest 4 is not supported from 7.0.0; see [Migration Guide to v7.0.0](#migration-guide-to-v700).
 
 ### Jest
+
+Jest routes `require()` through its own module loader, which cannot load the ESM-only `pixelmatch` that this package's CommonJS build depends on. Without the setup below, loading `png-visual-compare` in Jest fails with `SyntaxError: Unexpected token 'export'` (Jest 29) or `Must use import to load ES Module` (Jest 30). Transform `pixelmatch` with Babel:
+
+```sh
+npm i -D @babel/plugin-transform-modules-commonjs@^7
+```
+
+```js
+// babel.config.js — the project-wide file; a .babelrc does not apply inside node_modules
+module.exports = { plugins: ['@babel/plugin-transform-modules-commonjs'] };
+```
+
+and in your Jest config (`package.json` → `jest`, or `jest.config.js`):
+
+```json
+{
+    "transformIgnorePatterns": ["/node_modules/(?!\\.pnpm/pixelmatch@|pixelmatch/)"]
+}
+```
+
+Keep the plugin on `^7`: `babel-jest` requires `@babel/core` 7, and Babel 8 plugins fail to install next to it. This setup is verified with Jest 29.7 and 30.5 on Node.js 22.12 and 24, under npm and pnpm. Bundling `pixelmatch` into the CommonJS build to remove this step is tracked as RELI-11.
+
+> **Known issue (Jest 30.5+):** with `jest.retryTimes`, a mismatching PNG can pass on the retry and be recorded as a new snapshot (tracked as RELI-12). Do not enable retries for tests that use this matcher until it is fixed.
 
 Register the matcher from `setupFilesAfterEnv`:
 
@@ -254,6 +282,7 @@ The matcher is synchronous, like Playwright's own `toMatchSnapshot()`, so there 
 - **`--update-snapshots`** works exactly as for `toMatchSnapshot()`: `missing` (the default) writes a missing baseline and fails the test softly, so every missing baseline is written in one run and the test is not retried against it, `changed` rewrites mismatching baselines, `all` rewrites every baseline that differs, and `none` never writes. `ignoreSnapshots: true` skips the assertion.
 - **On failure** the baseline, received image and diff image are attached as `<name>-expected.png`, `<name>-actual.png` and `<name>-diff.png`, so the HTML report shows its image diff viewer.
 - **The diff location is managed for you**: passing `diffFilePath` or `diffOutputBaseDir` throws.
+- **Image limits apply to baselines too.** A received image over `maxDimension` or `maxPixels` throws `ResourceLimitError` rather than being written as a baseline no later run could compare against. Full-page or HiDPI screenshots pass the defaults quickly — at `deviceScaleFactor: 2`, a 1280 px wide `fullPage` capture exceeds `maxPixels` once the page is about 3,277 CSS px tall — so pass a larger `maxPixels` (and `maxDimension` for very long pages) to those assertions.
 - **Requires `@playwright/test` 1.60 or later.** The soft, non-retried failure for a missing baseline uses the same matcher-result fields as Playwright's built-ins, which it honours from 1.60.
 
 How it differs from `toHaveScreenshot()` / `toMatchSnapshot()`:
@@ -317,7 +346,7 @@ for file-backed reads and diff writes.
 | `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill colour applied to `excludedAreas` on both images before comparison. Override when the default blue clashes with your image content                                                                                                                      |
 | `maxDimension`                 | `number`            | `16384`                  | Maximum allowed width or height (px) for either input image. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Protects against DoS via crafted PNG headers                                       |
 | `maxPixels`                    | `number`            | `16777216`               | Maximum decoded pixel count for a single input image and for the normalized comparison canvas. Set to `Infinity` to disable. Protects against large-but-axis-valid PNGs that would still exhaust memory                                                      |
-| `maxFileBytes`                 | `number`            | `67108864`               | Maximum size, in bytes, of a PNG read from a path. Ignored for `Buffer` inputs. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Bounds the compressed bytes read before the header is inspected |
+| `maxFileBytes`                 | `number`            | `135266304`              | Maximum size, in bytes, of a PNG read from a path. Ignored for `Buffer` inputs. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Bounds the compressed bytes read before the header is inspected |
 | `diffOutputBaseDir`            | `string`            | `undefined`              | When set, `diffFilePath` must resolve to a path **inside** this directory. Any attempt to write outside it throws `"Path traversal detected"`. Use in server-side contexts where `diffFilePath` may be caller-controlled                                     |
 | `inputBaseDir`                 | `string`            | `undefined`              | When set, string input paths (`png1` / `png2`) must resolve to a path **inside** this directory. Any attempt to read outside it throws `"Path traversal detected"`. Use in server-side contexts where paths may be caller-controlled                         |
 | `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                                                                                                                      |
@@ -388,13 +417,13 @@ try {
 
 ### Exported constants
 
-| Constant                      | Value                    | Description                                                                                                        |
-| ----------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions                                                              |
-| `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                                                                             |
-| `DEFAULT_MAX_DIMENSION`       | `16384`                  | Default maximum image dimension (px). Import this constant when you want to reference the default value            |
-| `DEFAULT_MAX_PIXELS`          | `16777216`               | Default maximum decoded pixel count for one image or the normalized comparison canvas                              |
-| `DEFAULT_MAX_FILE_BYTES`      | `67108864`               | Default maximum size (bytes) of a PNG read from a path — the decoded RGBA size of an image at `DEFAULT_MAX_PIXELS` |
+| Constant                      | Value                    | Description                                                                                                                      |
+| ----------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions                                                                            |
+| `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                                                                                           |
+| `DEFAULT_MAX_DIMENSION`       | `16384`                  | Default maximum image dimension (px). Import this constant when you want to reference the default value                          |
+| `DEFAULT_MAX_PIXELS`          | `16777216`               | Default maximum decoded pixel count for one image or the normalized comparison canvas                                            |
+| `DEFAULT_MAX_FILE_BYTES`      | `135266304`              | Default maximum size (bytes) of a PNG read from a path — the raw size of a 16-bit RGBA image at `DEFAULT_MAX_PIXELS`, plus 1 MiB |
 
 ---
 
@@ -406,13 +435,13 @@ The security options are opt-in and bound distinct things. Knowing what each one
 
 `maxDimension` and `maxPixels` read the width and height declared in the PNG's IHDR header. They bound the **decoded** image, which is what protects you from a small file that claims to be 60000 × 60000 pixels.
 
-They say nothing about how many bytes must be read to reach that header. Without a separate limit, a multi-gigabyte file is fully resident in memory before either check runs. `maxFileBytes` closes that gap by bounding the **compressed** bytes, checked from the file's size before a single byte is read.
+They say nothing about how many bytes must be read to reach that header. Without a separate limit, a multi-gigabyte file is fully resident in memory before either check runs. `maxFileBytes` closes that gap by bounding the **compressed** bytes. It is checked from the file's size before a single byte is read, and again against the bytes actually read, so a file that grows mid-read, a FIFO, or a device cannot slip past it.
 
-The default is 67,108,864 bytes, which is the decoded RGBA size of an image at `maxPixels`. In practice nothing legitimate approaches it: a 4096 × 4096 screenshot compresses to single-digit megabytes. A maximally incompressible image at exactly the pixel ceiling encodes about 9 KB above the cap and will be rejected — raise `maxFileBytes` if you compare synthetic noise at that size.
+The default is 135,266,304 bytes (129 MiB): the raw size of a 16-bit RGBA image — the widest PNG pixel format, 8 bytes per pixel — at `maxPixels`, plus 1 MiB for filter bytes, compression framing, and metadata chunks. No PNG that passes `maxPixels` reaches it, whatever its bit depth. Lower it if you compare untrusted uploads and want a tighter memory bound.
 
 `maxFileBytes` applies only to path inputs. A `Buffer` you pass in is already in memory, and `maxPixels` still bounds its decode.
 
-When `inputBaseDir` is set, containment is checked before the byte cap. The cap's error names an exact size and is not recoverable, so checking it first would disclose the size and existence of a file outside the boundary. A path outside the boundary always fails as a `PathValidationError`.
+When `inputBaseDir` is set, containment is checked before the byte cap. The cap's error names an exact size and is not recoverable, so checking it first would disclose the size and existence of a file outside the boundary. A path outside the boundary always fails as a `PathValidationError`, before the file is even opened.
 
 ### Path containment
 
@@ -420,7 +449,7 @@ When `inputBaseDir` is set, containment is checked before the byte cap. The cap'
 
 When a boundary is set, the library defends against a path that changes underneath it:
 
-- **Reads** open the file first, pinning one inode, then prove that inode is the one containment approved. Bytes are never returned from a file that failed the check.
+- **Reads** refuse a path that is lexically outside the boundary before touching the filesystem, so whether it exists is never disclosed. They then open the file, pinning one inode, and prove that inode is the one containment approved. Bytes are never returned from a file that failed the check.
 - **Writes** create each parent directory one component at a time and refuse any component that is a symlink. The parent chain is then resolved and the file is opened _inside the canonical directory_, so the path traversed at open time contains no symlink at all — redirecting the write requires renaming a real directory in that chain, not merely planting a link. Truncation is deferred until after the opened handle has been proven to sit inside the boundary, so an escaped target is never emptied. A refused write removes only a file it created itself, established by `O_EXCL` rather than inferred from the file's length, so a pre-existing empty placeholder survives.
 
 Node exposes no `openat`, so the underlying race cannot be _prevented_ portably. These checks **detect** a swap and refuse, rather than making the swap impossible. The practical guarantee is that no data crosses the boundary in either direction, not that an attacker cannot try.
@@ -431,6 +460,8 @@ Both checks need the filesystem to report file identity. On a mount that reports
 
 - Decompression cost inside `pngjs` itself is bounded only indirectly, through the limits above.
 - Without `inputBaseDir` or `diffOutputBaseDir` there is no containment boundary, and the swap-detection checks do not run.
+- **Hard links.** A hard link inside a boundary to a file elsewhere on the same filesystem _is_ that file — the same inode — so containment cannot tell them apart: a read returns its bytes and a diff write overwrites it. Keep the base directories writable only by trusted processes. On Linux, `fs.protected_hardlinks=1` (the default on most distributions) stops users hard-linking files they do not own.
+- **Special files inside a boundary.** A FIFO planted at an input path or at `diffFilePath` inside the boundary blocks the call that opens it. Paths outside the boundary are refused before they are opened.
 - The library is intended for test-time and server-side comparison of images you control. It is not a sandbox for arbitrary untrusted input.
 
 ---

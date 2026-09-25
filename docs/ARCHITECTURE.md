@@ -184,12 +184,13 @@ Key behavior:
 
 `validatePath` walks a path and the subsequent `readFile` walks it again from scratch, so anything swapped in between is what actually gets read. Node exposes no `openat`, and `/proc/self/fd` is Linux-only, so the race cannot be _prevented_ portably. It is detected instead:
 
-1. `open` first, pinning one inode for the rest of the call
-2. `fstat` the handle with `{ bigint: true }` for its size and identity
-3. `validatePathWithReal` for containment
-4. when `inputBaseDir` is set, `assertSameFile` compares the handle's `dev`/`ino` against the canonical path containment approved
-5. `maxFileBytes` is enforced — **after** step 4, because its error names an exact byte count and escapes permissive mode, so checking earlier would disclose the size and existence of a file outside the boundary
-6. read from the handle, never from the path string again
+1. filesystem-free checks: `assertPathSyntax`, and when `inputBaseDir` is set, `assertLexicalContainment` — a path outside the boundary fails as containment before the open can reveal whether it exists (ENOENT vs `PathValidationError` would otherwise be an existence oracle) or block on a FIFO
+2. `open` the lexically resolved path — the one validation approves — pinning one inode for the rest of the call. The raw string could name a different file when `..` follows a symlinked directory, because the kernel resolves `..` after the link
+3. `fstat` the handle with `{ bigint: true }` for its size and identity
+4. `validatePathWithReal` for the symlink-resolved containment check
+5. when `inputBaseDir` is set, `assertSameFile` compares the handle's `dev`/`ino` against the canonical path containment approved
+6. `maxFileBytes` is enforced against the stat size — **after** step 5, because its error names an exact byte count and escapes permissive mode, so checking earlier would disclose the size of a file outside the boundary
+7. read from the handle, never from the path string again, holding `maxFileBytes` against the bytes actually read — the stat size is only a hint, understated by a file that grows mid-read, a FIFO, or a device
 
 The identity check is skipped without `inputBaseDir`: `validatePath` consults no filesystem in that case, so there is no boundary a swap could cross, and running it anyway would expose every default caller to a false positive whenever a baseline is replaced by atomic rename.
 
@@ -214,9 +215,10 @@ The validator:
     - existing output symlinks
 - permits not-yet-created output parent directories by validating the nearest existing ancestor
 
-The module exposes three entry points:
+The module exposes four entry points:
 
 - `assertPathSyntax(filePath)` — the filesystem-free checks (empty, whitespace-only, null byte). Split out so `readValidatedFile`, which must `open` before validating, can still reject a malformed path as a `PathValidationError` instead of letting the runtime raise its own `TypeError`.
+- `assertLexicalContainment(filePath, baseDir)` — the filesystem-free half of the containment check, run by `readValidatedFile` before its `open`. It only ever rejects; approval still needs the symlink-resolved check, so it cannot be raced into letting anything through.
 - `validatePathWithReal(...)` — returns `{ validated, real }`, where `real` is the canonical path the containment check was proven against.
 - `validatePath(...)` — the original signature, a thin wrapper returning `.validated`.
 
@@ -230,9 +232,10 @@ The module exposes three entry points:
 
 The diff write:
 
-- creates parent directories one component at a time via `secureMkdir`, refusing any component that is a symlink. `mkdir(..., { recursive: true })` follows symlinks in every intermediate component while `O_NOFOLLOW` guards only the final one, so a symlinked parent could redirect the whole write outside `diffOutputBaseDir` (SECU-09). Without `diffOutputBaseDir` there is no boundary to protect and the recursive form is kept.
+- creates parent directories one component at a time via `secureMkdir`, refusing any component that is a symlink. `mkdir(..., { recursive: true })` follows symlinks in every intermediate component while `O_NOFOLLOW` guards only the final one, so a symlinked parent could redirect the whole write outside `diffOutputBaseDir` (SECU-09). A component another writer creates between the `lstat` and the `mkdir` is not an error — the `EEXIST` re-checks what was created, so concurrent writes into one new directory succeed while a symlink planted in that window is still refused. Without `diffOutputBaseDir` there is no boundary to protect and the recursive form is kept.
 - resolves the parent chain with `realDiffDirectory` **before** opening, then opens inside that canonical directory. The path traversed at open time therefore contains no symlink at all: redirecting the write requires renaming a real directory in the resolved chain, not merely planting a link.
 - opens the target with `O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW`, falling back to a reopen without `O_CREAT` on `EEXIST` (target-component symlink race closed by SECU-03; a symlink reports `EEXIST` under `O_EXCL` and then surfaces as `ELOOP` on the reopen). `O_EXCL` also establishes whether _this_ call created the file, which plain `O_CREAT` cannot — so cleanup after a refused write removes only a file it created, never a pre-existing empty placeholder.
+- re-resolves the parent chain with `realDiffDirectory` **after** the open, in both writers, and ties the handle to the file inside it with `assertSameFile`. Stat'ing the pre-open canonical path instead would walk a route swapped since and agree with itself.
 - defers truncation: `O_TRUNC` is absent from the open, and `ftruncate(0)` runs only once `assertSameFile` has tied the handle to the canonical target. Truncating on open would empty an escaped target before anything could detect it.
 - passes an explicit POSIX create-mode `0o600` to `open` and then issues an explicit `fchmod(0o600)` on the open handle (SECU-12). The `open` mode alone is insufficient: POSIX masks it with `~umask` (a restrictive umask can only narrow it further, never widen it) and truncation does not reset the mode of a pre-existing file. The post-open `fchmod` makes the final mode `0o600` in both the create and overwrite cases.
 

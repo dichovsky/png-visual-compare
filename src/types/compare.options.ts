@@ -156,12 +156,13 @@ export type ComparePngOptions = {
      *
      * `maxDimension` and `maxPixels` read the declared IHDR header, so they bound
      * the *decoded* image but say nothing about how many compressed bytes must be
-     * read to reach that header. This limit closes that gap. Like the other two,
-     * it throws regardless of `throwErrorOnInvalidInputData`.
+     * read to reach that header. This limit closes that gap. It is checked from the
+     * file's size before reading and again against the bytes actually read. Like the
+     * other two, it throws regardless of `throwErrorOnInvalidInputData`.
      *
      * Set to `Infinity` to disable the limit entirely.
      *
-     * @default 67_108_864 (64 MiB — the decoded RGBA size of an image at `maxPixels`)
+     * @default 135_266_304 (129 MiB — the raw size of a 16-bit RGBA image at `maxPixels`, plus 1 MiB)
      * @example
      * ```ts
      * // Untrusted uploads: cap reads well below the decoded-image limit

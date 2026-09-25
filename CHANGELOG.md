@@ -7,10 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [7.0.0] - 2026-09-25
+## [7.0.0] - 2026-09-26
 
-Two breaking changes — the Node.js floor and the Vitest peer range, both under
-**Changed** below. See the README's migration guide for upgrade steps.
+Breaking changes — the Node.js floor, the Vitest peer range, and install-time peer
+checks — are marked **BREAKING** under **Changed** below. See the README's migration
+guide for upgrade steps.
 
 ### Added
 
@@ -19,12 +20,15 @@ Two breaking changes — the Node.js floor and the Vitest peer range, both under
   `expect.extend` / `mergeExpects`. Baselines are PNG files at `testInfo.snapshotPath()`
   (see `docs/adr/0001-playwright-baselines-as-png-files.md`), `--update-snapshots` and
   `ignoreSnapshots` behave as for Playwright's `toMatchSnapshot()`, and failures attach
-  expected/actual/diff images for the HTML report's image diff viewer. `@playwright/test`
-  `>=1.60.0 <2` is an optional peer dependency.
+  expected/actual/diff images for the HTML report's image diff viewer. A received image
+  over `maxDimension` / `maxPixels` throws `ResourceLimitError` instead of being written as
+  a baseline no later run could compare against. `@playwright/test` `>=1.60.0 <2` is an
+  optional peer dependency.
 
-- **`maxFileBytes` option** (default `67_108_864`, exported as `DEFAULT_MAX_FILE_BYTES`) —
+- **`maxFileBytes` option** (default `135_266_304`, exported as `DEFAULT_MAX_FILE_BYTES`) —
   caps the size of a PNG read from a path, checked from the file's size before any
-  bytes are read. `maxDimension` and `maxPixels` inspect the declared IHDR header and
+  bytes are read and again against the bytes actually read, so a file that grows
+  mid-read, a FIFO, or a device cannot slip past it. `maxDimension` and `maxPixels` inspect the declared IHDR header and
   so bound the _decoded_ image; nothing previously bounded the _compressed_ bytes, so a
   multi-gigabyte file was fully resident before either limit was consulted. Throws
   `ResourceLimitError` regardless of `throwErrorOnInvalidInputData`, matching the other
@@ -35,11 +39,10 @@ Two breaking changes — the Node.js floor and the Vitest peer range, both under
     exact byte count and escapes even in permissive mode, so checking it first would
     disclose the existence and size of a file outside `inputBaseDir`.
 
-    The default is the decoded RGBA size of an image at `maxPixels`, so essentially
-    nothing legitimate reaches it — a 4096 × 4096 screenshot compresses to single-digit
-    megabytes. One edge does: a maximally incompressible image at exactly the pixel
-    ceiling encodes roughly 9 KB above the cap and will now be rejected. Raise
-    `maxFileBytes` if you compare synthetic noise at that size.
+    The default is the raw size of a 16-bit RGBA image — the widest PNG pixel format,
+    8 bytes per pixel — at `maxPixels`, plus 1 MiB for filter bytes, compression framing,
+    and metadata chunks. No PNG that passes `maxPixels` reaches it, whatever its bit
+    depth. Lower it if you compare untrusted uploads and want a tighter memory bound.
 
 ### Changed
 
@@ -55,6 +58,11 @@ Two breaking changes — the Node.js floor and the Vitest peer range, both under
   `toMatchPngSnapshot` module augmentation in `png-visual-compare/vitest` now targets
   `Matchers<R, T>` and no longer type-checks against Vitest 4. Stay on the previous
   release if you are still on Vitest 4.
+- **BREAKING: optional peers are checked at install** — npm checks an optional peer
+  whenever it is installed, whether or not you import the matching subpath. A project
+  with `vitest` 4 or with `@playwright/test` older than 1.60 now gets `ERESOLVE` from
+  `npm install png-visual-compare@7` even if it only calls `comparePng`; with a caret
+  range such as `^1.55.0`, npm upgrades Playwright instead. Upgrade the peer first.
 - **CI** — both test jobs now take their Node version from `.nvmrc` (`24`) instead of
   hardcoded versions (`24.x` on Ubuntu, `20.x` on macOS).
 - **CI** — the macOS job in `test.yml` is now marked `continue-on-error`: it still runs
@@ -70,12 +78,17 @@ Two breaking changes — the Node.js floor and the Vitest peer range, both under
   floor, the `./vitest` and `./jest` subpath exports, the `sideEffects` array, and the
   `npm run` script list. `CLAUDE.md` and `AGENTS.md` now list `codemap:check` in the
   `pretest:unit` chain.
+- **Docs** — the README gains a v7.0.0 migration guide, a verified Jest configuration
+  (Jest's own module loader cannot `require()` the ESM-only `pixelmatch` without it,
+  which was already true in 6.x — tracked as RELI-11), and guidance on image limits for
+  full-page Playwright screenshots. `SECURITY.md` now lists 7.x as supported.
 
 ### Security
 
-- **Path reads are pinned to one inode** — `comparePng` and `comparePngAsync` now open
-  an input file _before_ validating it, then prove the opened handle is the file
-  containment approved. Previously `validatePath` walked the path and `readFile` walked
+- **Path reads are pinned to one inode** — `comparePng` and `comparePngAsync` now run a
+  filesystem-free containment check, open the input file, and only then validate it,
+  proving the opened handle is the file containment approved. A path outside
+  `inputBaseDir` is refused before it is opened, so whether it exists is never disclosed. Previously `validatePath` walked the path and `readFile` walked
   it again from scratch, so anything swapped in between was what actually got read.
   Only engages when `inputBaseDir` is set. Closes SECU-05.
 - **Diff writes no longer traverse a symlinked parent** — the recursive `mkdir` in both
@@ -84,7 +97,8 @@ Two breaking changes — the Node.js floor and the Vitest peer range, both under
   `diffOutputBaseDir`. Parent directories are now created one component at a time with
   symlinks refused, and the file is then opened inside the _resolved_ parent
   directory rather than the caller's path, so no symlink is traversed at open time
-  at all. Truncation is deferred — the open no longer uses `O_TRUNC`, and `ftruncate`
+  at all, and both writers re-resolve the parent chain after the open to prove the
+  handle sits inside it. Truncation is deferred — the open no longer uses `O_TRUNC`, and `ftruncate`
   runs only once the opened handle has been proven contained — and a failed check
   removes only a file this write created — established by
   `O_EXCL` on the create attempt, since plain `O_CREAT` succeeds identically for a
@@ -96,6 +110,9 @@ Two breaking changes — the Node.js floor and the Vitest peer range, both under
 - **README gained a Security Model section** documenting what each limit does and does
   not cover, including that the race defences _detect_ a swap rather than prevent it,
   since Node exposes no `openat`. Closes SECU-06.
+- **Known limits, documented** — a hard link inside a boundary, and a FIFO planted
+  inside one, are not defended against; see README → Security Model → What is not
+  covered (tracked as SECU-13 and SECU-14).
 
 ### Dependencies
 
