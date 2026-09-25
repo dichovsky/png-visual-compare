@@ -8,8 +8,10 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { expect as baseExpect, test, type TestInfo } from '@playwright/test';
 import { comparePng } from './comparePng';
+import { getPngData } from './getPngData';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher';
 import { NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE, type PngSnapshotMatcherArgs } from './matchers/pngSnapshot';
+import { resolveOptions } from './pipeline/resolveOptions';
 import type { ComparePngOptions } from './types';
 
 const PNG_EXTENSION = /\.png$/i;
@@ -90,7 +92,11 @@ function attachActual(testInfo: TestInfo, artifactBase: string, received: Buffer
     attach(testInfo, `${artifactBase}-actual.png`, actualPath);
 }
 
-function writeBaseline(baselinePath: string, received: Buffer): void {
+// A baseline over maxDimension/maxPixels could never be compared against, so refuse it
+// with the ResourceLimitError comparePng would throw. Decode errors are left to comparePng.
+function writeBaseline(baselinePath: string, received: Buffer, options: ComparePngOptions | undefined): void {
+    const { maxDimension, maxPixels } = resolveOptions(options);
+    getPngData(received, false, maxDimension, maxPixels);
     mkdirSync(dirname(baselinePath), { recursive: true });
     writeFileSync(baselinePath, received);
 }
@@ -99,7 +105,13 @@ function pixelLabel(count: number): string {
     return `${count} mismatched pixel${count === 1 ? '' : 's'}`;
 }
 
-function matchMissingBaseline(testInfo: TestInfo, received: Buffer, names: SnapshotNames, baselinePath: string): MatcherResult {
+function matchMissingBaseline(
+    testInfo: TestInfo,
+    received: Buffer,
+    names: SnapshotNames,
+    baselinePath: string,
+    options: ComparePngOptions | undefined,
+): MatcherResult {
     const mode = testInfo.config.updateSnapshots;
 
     if (mode === 'none') {
@@ -108,7 +120,7 @@ function matchMissingBaseline(testInfo: TestInfo, received: Buffer, names: Snaps
         return { pass: false, message: () => message };
     }
 
-    writeBaseline(baselinePath, received);
+    writeBaseline(baselinePath, received, options);
 
     if (mode !== 'missing') {
         return PASSED;
@@ -145,7 +157,7 @@ function matchAgainstBaseline(testInfo: TestInfo, isNot: boolean, received: Buff
             throw new Error(NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE);
         }
 
-        return matchMissingBaseline(testInfo, received, names, baselinePath);
+        return matchMissingBaseline(testInfo, received, names, baselinePath, args.options);
     }
 
     // `.not` never writes: it returns the raw comparison and Playwright inverts `pass`.
@@ -161,7 +173,7 @@ function matchAgainstBaseline(testInfo: TestInfo, isNot: boolean, received: Buff
 
     if (mode === 'all') {
         if (!received.equals(baseline)) {
-            writeBaseline(baselinePath, received);
+            writeBaseline(baselinePath, received, args.options);
         }
 
         return PASSED;
@@ -175,7 +187,7 @@ function matchAgainstBaseline(testInfo: TestInfo, isNot: boolean, received: Buff
     }
 
     if (mode === 'changed') {
-        writeBaseline(baselinePath, received);
+        writeBaseline(baselinePath, received, args.options);
         return PASSED;
     }
 
