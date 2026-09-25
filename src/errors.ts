@@ -1,7 +1,8 @@
 /**
- * Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded.
- * This error is recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid
- * inputs as zero-size PNGs instead.
+ * Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded,
+ * or when an `excludedAreas`, colour, or `pixelmatchOptions` value is invalid. Per-input
+ * failures are recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid
+ * inputs as zero-size PNGs instead; invalid options, and both inputs being invalid, always throw.
  *
  * @example
  * ```ts
@@ -61,24 +62,25 @@ export class PathValidationError extends Error {
 }
 
 /**
- * Thrown when a PNG would exceed resource limits set via `maxDimension` or `maxPixels`.
+ * Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`.
  * This error is **NOT** recoverable and always throws regardless of
  * `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern
  * rather than a routine input validation issue.
  *
  * Common triggers:
  * - A crafted PNG header declaring huge dimensions (e.g., 999,999 × 999,999)
- * - A large-but-axis-valid PNG (e.g., 20,000 × 20,000) that would exhaust memory
+ * - A large-but-axis-valid PNG (e.g., 16,384 × 16,384) that would exhaust memory
+ * - A PNG file read from a path that is larger than `maxFileBytes` (checked before any bytes are read)
  *
  * @example
  * ```ts
  * try {
- *   // Reject PNGs larger than 16384 × 16384
+ *   // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or files > 64 MiB
  *   comparePng('huge.png', 'image.png');
  * } catch (error) {
  *   if (error instanceof ResourceLimitError) {
  *     console.log('PNG is too large:', error.message);
- *     // Increase maxDimension or maxPixels if legitimate PNGs are being rejected
+ *     // Increase maxDimension, maxPixels, or maxFileBytes if legitimate PNGs are being rejected
  *   }
  * }
  * ```

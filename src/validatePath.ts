@@ -55,7 +55,7 @@ function realpathExistingPath(targetPath: string): string {
  * there is no boundary to enforce — callers can write anywhere — so the legacy
  * "shape-check first" behaviour is preserved (no oracle exists either way).
  *
- * Mirrors the VUL-05 / `getPngData.ts:95-97` pattern of unifying error responses
+ * Mirrors the VUL-05 / `getPngData.ts:85-87` pattern of unifying error responses
  * across security boundaries to prevent enumeration.
  */
 function assertOutputTargetShape(resolved: string): void {

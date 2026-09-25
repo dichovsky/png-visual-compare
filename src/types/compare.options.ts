@@ -13,7 +13,7 @@ export type PixelmatchOptions = {
      */
     includeAA?: boolean;
     /**
-     * Blending factor of unchanged pixels in the output diff image. Ranges from `0` (transparent) to `1` (opaque).
+     * Blending factor of unchanged pixels in the output diff image. Ranges from `0` (pure white) to `1` (original brightness).
      * @default 0.1
      */
     alpha?: number;
@@ -28,8 +28,8 @@ export type PixelmatchOptions = {
      */
     diffColor?: [number, number, number];
     /**
-     * Alternative RGB colour for dark differing pixels (useful for dark-mode screenshots). When set, differing
-     * pixels are coloured with `diffColor` or `diffColorAlt` based on brightness of the original pixel.
+     * Alternative RGB colour for differing pixels where the second image is darker than the first, to tell
+     * "added" from "removed" content. When unset, all differing pixels use `diffColor`.
      * @default undefined
      */
     diffColorAlt?: [number, number, number];
@@ -56,7 +56,7 @@ export type ComparePngOptions = {
     /**
      * Absolute file path where the diff PNG is saved when mismatched pixels are found.
      * The directory is created automatically if it does not exist.
-     * The file is **not** created when `pixelmatchResult === 0`.
+     * The file is **not** created when no pixels mismatch (the return value is `0`).
      *
      * **Symlink-atomic write contract (SECU-03, SECU-09):**
      * The diff is written through an `O_NOFOLLOW` open. If the final path component
@@ -78,9 +78,8 @@ export type ComparePngOptions = {
      * of (a) the process umask and (b) any pre-existing mode at the target
      * when the diff overwrites an older file. POSIX would otherwise mask the
      * requested create-mode with `~umask` (so umask can only make permissions
-     * *more* restrictive), and `O_TRUNC` would otherwise leave a pre-existing
-     * `0o644` file at its existing wider mode. Callers who need a different
-     * file mode can inject a custom `DiffWriterPort` via `comparePngWithPorts`.
+     * *more* restrictive), and truncating an existing file would otherwise leave a pre-existing
+     * `0o644` file at its existing wider mode.
      *
      * **Residual scope:** Node exposes no `openat`, so a path swap cannot be
      * *prevented* portably — it is detected and refused. Redirecting the write now
@@ -135,14 +134,14 @@ export type ComparePngOptions = {
      * Maximum total pixel count (width × height) for a single decoded input image
      * and for the normalized comparison canvas.
      * Complements `maxDimension` by catching large-but-axis-valid images
-     * (e.g., 1 × 16,777,216 pixels) that would still exhaust memory.
+     * (e.g., 16,384 × 16,384 = 268,435,456 pixels) that would still exhaust memory.
      * Set to `Infinity` to disable the limit entirely.
      *
      * @default 16_777_216 (16 megapixels, ~64 MB decompressed at 4 bytes/pixel)
      * @example
      * ```ts
      * // For web/mobile use cases with strict memory budgets
-     * const opts = { maxPixels: 50_000_000 }; // 50 megapixels
+     * const opts = { maxPixels: 4_000_000 }; // 4 megapixels
      * comparePng(userImage1, userImage2, opts);
      *
      * // For server-side batch processing with more headroom

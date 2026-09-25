@@ -23,7 +23,8 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 ## Table of Contents
 
 - [Installation](#installation)
-- [Migration Guide](#migration-guide)
+- [Migration Guide to v7.0.0](#migration-guide-to-v700)
+- [Migration Guide to v6.0.0](#migration-guide-to-v600)
 - [Quick Start](#quick-start)
 - [Snapshot Matchers](#snapshot-matchers)
 - [API Reference](#api-reference)
@@ -42,7 +43,28 @@ npm install -D png-visual-compare
 
 > **Platform Requirement:** macOS or Linux only. Windows is not supported.
 >
-> **Node.js Requirement:** Node.js 20 or higher is required.
+> **Node.js Requirement:** Node.js 22.12.0 or higher is required.
+
+---
+
+## Migration Guide to v7.0.0
+
+1. Run on Node.js 22.12.0 or later.
+2. If you use `png-visual-compare/vitest`, upgrade to Vitest 5.
+3. Expect `maxFileBytes` and the stricter containment checks to surface as new errors in edge cases.
+
+### 1. Node.js 22.12.0 or later is required
+
+`engines.node` is now `>=22.12.0` (was `>=20`). Node.js 20 is end-of-life, and the CommonJS build `require()`s the ESM-only `pixelmatch` 7, which Node.js 22 loads without a flag only from 22.12.0.
+
+### 2. The Vitest matcher requires Vitest 5
+
+The `vitest` peer range is now `>=5.0.0 <6` (was `>=4.1.0 <5`). Vitest 5 changed `Matchers` to two type parameters (`Matchers<R, T>`), and the `toMatchPngSnapshot` augmentation no longer type-checks against Vitest 4. Stay on 6.3.0 if you cannot upgrade Vitest yet. The Jest matcher and the `comparePng` / `comparePngAsync` signatures are unchanged.
+
+### 3. New limits and containment checks
+
+- `maxFileBytes` (default `67108864`) caps the size of a PNG read from a path and throws `ResourceLimitError` when exceeded, regardless of `throwErrorOnInvalidInputData`. `Buffer` inputs are not affected. See [Resource limits](#resource-limits).
+- With `inputBaseDir` or `diffOutputBaseDir` set, these are now refused with `PathValidationError`: a file swapped between validation and use, a filesystem that reports no file identity, and (with `diffOutputBaseDir`) a symlinked parent directory of `diffFilePath`. See [Security Model](#security-model).
 
 ---
 
@@ -79,7 +101,7 @@ The library now fails fast for malformed option data instead of relying on downs
 
 - `inputBaseDir` / `diffOutputBaseDir` containment violations → `PathValidationError`
 - symlink traversal and invalid output target checks → `PathValidationError`
-- `maxDimension` / `maxPixels` / `maxFileBytes` limits → `ResourceLimitError`
+- `maxDimension` / `maxPixels` limits → `ResourceLimitError`
 - failures inside the underlying `pixelmatch` call → `ComparisonError` (the original error is preserved on `cause`)
 
 ### 4. Use `comparePngAsync` for promise-based I/O
@@ -158,6 +180,8 @@ Update stored snapshots with the normal Vitest command:
 ```sh
 npx vitest run -u
 ```
+
+**Requires Vitest 5** (peer range `>=5.0.0 <6`). Vitest 4 is not supported from 7.0.0; see [Migration Guide to v7.0.0](#migration-guide-to-v700).
 
 ### Jest
 
@@ -327,27 +351,27 @@ type Color = {
 
 ### `PixelmatchOptions`
 
-| Option         | Type        | Default         | Description                                                     |
-| -------------- | ----------- | --------------- | --------------------------------------------------------------- |
-| `threshold`    | `number`    | `0.1`           | Matching threshold `0`–`1`. Lower = more sensitive              |
-| `includeAA`    | `boolean`   | `false`         | When `true`, anti-aliased pixels count as mismatches            |
-| `alpha`        | `number`    | `0.1`           | Opacity of unchanged pixels in the diff image                   |
-| `aaColor`      | `[r, g, b]` | `[255, 255, 0]` | Colour of anti-aliased pixels in the diff                       |
-| `diffColor`    | `[r, g, b]` | `[255, 0, 0]`   | Colour of differing pixels in the diff                          |
-| `diffColorAlt` | `[r, g, b]` | `undefined`     | Alternative diff colour for dark pixels (dark-mode support)     |
-| `diffMask`     | `boolean`   | `false`         | Show only changed pixels on a transparent background            |
-| `checkerboard` | `boolean`   | `true`          | Blend semi-transparent pixels against a checkerboard (vs white) |
+| Option         | Type        | Default         | Description                                                                                  |
+| -------------- | ----------- | --------------- | -------------------------------------------------------------------------------------------- |
+| `threshold`    | `number`    | `0.1`           | Matching threshold `0`–`1`. Lower = more sensitive                                           |
+| `includeAA`    | `boolean`   | `false`         | When `true`, anti-aliased pixels count as mismatches                                         |
+| `alpha`        | `number`    | `0.1`           | Opacity of unchanged pixels in the diff image                                                |
+| `aaColor`      | `[r, g, b]` | `[255, 255, 0]` | Colour of anti-aliased pixels in the diff                                                    |
+| `diffColor`    | `[r, g, b]` | `[255, 0, 0]`   | Colour of differing pixels in the diff                                                       |
+| `diffColorAlt` | `[r, g, b]` | `undefined`     | Diff colour where `png2` is darker than `png1` (added vs removed); falls back to `diffColor` |
+| `diffMask`     | `boolean`   | `false`         | Show only changed pixels on a transparent background                                         |
+| `checkerboard` | `boolean`   | `true`          | Blend semi-transparent pixels against a checkerboard (vs white)                              |
 
 ### Errors
 
 All public errors extend the built-in `Error` and expose a stable string `code` for runtime matching without parsing messages. Match either via `instanceof` or via `code`:
 
-| Class                 | `code`                  | When it throws                                                                                                                              |
-| --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `InvalidInputError`   | `ERR_INVALID_PNG_INPUT` | A PNG input is missing, malformed, or cannot be decoded. Recoverable via `throwErrorOnInvalidInputData: false` (treated as a zero-size PNG) |
-| `PathValidationError` | `ERR_PATH_VALIDATION`   | A file path fails validation: traversal outside a base directory, symlink at the output target, empty/null-byte path                        |
-| `ResourceLimitError`  | `ERR_RESOURCE_LIMIT`    | A PNG would exceed `maxDimension`, `maxPixels`, or `maxFileBytes`. **Always throws** regardless of `throwErrorOnInvalidInputData`           |
-| `ComparisonError`     | `ERR_COMPARISON`        | The underlying `pixelmatch` call threw. The original failure is preserved on the standard `cause` property. **Always throws**               |
+| Class                 | `code`                  | When it throws                                                                                                                                                                                                                                                                                        |
+| --------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `InvalidInputError`   | `ERR_INVALID_PNG_INPUT` | A PNG input is missing, malformed, or cannot be decoded, or an `excludedAreas`, colour, or `pixelmatchOptions` value is invalid. Per-input failures are recoverable via `throwErrorOnInvalidInputData: false` (treated as a zero-size PNG); invalid options always throw                              |
+| `PathValidationError` | `ERR_PATH_VALIDATION`   | A file path fails validation: traversal outside a base directory, symlink at the output target, empty/null-byte path. With `inputBaseDir` / `diffOutputBaseDir` set, also a file swapped between validation and use, a symlinked diff parent directory, or a filesystem that reports no file identity |
+| `ResourceLimitError`  | `ERR_RESOURCE_LIMIT`    | A PNG would exceed `maxDimension`, `maxPixels`, or `maxFileBytes`. **Always throws** regardless of `throwErrorOnInvalidInputData`                                                                                                                                                                     |
+| `ComparisonError`     | `ERR_COMPARISON`        | The underlying `pixelmatch` call threw. The original failure is preserved on the standard `cause` property. **Always throws**                                                                                                                                                                         |
 
 ```typescript
 import { comparePng, ComparisonError } from 'png-visual-compare';

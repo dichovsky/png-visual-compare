@@ -8,6 +8,7 @@ The package is a small PNG comparison engine with:
 
 - **Public sync API:** `comparePng(png1, png2, opts?)`
 - **Public async API:** `comparePngAsync(png1, png2, opts?)`
+- **Test-framework matchers:** `toMatchPngSnapshot()` via the `png-visual-compare/vitest`, `png-visual-compare/jest`, and `png-visual-compare/playwright` subpaths
 - **Internal sync hook:** `comparePngWithPorts(...)` for orchestrator/port tests
 
 The package accepts either absolute file paths or raw PNG `Buffer`s, normalizes both images to a comparable canvas, runs `pixelmatch`, and optionally writes a diff PNG.
@@ -36,6 +37,7 @@ comparePng / comparePngAsync
 - `DEFAULT_EXCLUDED_AREA_COLOR`
 - `DEFAULT_EXTENDED_AREA_COLOR`
 - `DEFAULT_MAX_DIMENSION`
+- `DEFAULT_MAX_FILE_BYTES`
 - `DEFAULT_MAX_PIXELS`
 
 ### Public types
@@ -45,6 +47,14 @@ comparePng / comparePngAsync
 - `ComparePngOptions`
 - `PixelmatchOptions`
 - `LoadedPng`
+
+### Subpath exports
+
+Each subpath adds a `toMatchPngSnapshot()` matcher for one test framework. All three validate the received PNG and the matcher arguments through `src/matchers/createPngSnapshotMatcher.ts` and compare with `comparePng`.
+
+- `png-visual-compare/vitest` (`src/vitest.mts`): side-effect import. Registers the matcher on Vitest's `expect` and augments `Matchers<R, T>` (Vitest 5). Baselines are serialised Buffers in Vitest's `.snap` file. Optional peer: `vitest` `>=5.0.0 <6`.
+- `png-visual-compare/jest` (`src/jest.ts`): side-effect import. Registers the matcher on Jest's global `expect` when present, exports `registerJestPngSnapshotMatcher`, and augments `jest.Matchers`. Baselines are serialised Buffers in Jest's `.snap` file. Optional peer: `jest` `>=29 <31`.
+- `png-visual-compare/playwright` (`src/playwright.ts`): no side effects. Exports `expect` (Playwright's `expect` extended with a synchronous `toMatchPngSnapshot()`) and `pngMatchers`. Baselines are PNG files at `testInfo.snapshotPath(name)` (see `docs/adr/0001-playwright-baselines-as-png-files.md`). Optional peer: `@playwright/test` `>=1.60.0 <2`.
 
 ## Module layout
 
@@ -59,6 +69,7 @@ comparePng / comparePngAsync
 | Ports                 | `src/ports/*`                                                                                                                          | Sync/async filesystem adapters and internal test injection seams                           |
 | Types/defaults/errors | `src/types/*`, `src/defaults.ts`, `src/errors.ts`                                                                                      | Shared contracts and stable defaults                                                       |
 | Adapter boundary      | `src/adapters/toPixelmatchOptions.ts`                                                                                                  | Internal translation from public `PixelmatchOptions` to `pixelmatch`                       |
+| Matchers              | `src/vitest.mts`, `src/jest.ts`, `src/playwright.ts`, `src/matchers/*`                                                                 | `toMatchPngSnapshot` adapters for the `./vitest`, `./jest`, `./playwright` subpaths        |
 
 ## Sync architecture
 
@@ -103,10 +114,9 @@ This is the main **public input boundary** for options.
 
 `src/pipeline/loadSources.ts`
 
-Loads both inputs via the selected `ImageSourcePort`:
+Loads both inputs via the selected `ImageSourcePort` (default: `fsImageSource`).
 
-- default sync implementation: `fsImageSource`
-- default async implementation: `fsAsyncImageSource`
+The async path does not use this module: `loadSourcesAsync`, private to `src/comparePngAsync.ts`, loads both inputs concurrently through `fsAsyncImageSource` (an `AsyncImageSourcePort`) and applies the same both-invalid check.
 
 If both sides are invalid, the pipeline throws `InvalidInputError` with a message naming each input's failure reason (e.g. `Both PNG inputs are invalid — png1: could not decode PNG content; png2: source path could not be loaded.`).
 
@@ -235,6 +245,7 @@ The diff write:
 - an array
 - of non-null objects
 - with finite integer coordinates
+- with non-negative coordinates
 - with `x1 <= x2`
 - with `y1 <= y2`
 
@@ -248,6 +259,7 @@ The public wrapper owns runtime validation for:
 - `alpha`
 - `includeAA`
 - `diffMask`
+- `checkerboard`
 - `aaColor`
 - `diffColor`
 - `diffColorAlt`
@@ -301,7 +313,7 @@ The ports isolate file I/O from orchestration so tests can validate decision log
 - `tsconfig.prod.json` extends the dev config and restores emitted library build settings for `src/ -> out`
 - `npm run typecheck` validates the full repository via `tsconfig.json`
 - `npm run build` emits the published package via `tsconfig.prod.json`
-- package export surface is only `"."`
+- package export surface is `"."` plus the `"./vitest"`, `"./jest"`, and `"./playwright"` matcher subpaths (`sideEffects` lists `./out/vitest.mjs` and `./out/jest.js`; the Playwright entry has none)
 - only `out/` is published to npm
 - `npm run codemap` regenerates `CODEMAP.md` from the current source tree and package metadata
 
