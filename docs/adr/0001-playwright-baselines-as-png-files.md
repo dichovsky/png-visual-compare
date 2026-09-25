@@ -1,0 +1,3 @@
+# Playwright baselines are stored as PNG files, not in `.snap` files
+
+The Jest and Vitest `toMatchPngSnapshot` matchers store each baseline as a serialised Buffer inside the framework's `.snap` file, because both frameworks expose snapshot state to custom matchers. Playwright's `expect` exposes no snapshot state, so the Playwright adapter stores each baseline as a plain PNG file at `testInfo.snapshotPath(name)`. It honours the user's `snapshotPathTemplate` and `--update-snapshots` mode, and its baselines sit beside those written by `toHaveScreenshot`/`toMatchSnapshot`. As a consequence, a baseline recorded under one framework cannot be reused under another.
