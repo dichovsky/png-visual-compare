@@ -19,11 +19,12 @@ export const DEFAULT_MAX_PIXELS = 16_777_216;
 /**
  * Default maximum size, in bytes, of a PNG file read from disk.
  *
- * Derived rather than arbitrary: at 4 bytes per RGBA pixel this is exactly the
- * decoded size of an image at `DEFAULT_MAX_PIXELS`, so no file that could pass
- * the pixel limit can meaningfully fail this one. It bounds the *compressed*
- * bytes, which `maxDimension` and `maxPixels` cannot — those read the declared
- * IHDR header, which says nothing about how many bytes reaching that header
- * costs.
+ * Derived rather than arbitrary: the raw size of a 16-bit RGBA image — the widest
+ * PNG pixel format, 8 bytes per pixel — at `DEFAULT_MAX_PIXELS`, plus 1 MiB for
+ * filter bytes, compression framing, and metadata chunks. So no file that could
+ * pass the pixel limit fails this one, whatever its bit depth. It bounds the
+ * *compressed* bytes, which `maxDimension` and `maxPixels` cannot — those read the
+ * declared IHDR header, which says nothing about how many bytes reaching that
+ * header costs.
  */
-export const DEFAULT_MAX_FILE_BYTES = DEFAULT_MAX_PIXELS * 4;
+export const DEFAULT_MAX_FILE_BYTES = DEFAULT_MAX_PIXELS * 8 + 1024 * 1024;

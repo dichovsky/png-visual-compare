@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { PNG } from 'pngjs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { DEFAULT_MAX_DIMENSION, ResourceLimitError } from '../src';
 import { expect as extendedExpect, pngMatchers } from '../src/playwright';
 
 type UpdateSnapshotsMode = 'all' | 'changed' | 'missing' | 'none';
@@ -40,6 +41,8 @@ function createSolidPng(r: number, g: number, b: number): Buffer {
 
 const RED = createSolidPng(255, 0, 0);
 const BLUE = createSolidPng(0, 0, 255);
+// Same pixels as RED, different bytes.
+const RED_REENCODED = PNG.sync.write(PNG.sync.read(RED), { deflateLevel: 0 });
 
 function useTestInfo(updateSnapshots: UpdateSnapshotsMode = 'missing', ignoreSnapshots = false): FakeTestInfo {
     const testInfo: FakeTestInfo = {
@@ -171,6 +174,24 @@ describe('baseline naming', () => {
         ]);
     });
 
+    test('numbers the artifacts of distinct hints that sanitise to the same name', () => {
+        const testInfo = useTestInfo();
+        seedBaseline(join('pages', 'home.png'), RED);
+        seedBaseline('pages-home.png', RED);
+
+        match(BLUE, 'pages/home');
+        match(BLUE, 'pages-home');
+
+        expect(testInfo.attachments.map((attachment) => attachment.name)).toEqual([
+            'pages-home-expected.png',
+            'pages-home-actual.png',
+            'pages-home-diff.png',
+            'pages-home-1-expected.png',
+            'pages-home-1-actual.png',
+            'pages-home-1-diff.png',
+        ]);
+    });
+
     test('shortens a long generated name with a hash, as Playwright does', () => {
         const testInfo = useTestInfo('changed');
         testInfo.titlePath = ['visual.spec.ts', 'x'.repeat(300)];
@@ -190,8 +211,16 @@ describe('baseline naming', () => {
         expect(match(BLUE, { excludedAreas: [] }).pass).toBe(true);
     });
 
+    test('sanitises the test title into artifact names for unnamed assertions', () => {
+        const testInfo = useTestInfo('none');
+        testInfo.titlePath = ['visual.spec.ts', 'GET /api/users'];
+
+        expect(match(RED).pass).toBe(false);
+        expect(testInfo.attachments.map((attachment) => attachment.name)).toEqual(['GET-api-users-png-1-actual.png']);
+    });
+
     test('treats an empty hint as unnamed', () => {
-        useTestInfo();
+        useTestInfo('none');
         seedBaseline('header renders png 1.png', RED);
 
         expect(match(RED, '').pass).toBe(true);
@@ -274,6 +303,17 @@ describe('comparison against an existing baseline', () => {
         expect(readFileSync(baselinePath)).toEqual(RED);
     });
 
+    test.each([
+        ['a pixel-identical re-encode', RED_REENCODED, undefined],
+        ['an image that matches only under the options', BLUE, { excludedAreas: [{ x1: 0, y1: 0, x2: 0, y2: 0 }] }],
+    ])('keeps the baseline for %s in changed mode', (_, received, options) => {
+        useTestInfo('changed');
+        const baselinePath = seedBaseline('header.png', RED);
+
+        expect(match(received, 'header', options).pass).toBe(true);
+        expect(readFileSync(baselinePath)).toEqual(RED);
+    });
+
     test('overwrites a baseline whose bytes differ and passes in all mode', () => {
         useTestInfo('all');
         const baselinePath = seedBaseline('header.png', RED);
@@ -288,6 +328,14 @@ describe('comparison against an existing baseline', () => {
 
         expect(match(RED, 'header').pass).toBe(true);
         expect(readFileSync(baselinePath)).toEqual(RED);
+    });
+
+    test('overwrites a pixel-identical baseline whose bytes differ in all mode', () => {
+        useTestInfo('all');
+        const baselinePath = seedBaseline('header.png', RED);
+
+        expect(match(RED_REENCODED, 'header').pass).toBe(true);
+        expect(readFileSync(baselinePath)).toEqual(RED_REENCODED);
     });
 });
 
@@ -314,15 +362,20 @@ describe('missing baseline', () => {
     test.each(['all', 'changed'] as const)('writes the baseline and passes in %s mode', (mode) => {
         useTestInfo(mode);
 
-        expect(match(RED, 'header').pass).toBe(true);
+        const result = match(RED, 'header');
+
+        expect(result.pass).toBe(true);
+        expect(result.softError).toBeUndefined();
+        expect(result.shouldNotRetryTest).toBeUndefined();
         expect(readFileSync(join(workDir, 'snapshots', 'header.png'))).toEqual(RED);
     });
 
     test('rethrows a baseline read error other than a missing file', () => {
-        useTestInfo('all');
+        useTestInfo('none');
         mkdirSync(join(workDir, 'snapshots', 'header.png'), { recursive: true });
 
         expect(() => match(RED, 'header')).toThrow(/EISDIR/);
+        expect(() => matchNot(RED, 'header')).toThrow(/EISDIR/);
     });
 
     test('fails without writing in none mode', () => {
@@ -340,6 +393,26 @@ describe('missing baseline', () => {
     });
 });
 
+describe('image limits', () => {
+    const OVER_DEFAULT_MAX_DIMENSION = PNG.sync.write(new PNG({ width: DEFAULT_MAX_DIMENSION + 1, height: 1 }));
+    const TWO_PIXELS = PNG.sync.write(new PNG({ width: 2, height: 1 }));
+
+    test.each(['missing', 'all', 'changed'] as const)('refuses to write a missing baseline over the default limits in %s mode', (mode) => {
+        useTestInfo(mode);
+
+        expect(() => match(OVER_DEFAULT_MAX_DIMENSION, 'header')).toThrow(ResourceLimitError);
+        expect(existsSync(join(workDir, 'snapshots', 'header.png'))).toBe(false);
+    });
+
+    test.each(['all', 'changed'] as const)('refuses to overwrite a baseline with an image over maxPixels in %s mode', (mode) => {
+        useTestInfo(mode);
+        const baselinePath = seedBaseline('header.png', RED);
+
+        expect(() => match(TWO_PIXELS, 'header', { maxPixels: 1 })).toThrow(ResourceLimitError);
+        expect(readFileSync(baselinePath)).toEqual(RED);
+    });
+});
+
 describe('negated assertions', () => {
     test('throws when the baseline is missing', () => {
         useTestInfo('all');
@@ -353,6 +426,13 @@ describe('negated assertions', () => {
         seedBaseline('header.png', RED);
 
         expect(matchNot(BLUE, 'header').pass).toBe(false);
+    });
+
+    test('passes ComparePngOptions through to the comparison', () => {
+        useTestInfo();
+        seedBaseline('header.png', RED);
+
+        expect(matchNot(BLUE, 'header', { excludedAreas: [{ x1: 0, y1: 0, x2: 0, y2: 0 }] }).pass).toBe(true);
     });
 
     test('returns pass=true with a message when the image matches, so .not fails', () => {

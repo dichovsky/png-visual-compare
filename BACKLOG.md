@@ -8,6 +8,8 @@
 
 ## 🔒 Security
 
+- [ ] 🟡 🐛 SECU [SECU-13]: Hard link inside a base dir defeats containment — it is the same inode, so the identity checks pass and a diff write overwrites the linked file; consider refusing `nlink > 1` on overwrite (documented in README → What is not covered; 7.0.0 audit)
+- [ ] 🟡 🐛 SECU [SECU-14]: FIFO/special file inside a boundary blocks the open — reads and diff writes open without `O_NONBLOCK`; add it and refuse a non-regular `fstat` when a base dir is set (7.0.0 audit)
 - [ ] 🟢 🐛 SECU [SECU-08]: Cap path length in `validatePath` (4096)
 
 ## ⚡ Performance
@@ -18,9 +20,12 @@
 - [ ] 🟡 ♻️ PERF [PERF-05]: PNG snapshot serialization → base64
 - [ ] 🟢 ♻️ PERF [PERF-06]: `extendImage` padding double-write
 - [ ] 🟢 ♻️ PERF [PERF-07]: `validateArea` allocation-free
+- [ ] 🟢 ♻️ PERF [PERF-08]: Playwright baseline writes fully decode the PNG to check limits — export an IHDR-only `assertImageLimits` from `getPngData`
 
 ## 🏛️ Architecture · Types · API · Reliability
 
+- [ ] 🔴 🐛 RELI [RELI-11]: Jest cannot load the package without a Babel transform — the CJS build `require()`s ESM-only `pixelmatch`, which Jest's loader (and Vitest vm pools) cannot load; bundle `pixelmatch` (ISC) into the CJS build, then drop the README workaround
+- [ ] 🔴 🐛 RELI [RELI-12]: Jest 30.5+ `retryTimes` false green — the matcher bumps `snapshotState._counters` directly, which `clear(testIdentity)` does not roll back, so the retry resolves `<name> 2`, writes it and passes; route through `_bumpCounter` / `_markKeyChecked` / `_addSnapshot` / `_incrementSnapshotCount` with the test identity
 - [ ] 🟡 ♻️ ARCH [ARCH-02]: Split `getPngData` → `decodePngBuffer` + `loadPngFromPath`
 - [ ] 🟡 ♻️ ARCH [ARCH-03]: `comparePngAsyncWithPorts` for injection symmetry
 - [ ] 🟡 ♻️ ARCH [ARCH-09]: Unify image-loading module — fuse `getPngData` + `validateImageSourceLoad` + `fs(Async)ImageSource` policy; seam at read primitive only (supersedes ARCH-02 + ARCH-06)
@@ -45,10 +50,12 @@
 - [ ] 🟢 📦 API [API-03]: In-memory diff buffer (no disk round-trip)
 - [ ] 🟢 📦 API [API-04]: Accept `string|URL` for path options
 - [ ] 🟢 📦 API [API-05]: `comparePngWithResult` verbose return shape
+- [ ] 🟢 🐛 API [API-06]: `toMatchPngSnapshot(undefined, options)` is rejected despite matching the declared overload
+- [ ] 🟢 🐛 RELI [RELI-13]: Jest 30 `test.failing` + `-u` overwrites the baseline with the known-bad image (`context.testFailing` is never read)
 
 ## 🧪 Tests & QA
 
-- [ ] 🟢 🧪 TEST [TEST-09]: Remove vestigial `win32` guards — `if (process.platform === 'win32') return;` appears in 5 test files, but Windows was dropped as a supported platform in 6.0.0 (`"os": ["darwin", "linux"]`), so the guards imply support that does not exist
+- [ ] 🟢 🧪 TEST [TEST-09]: Remove vestigial `win32` guards — `if (process.platform === 'win32') return;` appears in 6 test files, but Windows was dropped as a supported platform in 6.0.0 (`"os": ["darwin", "linux"]`), so the guards imply support that does not exist
 - [ ] 🔴 🧪 TEST [TEST-08]: Fix macOS Vitest fork crash so the macOS CI job can gate again — `Error: Worker exited unexpectedly` kills the worker running `pngSnapshotMatcher.test.ts`, dropping its coverage and failing the 100% gate. Measured ~1 in 7 without coverage, ~1 in 5 with. Localized: the file calls `vi.resetModules()` 32 times, each re-evaluating the matcher module graph. Ruled out — `pool: 'threads'` (breaks `process.umask` in the SECU-12 tests), `maxForks: 4` (1/20), `--max-old-space-size=4096` (0/20 plain, 3/15 under coverage). Likely fix: rework the file to call the exported `registerJestPngSnapshotMatcher` / an extracted auto-register seam instead of resetting the module registry. Reproduces on `main`; Linux unaffected
 - [ ] 🟡 🧪 TEST [TEST-02]: Bench suite (`vitest bench`) for PERF gating
 - [ ] 🟡 🧪 TEST [TEST-03]: Pack-test integration against built artifact
@@ -65,6 +72,8 @@
 
 ## 🛠️ Build · Deps · CI · DX
 
+- [ ] 🟡 ♻️ CI [CI-06]: Split `publish.yml` into test and publish jobs — `id-token: write` is job-scoped, so every devDependency script `prepublishOnly` runs (`npm test`) can mint the OIDC publish token; publish from a job that only builds and runs `npm publish --ignore-scripts`
+- [ ] 🟢 ♻️ CI [CI-07]: CI job at the engines floor (Node 22.12.0) — build and install-smoke the packed tarball
 - [ ] 🟢 ♻️ BUILD [BUILD-01]: `tsconfig.base.json` split
 - [ ] 🟢 ♻️ BUILD [BUILD-02]: `moduleResolution` → `nodenext`
 - [ ] 🟢 ♻️ BUILD [BUILD-03]: Explicit `import`/`require` in `exports`

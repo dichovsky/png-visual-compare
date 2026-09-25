@@ -5,8 +5,8 @@ import type { Area, Color } from './types';
 /**
  * Paints rectangular areas on an image with a solid colour in-place.
  *
- * Used to neutralise regions before diffing: excluded areas are painted blue so both images
- * are identical there, and extended (size-difference) regions are painted green.
+ * Used to neutralise excluded areas before diffing: both images are painted the same colour
+ * there (`excludedAreaColor`, blue by default), so those regions always match.
  * Area coordinates are clamped to the image bounds.
  *
  * @param image - The PNG image to modify in-place.

@@ -8,24 +8,24 @@ cd png-visual-compare
 npm install
 ```
 
-Node.js 20 or higher is required.
+Node.js 22.12.0 or higher is required to use the package (`engines.node`). Development needs Node.js 22.13.0+ on the 22 line (ESLint 10 requires `^20.19.0 || ^22.13.0 || >=24`; Vitest 5 requires `^22.12.0 || ^24.0.0 || >=26.0.0`); `.nvmrc` pins Node 24, which CI and the Docker image use.
 
 Development and local tooling are supported on macOS and Linux only. Windows is not supported.
 
 ## Common commands
 
-| Command                               | Description                                                                                |
-| ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `npm test`                            | Run the full test suite: unit tests with repo-wide 100% coverage plus Playwright e2e tests |
-| `npm run test:e2e`                    | Run Playwright e2e tests for the Excluded Areas Builder tool                               |
-| `npm run lint`                        | Run ESLint                                                                                 |
-| `npm run lint:fix`                    | Run ESLint with auto-fix                                                                   |
-| `npm run format`                      | Format all files with Prettier                                                             |
-| `npm run format:check`                | Check formatting without writing changes                                                   |
-| `npm run build`                       | Compile TypeScript to `./out` using `tsconfig.prod.json`                                   |
-| `npm run typecheck`                   | Typecheck the full repository with the dev `tsconfig.json`                                 |
-| `npm run codemap`                     | Regenerate `CODEMAP.md` for coding agents                                                  |
-| `npm run tool:excluded-areas-builder` | Open the Excluded Areas Builder tool in the browser                                        |
+| Command                               | Description                                                                                                  |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `npm test`                            | Run the full test suite: unit tests with repo-wide 100% coverage plus Playwright e2e tests                   |
+| `npm run test:e2e`                    | Run Playwright e2e tests for the Excluded Areas Builder tool and the `png-visual-compare/playwright` matcher |
+| `npm run lint`                        | Run ESLint                                                                                                   |
+| `npm run lint:fix`                    | Run ESLint with auto-fix                                                                                     |
+| `npm run format`                      | Format all files with Prettier                                                                               |
+| `npm run format:check`                | Check formatting without writing changes                                                                     |
+| `npm run build`                       | Compile TypeScript to `./out` using `tsconfig.prod.json`                                                     |
+| `npm run typecheck`                   | Typecheck the full repository with the dev `tsconfig.json`                                                   |
+| `npm run codemap`                     | Regenerate `CODEMAP.md` for coding agents                                                                    |
+| `npm run tool:excluded-areas-builder` | Open the Excluded Areas Builder tool in the browser                                                          |
 
 ### Running a single unit test file
 
@@ -81,6 +81,5 @@ This builds the Docker image and runs both unit and e2e tests inside a container
 
 The `main` branch requires:
 
-- All CI status checks to pass before merging
-- At least one approving review
+- The `ubuntu` CI status check to pass before merging (the `macos` job also runs but is `continue-on-error` until TEST-08 is fixed)
 - No force pushes

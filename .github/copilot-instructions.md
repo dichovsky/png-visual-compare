@@ -9,7 +9,7 @@ npm run lint           # ESLint with typescript-eslint
 npm run typecheck      # typecheck the full repo via tsconfig.json (src, tests, e2e, configs)
 npm run test           # full suite: npm run test:unit && npm run test:e2e
 npm run test:unit      # unit-test gate: clean → codemap:check → lint → format:check → license check → typecheck → vitest --coverage
-npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder
+npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder and the png-visual-compare/playwright matcher
 npm run test:fast      # vitest run --reporter=verbose, skipping the pretest:unit gate
 npm run test:license   # check all production dependency licenses are in the approved list
 npm run test:docker    # clean → docker build → docker run (runs the full test suite in Docker)
@@ -63,12 +63,18 @@ import 'png-visual-compare/vitest'; // in Vitest `setupFiles`
 import 'png-visual-compare/jest'; // in Jest `setupFilesAfterEnv`
 ```
 
+A third subpath, `png-visual-compare/playwright`, has no side effects. It exports an `expect` already extended with a synchronous `toMatchPngSnapshot()`, plus `pngMatchers` for `baseExpect.extend(pngMatchers)`. Baselines are PNG files at `testInfo.snapshotPath()` (see `docs/adr/0001-playwright-baselines-as-png-files.md`):
+
+```ts
+import { expect } from 'png-visual-compare/playwright';
+```
+
 **Production dependencies (2 total):**
 
 - `pixelmatch ~7.2.0` — pixel-level image comparison engine
 - `pngjs ~7.0.0` — synchronous PNG read/write
 
-**Optional peer dependencies** (only needed for the matcher subpaths): `vitest >=4.1.0 <5`, `jest >=29 <31`.
+**Optional peer dependencies** (only needed for the matcher subpaths): `vitest >=5.0.0 <6`, `jest >=29 <31`, `@playwright/test >=1.60.0 <2`.
 
 ---
 
@@ -83,6 +89,7 @@ src/
   comparePngAsync.ts              # async orchestrator
   vitest.mts                      # side-effect entry: registers toMatchPngSnapshot on Vitest's expect (ESM)
   jest.ts                         # side-effect entry: registers toMatchPngSnapshot on Jest's expect (CJS)
+  playwright.ts                   # side-effect-free entry: exports expect extended with toMatchPngSnapshot, plus pngMatchers
   defaults.ts                     # default option values and limits
   errors.ts                       # named error classes and ERR_* codes
   getPngData.ts                   # reads file path or Buffer → LoadedPng
@@ -97,7 +104,7 @@ src/
   validatePixelmatchOptions.ts    # PixelmatchOptions validation
   adapters/                       # public-to-external library boundaries (toPixelmatchOptions)
   internal/                       # assertSameFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
-  matchers/                       # framework-agnostic snapshot matcher core shared by vitest.mts/jest.ts
+  matchers/                       # framework-agnostic snapshot matcher core shared by vitest.mts/jest.ts/playwright.ts
   pipeline/                       # resolveOptions, loadSources, normalizeImages, runComparison, persistDiff
   ports/                          # sync/async filesystem adapters and test seams
   types/
@@ -109,11 +116,13 @@ src/
     validated-path.ts             # ValidatedPath branded type (internal — not re-exported from types/index.ts)
 
 __tests__/                        # one file per source module; mirrors src/ layout
-  adapters/  codemap/  pipeline/  ports/
+  adapters/  codemap/  internal/  pipeline/  ports/
   __snapshots__/                  # vitest snapshot files (committed)
 
 e2e/
   excluded-areas-builder.test.ts  # Playwright coverage for tools/excluded-areas-builder.html
+  playwright-matcher.test.ts      # spawns a nested Playwright run to exercise png-visual-compare/playwright
+  fixtures/playwright-matcher/    # nested playwright.config.ts + matcher.fixture.ts driven by that test
 
 scripts/
   generate-codemap.mjs            # CODEMAP.md generator (`--check` mode for CI)
@@ -187,7 +196,7 @@ All types live in `src/types/`, one file per type, collected in `src/types/index
 
 ## Test Conventions
 
-### Data-driven pattern (used in all `comparePng.*` tests)
+### Data-driven pattern (used in the table-driven `comparePng.*` / `comparePngAsync.*` suites)
 
 ```ts
 const testDataArray = [ { id, name, actual, expected, ... }, ... ];
@@ -210,7 +219,7 @@ import { getPngData } from '../src/getPngData'; // correct for internal unit tes
 
 ### Snapshot tests
 
-`comparePng.diffs.test.ts` and `comparePng.pixelmatch-options.test.ts` use `toMatchSnapshot()` on the raw diff PNG `Buffer`. Snapshots are committed in `__tests__/__snapshots__/`. Update them with:
+`comparePng.diffs.test.ts` and `comparePng.pixelmatch-options.test.ts` import `../src/vitest.mjs` and use `toMatchPngSnapshot()` on the raw diff PNG `Buffer`. Snapshots are committed in `__tests__/__snapshots__/`. Update them with:
 
 ```sh
 npx vitest run --update-snapshots
@@ -232,7 +241,7 @@ Current coverage is 100% across all source files.
 
 ## Key Conventions
 
-- **Extensionless relative imports within `src/`** — even with `"module": "nodenext"` / `"moduleResolution": "node16"`, source files use imports like `import { foo } from './foo'` (resolved correctly for the CommonJS build output).
+- **Extensionless relative imports within `src/`** — even with `"module": "nodenext"` / `"moduleResolution": "node16"`, source files use imports like `import { foo } from './foo'` (resolved correctly for the CommonJS build output). The one exception is the ESM entry `src/vitest.mts`, which uses `.js` specifiers (e.g. `./matchers/pngSnapshot.js`).
 - **One type per file** in `src/types/`. Collected by `src/types/index.ts`.
 - **Test files mirror source names** — `src/comparePng.ts` → `__tests__/comparePng.test.ts`.
 - **No shared test helper modules** — each test file is self-contained; common PNG fixtures live in `test-data/actual/` and `test-data/expected/`.
@@ -295,14 +304,15 @@ The package exposes:
 
 - `"main": "./out/index.js"` — CommonJS entry point (legacy resolution)
 - `"types": "./out/index.d.ts"` — TypeScript type definitions
-- `"exports"` — three subpaths:
+- `"exports"` — four subpaths:
     - `.` → `./out/index.js` (types `./out/index.d.ts`)
     - `./vitest` → `./out/vitest.mjs` (ESM, types `./out/vitest.d.mts`)
     - `./jest` → `./out/jest.js` (types `./out/jest.d.ts`)
+    - `./playwright` → `./out/playwright.js` (types `./out/playwright.d.ts`)
 - `"sideEffects": ["./out/vitest.mjs", "./out/jest.js"]` — the main entry stays tree-shakeable; the
-  two matcher entries are excluded because importing them intentionally calls `expect.extend(...)`
+  two matcher entries are excluded because importing them intentionally calls `expect.extend(...)`. `./out/playwright.js` is not listed: it only exports an extended `expect` and `pngMatchers`.
 
 Compiled output is CommonJS (`module: nodenext` with no `"type": "module"` in package.json), except
 `src/vitest.mts` → `out/vitest.mjs`, which is ESM because Vitest is ESM-only.
 
-`"engines": { "node": ">=20" }`, `"os": ["darwin", "linux"]`.
+`"engines": { "node": ">=22.12.0" }`, `"os": ["darwin", "linux"]`.

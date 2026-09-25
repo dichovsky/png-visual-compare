@@ -122,7 +122,9 @@ function checkPackContents() {
         record(false, 'pack-contents', 'Could not parse `npm pack --dry-run --json` output.');
         return;
     }
-    const files = (Array.isArray(parsed) ? parsed[0]?.files : undefined) ?? [];
+    // npm <= 11 prints an array of pack results; npm 12 prints an object keyed by package name.
+    const entry = Array.isArray(parsed) ? parsed[0] : parsed?.[name];
+    const files = entry?.files ?? [];
     if (files.length === 0) {
         record(false, 'pack-contents', 'Package tarball would be empty; run `npm run build` before releasing.');
         return;

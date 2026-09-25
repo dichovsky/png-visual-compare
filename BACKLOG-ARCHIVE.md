@@ -30,10 +30,10 @@
     - **Rat:** Audited against the barrel and the `exports` map rather than assumed — the leak the task guarded against does not exist.
 
 - [x] 🟡 🐛 SECU [SECU-04]: Cap pre-decode file read (`maxFileBytes`)
-    - **Impl:** New `maxFileBytes` option (default `DEFAULT_MAX_PIXELS * 4` = 67,108,864) enforced in `readValidatedFile` from the opened handle's `fstat` size, before any bytes are read. Throws `ResourceLimitError` regardless of `throwErrorOnInvalidInputData`; path inputs only.
+    - **Impl:** New `maxFileBytes` option (default `DEFAULT_MAX_PIXELS * 8 + 1 MiB` = 135,266,304, sized for 16-bit RGBA) enforced in `readValidatedFile` from the opened handle's `fstat` size before any bytes are read, and again against the bytes actually read. Throws `ResourceLimitError` regardless of `throwErrorOnInvalidInputData`; path inputs only.
     - **Rat:** `maxDimension`/`maxPixels` read the declared IHDR header, so they bounded the decoded image but not the compressed bytes needed to reach that header — a multi-gigabyte file was fully resident before either limit ran.
 - [x] 🟡 🐛 SECU [SECU-05]: Close async-path TOCTOU (validate→read)
-    - **Impl:** New `src/readValidatedFile.ts` opens the file first to pin one inode, then runs `validatePathWithReal` and compares the handle's `dev`/`ino` (bigint) against the canonical path containment approved. Used by both `getPngData` and `fsAsyncImageSource`, so the sync path is covered too. Engages only when `inputBaseDir` is set.
+    - **Impl:** New `src/readValidatedFile.ts` runs a filesystem-free containment check, then opens the file to pin one inode, then runs `validatePathWithReal` and compares the handle's `dev`/`ino` (bigint) against the canonical path containment approved. Used by both `getPngData` and `fsAsyncImageSource`, so the sync path is covered too. Engages only when `inputBaseDir` is set.
     - **Rat:** `validatePath` walked the path and `readFile` walked it again from scratch; anything swapped in between was what got read. Affected the sync path as well as the async one the item named. Node has no `openat`, so the race is detected rather than prevented — bytes never come from an unverified inode.
 - [x] 🟡 🐛 SECU [SECU-06]: Document decoder-bomb surface in README
     - **Impl:** New README "Security Model" section covering decoded-vs-compressed bounds, the detect-not-prevent nature of the race defences, the file-identity requirement, and an explicit "what is not covered" list.

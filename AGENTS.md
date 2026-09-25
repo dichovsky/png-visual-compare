@@ -10,7 +10,7 @@ npm run clean          # delete ./out, ./coverage, ./test-results
 npm run lint           # ESLint with @typescript-eslint
 npm run typecheck      # typecheck the full repo via tsconfig.json (src, tests, e2e, configs)
 npm run test:unit      # unit-test gate: clean → codemap:check → lint → format:check → license check → typecheck → repo-wide vitest coverage
-npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder
+npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder and the png-visual-compare/playwright matcher
 npm run test           # full test suite: repo-wide unit coverage gate plus Playwright e2e tests
 npm run test:license   # check all production dependency licenses are in the approved list
 npm run codemap        # regenerate CODEMAP.md via scripts/generate-codemap.mjs
@@ -43,7 +43,7 @@ Update snapshots:
 npx vitest run --update-snapshots
 ```
 
-> Use `npx vitest run` directly to skip clean/lint/format:check/build when iterating quickly.
+> Use `npx vitest run` directly to skip the `pretest:unit` gate (clean → codemap:check → lint → format:check → license check → typecheck) when iterating quickly.
 > `npm run test:unit` enables the repo-wide 100% coverage gate; direct `npx vitest run ... --coverage` commands only report coverage for the files exercised by that focused run.
 
 ## Architecture
@@ -70,6 +70,10 @@ src/
   index.ts                    # exports comparePng, comparePngAsync, errors, constants, and public types
   comparePng.ts               # sync orchestrator
   comparePngAsync.ts          # async orchestrator
+  vitest.mts                  # ./vitest subpath: registers toMatchPngSnapshot on Vitest's expect (ESM)
+  jest.ts                     # ./jest subpath: registers toMatchPngSnapshot on Jest's expect (CJS)
+  playwright.ts               # ./playwright subpath (no side effects): expect extended with toMatchPngSnapshot, plus pngMatchers
+  matchers/                   # framework-agnostic snapshot matcher core shared by the subpath entries
   pipeline/                   # option resolution, loading, normalization, comparison, diff persistence
   ports/                      # sync/async filesystem adapters and test seams
   adapters/                   # public-to-external library boundaries
@@ -89,9 +93,9 @@ position = (image.width * y + x) * 4; // R=[pos], G=[pos+1], B=[pos+2], A=[pos+3
 ## Key Conventions
 
 - **Tests import from `../src`**, not `../out` (compiled output)
-- **Data-driven test pattern**: all `comparePng.*` tests use a `testDataArray` loop — add new cases as array entries, not standalone `test()` calls
-- **Snapshot tests** in `comparePng.diffs.test.ts` and `comparePng.pixelmatch-options.test.ts` use `toMatchSnapshot()` on raw diff PNG buffers; snapshots are committed in `__tests__/__snapshots__/`
-- **One type per file** in `src/types/`; imports within `src/` use extensionless relative paths
+- **Data-driven test pattern**: the table-driven `comparePng.*` / `comparePngAsync.*` suites use a `testDataArray` loop — add new cases as array entries, not standalone `test()` calls
+- **Snapshot tests** in `comparePng.diffs.test.ts` and `comparePng.pixelmatch-options.test.ts` import `../src/vitest.mjs` and use `toMatchPngSnapshot()` on raw diff PNG buffers; snapshots are committed in `__tests__/__snapshots__/`
+- **One type per file** in `src/types/`; imports within `src/` use extensionless relative paths (exception: the ESM entry `src/vitest.mts` uses `.js` specifiers)
 - **No test helper modules** — each test file is self-contained
 - **Coverage thresholds**: 100% lines/functions/statements/branches; `src/types/**/*` is excluded
 - **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense` — enforced by `npm run test:license` (part of `npm test`)
@@ -110,4 +114,4 @@ Fix:
 Rule:
 ```
 
-Store project-specific mistakes in `.Codex/memory/` (session files are gitignored — see `.Codex/memory/README.md`); generalizable rules in global memory.
+Store project-specific mistakes in `.claude/memory/` (session files are gitignored — see `.claude/memory/README.md`); generalizable rules in global memory.

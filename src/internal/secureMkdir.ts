@@ -1,4 +1,5 @@
 import { lstatSync, mkdirSync } from 'node:fs';
+import type { Stats } from 'node:fs';
 import { mkdir, lstat } from 'node:fs/promises';
 import { relative, resolve, sep } from 'node:path';
 import { PathValidationError } from '../errors';
@@ -22,11 +23,20 @@ function componentsFrom(baseDir: string, dir: string): string[] | null {
     });
 }
 
-function refuseSymlink(component: string): void {
+function refuseSymlink(component: string): never {
     throw new PathValidationError(
         `Diff write refused: "${component}" is a symlink. Parent directories of the diff file must not be symlinks ` +
             'when diffOutputBaseDir is set (TOCTOU defence).',
     );
+}
+
+function errorCode(error: unknown): string | undefined {
+    return (error as NodeJS.ErrnoException).code;
+}
+
+function isMissing(error: unknown): boolean {
+    const code = errorCode(error);
+    return code === 'ENOENT' || code === 'ENOTDIR';
 }
 
 /**
@@ -39,6 +49,11 @@ function refuseSymlink(component: string): void {
  * refusing symlinks removes that traversal rather than detecting it afterwards,
  * which matters here because `O_CREAT` would otherwise have already created a
  * file outside the boundary before anything noticed.
+ *
+ * A component another writer creates between the `lstat` and the `mkdir` is not
+ * an error — recursive `mkdir` tolerated that race, and concurrent diff writes
+ * into one new directory are ordinary. The `EEXIST` is answered by checking what
+ * the other side created, so a symlink planted in that window is still refused.
  *
  * Without `baseDir` there is no boundary to protect — callers may write
  * anywhere by design — so the original recursive behaviour is kept.
@@ -58,19 +73,25 @@ export function secureMkdirSync(dir: string, baseDir?: string): void {
     }
 
     for (const component of components) {
+        let stats: Stats;
         try {
-            if (lstatSync(component).isSymbolicLink()) {
-                refuseSymlink(component);
-            }
+            stats = lstatSync(component);
         } catch (error) {
-            if (error instanceof PathValidationError) {
+            if (!isMissing(error)) {
                 throw error;
             }
-            const code = (error as NodeJS.ErrnoException).code;
-            if (code !== 'ENOENT' && code !== 'ENOTDIR') {
-                throw error;
+            try {
+                mkdirSync(component);
+                continue;
+            } catch (mkdirError) {
+                if (errorCode(mkdirError) !== 'EEXIST') {
+                    throw mkdirError;
+                }
+                stats = lstatSync(component);
             }
-            mkdirSync(component);
+        }
+        if (stats.isSymbolicLink()) {
+            refuseSymlink(component);
         }
     }
 }
@@ -88,19 +109,25 @@ export async function secureMkdir(dir: string, baseDir?: string): Promise<void> 
     }
 
     for (const component of components) {
+        let stats: Stats;
         try {
-            if ((await lstat(component)).isSymbolicLink()) {
-                refuseSymlink(component);
-            }
+            stats = await lstat(component);
         } catch (error) {
-            if (error instanceof PathValidationError) {
+            if (!isMissing(error)) {
                 throw error;
             }
-            const code = (error as NodeJS.ErrnoException).code;
-            if (code !== 'ENOENT' && code !== 'ENOTDIR') {
-                throw error;
+            try {
+                await mkdir(component);
+                continue;
+            } catch (mkdirError) {
+                if (errorCode(mkdirError) !== 'EEXIST') {
+                    throw mkdirError;
+                }
+                stats = await lstat(component);
             }
-            await mkdir(component);
+        }
+        if (stats.isSymbolicLink()) {
+            refuseSymlink(component);
         }
     }
 }

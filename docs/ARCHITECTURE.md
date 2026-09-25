@@ -8,6 +8,7 @@ The package is a small PNG comparison engine with:
 
 - **Public sync API:** `comparePng(png1, png2, opts?)`
 - **Public async API:** `comparePngAsync(png1, png2, opts?)`
+- **Test-framework matchers:** `toMatchPngSnapshot()` via the `png-visual-compare/vitest`, `png-visual-compare/jest`, and `png-visual-compare/playwright` subpaths
 - **Internal sync hook:** `comparePngWithPorts(...)` for orchestrator/port tests
 
 The package accepts either absolute file paths or raw PNG `Buffer`s, normalizes both images to a comparable canvas, runs `pixelmatch`, and optionally writes a diff PNG.
@@ -36,6 +37,7 @@ comparePng / comparePngAsync
 - `DEFAULT_EXCLUDED_AREA_COLOR`
 - `DEFAULT_EXTENDED_AREA_COLOR`
 - `DEFAULT_MAX_DIMENSION`
+- `DEFAULT_MAX_FILE_BYTES`
 - `DEFAULT_MAX_PIXELS`
 
 ### Public types
@@ -45,6 +47,14 @@ comparePng / comparePngAsync
 - `ComparePngOptions`
 - `PixelmatchOptions`
 - `LoadedPng`
+
+### Subpath exports
+
+Each subpath adds a `toMatchPngSnapshot()` matcher for one test framework. All three validate the received PNG and the matcher arguments through `src/matchers/createPngSnapshotMatcher.ts` and compare with `comparePng`.
+
+- `png-visual-compare/vitest` (`src/vitest.mts`): side-effect import. Registers the matcher on Vitest's `expect` and augments `Matchers<R, T>` (Vitest 5). Baselines are serialised Buffers in Vitest's `.snap` file. Optional peer: `vitest` `>=5.0.0 <6`.
+- `png-visual-compare/jest` (`src/jest.ts`): side-effect import. Registers the matcher on Jest's global `expect` when present, exports `registerJestPngSnapshotMatcher`, and augments `jest.Matchers`. Baselines are serialised Buffers in Jest's `.snap` file. Optional peer: `jest` `>=29 <31`.
+- `png-visual-compare/playwright` (`src/playwright.ts`): no side effects. Exports `expect` (Playwright's `expect` extended with a synchronous `toMatchPngSnapshot()`) and `pngMatchers`. Baselines are PNG files at `testInfo.snapshotPath(name)` (see `docs/adr/0001-playwright-baselines-as-png-files.md`). Optional peer: `@playwright/test` `>=1.60.0 <2`.
 
 ## Module layout
 
@@ -59,6 +69,7 @@ comparePng / comparePngAsync
 | Ports                 | `src/ports/*`                                                                                                                          | Sync/async filesystem adapters and internal test injection seams                           |
 | Types/defaults/errors | `src/types/*`, `src/defaults.ts`, `src/errors.ts`                                                                                      | Shared contracts and stable defaults                                                       |
 | Adapter boundary      | `src/adapters/toPixelmatchOptions.ts`                                                                                                  | Internal translation from public `PixelmatchOptions` to `pixelmatch`                       |
+| Matchers              | `src/vitest.mts`, `src/jest.ts`, `src/playwright.ts`, `src/matchers/*`                                                                 | `toMatchPngSnapshot` adapters for the `./vitest`, `./jest`, `./playwright` subpaths        |
 
 ## Sync architecture
 
@@ -103,10 +114,9 @@ This is the main **public input boundary** for options.
 
 `src/pipeline/loadSources.ts`
 
-Loads both inputs via the selected `ImageSourcePort`:
+Loads both inputs via the selected `ImageSourcePort` (default: `fsImageSource`).
 
-- default sync implementation: `fsImageSource`
-- default async implementation: `fsAsyncImageSource`
+The async path does not use this module: `loadSourcesAsync`, private to `src/comparePngAsync.ts`, loads both inputs concurrently through `fsAsyncImageSource` (an `AsyncImageSourcePort`) and applies the same both-invalid check.
 
 If both sides are invalid, the pipeline throws `InvalidInputError` with a message naming each input's failure reason (e.g. `Both PNG inputs are invalid — png1: could not decode PNG content; png2: source path could not be loaded.`).
 
@@ -174,12 +184,13 @@ Key behavior:
 
 `validatePath` walks a path and the subsequent `readFile` walks it again from scratch, so anything swapped in between is what actually gets read. Node exposes no `openat`, and `/proc/self/fd` is Linux-only, so the race cannot be _prevented_ portably. It is detected instead:
 
-1. `open` first, pinning one inode for the rest of the call
-2. `fstat` the handle with `{ bigint: true }` for its size and identity
-3. `validatePathWithReal` for containment
-4. when `inputBaseDir` is set, `assertSameFile` compares the handle's `dev`/`ino` against the canonical path containment approved
-5. `maxFileBytes` is enforced — **after** step 4, because its error names an exact byte count and escapes permissive mode, so checking earlier would disclose the size and existence of a file outside the boundary
-6. read from the handle, never from the path string again
+1. filesystem-free checks: `assertPathSyntax`, and when `inputBaseDir` is set, `assertLexicalContainment` — a path outside the boundary fails as containment before the open can reveal whether it exists (ENOENT vs `PathValidationError` would otherwise be an existence oracle) or block on a FIFO
+2. `open` the lexically resolved path — the one validation approves — pinning one inode for the rest of the call. The raw string could name a different file when `..` follows a symlinked directory, because the kernel resolves `..` after the link
+3. `fstat` the handle with `{ bigint: true }` for its size and identity
+4. `validatePathWithReal` for the symlink-resolved containment check
+5. when `inputBaseDir` is set, `assertSameFile` compares the handle's `dev`/`ino` against the canonical path containment approved
+6. `maxFileBytes` is enforced against the stat size — **after** step 5, because its error names an exact byte count and escapes permissive mode, so checking earlier would disclose the size of a file outside the boundary
+7. read from the handle, never from the path string again, holding `maxFileBytes` against the bytes actually read — the stat size is only a hint, understated by a file that grows mid-read, a FIFO, or a device
 
 The identity check is skipped without `inputBaseDir`: `validatePath` consults no filesystem in that case, so there is no boundary a swap could cross, and running it anyway would expose every default caller to a false positive whenever a baseline is replaced by atomic rename.
 
@@ -204,9 +215,10 @@ The validator:
     - existing output symlinks
 - permits not-yet-created output parent directories by validating the nearest existing ancestor
 
-The module exposes three entry points:
+The module exposes four entry points:
 
 - `assertPathSyntax(filePath)` — the filesystem-free checks (empty, whitespace-only, null byte). Split out so `readValidatedFile`, which must `open` before validating, can still reject a malformed path as a `PathValidationError` instead of letting the runtime raise its own `TypeError`.
+- `assertLexicalContainment(filePath, baseDir)` — the filesystem-free half of the containment check, run by `readValidatedFile` before its `open`. It only ever rejects; approval still needs the symlink-resolved check, so it cannot be raced into letting anything through.
 - `validatePathWithReal(...)` — returns `{ validated, real }`, where `real` is the canonical path the containment check was proven against.
 - `validatePath(...)` — the original signature, a thin wrapper returning `.validated`.
 
@@ -220,9 +232,10 @@ The module exposes three entry points:
 
 The diff write:
 
-- creates parent directories one component at a time via `secureMkdir`, refusing any component that is a symlink. `mkdir(..., { recursive: true })` follows symlinks in every intermediate component while `O_NOFOLLOW` guards only the final one, so a symlinked parent could redirect the whole write outside `diffOutputBaseDir` (SECU-09). Without `diffOutputBaseDir` there is no boundary to protect and the recursive form is kept.
+- creates parent directories one component at a time via `secureMkdir`, refusing any component that is a symlink. `mkdir(..., { recursive: true })` follows symlinks in every intermediate component while `O_NOFOLLOW` guards only the final one, so a symlinked parent could redirect the whole write outside `diffOutputBaseDir` (SECU-09). A component another writer creates between the `lstat` and the `mkdir` is not an error — the `EEXIST` re-checks what was created, so concurrent writes into one new directory succeed while a symlink planted in that window is still refused. Without `diffOutputBaseDir` there is no boundary to protect and the recursive form is kept.
 - resolves the parent chain with `realDiffDirectory` **before** opening, then opens inside that canonical directory. The path traversed at open time therefore contains no symlink at all: redirecting the write requires renaming a real directory in the resolved chain, not merely planting a link.
 - opens the target with `O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW`, falling back to a reopen without `O_CREAT` on `EEXIST` (target-component symlink race closed by SECU-03; a symlink reports `EEXIST` under `O_EXCL` and then surfaces as `ELOOP` on the reopen). `O_EXCL` also establishes whether _this_ call created the file, which plain `O_CREAT` cannot — so cleanup after a refused write removes only a file it created, never a pre-existing empty placeholder.
+- re-resolves the parent chain with `realDiffDirectory` **after** the open, in both writers, and ties the handle to the file inside it with `assertSameFile`. Stat'ing the pre-open canonical path instead would walk a route swapped since and agree with itself.
 - defers truncation: `O_TRUNC` is absent from the open, and `ftruncate(0)` runs only once `assertSameFile` has tied the handle to the canonical target. Truncating on open would empty an escaped target before anything could detect it.
 - passes an explicit POSIX create-mode `0o600` to `open` and then issues an explicit `fchmod(0o600)` on the open handle (SECU-12). The `open` mode alone is insufficient: POSIX masks it with `~umask` (a restrictive umask can only narrow it further, never widen it) and truncation does not reset the mode of a pre-existing file. The post-open `fchmod` makes the final mode `0o600` in both the create and overwrite cases.
 
@@ -235,6 +248,7 @@ The diff write:
 - an array
 - of non-null objects
 - with finite integer coordinates
+- with non-negative coordinates
 - with `x1 <= x2`
 - with `y1 <= y2`
 
@@ -248,6 +262,7 @@ The public wrapper owns runtime validation for:
 - `alpha`
 - `includeAA`
 - `diffMask`
+- `checkerboard`
 - `aaColor`
 - `diffColor`
 - `diffColorAlt`
@@ -301,7 +316,7 @@ The ports isolate file I/O from orchestration so tests can validate decision log
 - `tsconfig.prod.json` extends the dev config and restores emitted library build settings for `src/ -> out`
 - `npm run typecheck` validates the full repository via `tsconfig.json`
 - `npm run build` emits the published package via `tsconfig.prod.json`
-- package export surface is only `"."`
+- package export surface is `"."` plus the `"./vitest"`, `"./jest"`, and `"./playwright"` matcher subpaths (`sideEffects` lists `./out/vitest.mjs` and `./out/jest.js`; the Playwright entry has none)
 - only `out/` is published to npm
 - `npm run codemap` regenerates `CODEMAP.md` from the current source tree and package metadata
 

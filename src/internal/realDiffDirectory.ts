@@ -6,13 +6,13 @@ import { PathValidationError } from '../errors';
  * Resolves the diff file's parent directory through symlinks and re-proves it sits
  * inside `baseDir`, returning the canonical directory.
  *
- * This runs *after* the diff file has been opened. Containment was already checked
- * by `validatePath` at option-resolution time, but the path is walked again by
- * `mkdir` and `open`, so it has to be re-proven against the state that actually
- * produced the open handle. The returned canonical directory is what the handle's
- * identity is then compared against — comparing against the lexical path instead
- * would walk the same possibly-compromised route a second time and agree with
- * itself (SECU-09).
+ * The writers call this *before* opening the diff file and open it inside the
+ * returned canonical directory, so no symlink is traversed at open time. Containment
+ * was already checked by `validatePath` at option-resolution time, but the path is
+ * walked again by `mkdir`, so it has to be re-proven against the state the open uses.
+ * The returned canonical directory is what the handle's identity is then compared
+ * against — comparing against the lexical path instead would walk the same
+ * possibly-compromised route a second time and agree with itself (SECU-09).
  *
  * @throws {PathValidationError} If the real directory is not inside `baseDir`.
  */
