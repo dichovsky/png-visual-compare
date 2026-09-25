@@ -131,6 +131,14 @@ describe('diff writers under injected races', () => {
             expect(existsSync(path.join(outsideDir, 'deeper'))).toBe(false);
         });
 
+        test('propagates a mkdir failure other than a lost race', async () => {
+            // A regular file where a directory must go: the lstat past it reports
+            // ENOTDIR, and the mkdir fails with ENOTDIR too — a real error, not EEXIST.
+            writeFileSync(winner, 'not a directory');
+            expect(() => secureMkdirSync(deeper, baseDir)).toThrow(expect.objectContaining({ code: 'ENOTDIR' }));
+            await expect(secureMkdir(deeper, baseDir)).rejects.toThrow(expect.objectContaining({ code: 'ENOTDIR' }));
+        });
+
         test('concurrent async writes into one new directory all succeed', async () => {
             const targets = Array.from({ length: 8 }, (_, index) => path.join(baseDir, 'run', 'nested', `case-${index}.png`));
             await Promise.all(targets.map((target) => fsAsyncDiffWriter.write(asValidated(target), data, baseDir)));
