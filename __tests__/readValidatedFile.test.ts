@@ -105,4 +105,47 @@ describe('readValidatedFile', () => {
             expect.objectContaining({ code: 'ENOENT' }),
         );
     });
+
+    test('reports containment failure, not ENOENT, for a missing file outside the boundary', () => {
+        // Containment runs before the open. Were the open first, ENOENT here versus
+        // PathValidationError for an existing file would reveal which paths exist
+        // outside inputBaseDir.
+        const missing = path.join(rootDir, 'missing.png');
+        expect(() => readValidatedFileSync(missing, baseDir)).toThrow(/Path traversal detected/);
+    });
+
+    test('reports containment failure for a missing file outside the boundary asynchronously', async () => {
+        const missing = path.join(rootDir, 'missing.png');
+        await expect(readValidatedFile(missing, baseDir)).rejects.toThrow(/Path traversal detected/);
+    });
+
+    test('reports containment failure for a lexical escape through ..', () => {
+        const escape = `${baseDir}${path.sep}..${path.sep}missing.png`;
+        expect(() => readValidatedFileSync(escape, baseDir)).toThrow(/Path traversal detected/);
+    });
+
+    describe('".." after a symlinked directory', () => {
+        // base/a/link -> base/b/sub. Lexically "base/a/link/../image.png" is base/a/image.png,
+        // which is what validation checks and what 6.3.0 read; the kernel would instead
+        // resolve ".." after following the link and land on base/b/image.png.
+        const viaLink = () => `${path.join(baseDir, 'a', 'link')}${path.sep}..${path.sep}image.png`;
+
+        beforeEach(() => {
+            mkdirSync(path.join(baseDir, 'a'));
+            mkdirSync(path.join(baseDir, 'b', 'sub'), { recursive: true });
+            writeFileSync(path.join(baseDir, 'a', 'image.png'), 'lexical target');
+            writeFileSync(path.join(baseDir, 'b', 'image.png'), 'physical target');
+            symlinkSync(path.join(baseDir, 'b', 'sub'), path.join(baseDir, 'a', 'link'));
+        });
+
+        test('reads the file validation approved', () => {
+            expect(readValidatedFileSync(viaLink(), baseDir).toString()).toBe('lexical target');
+            expect(readValidatedFileSync(viaLink()).toString()).toBe('lexical target');
+        });
+
+        test('reads the file validation approved asynchronously', async () => {
+            expect((await readValidatedFile(viaLink(), baseDir)).toString()).toBe('lexical target');
+            expect((await readValidatedFile(viaLink())).toString()).toBe('lexical target');
+        });
+    });
 });

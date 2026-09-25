@@ -488,3 +488,27 @@ test('maxFileBytes: async rejects even when throwErrorOnInvalidInputData is fals
         }),
     ).rejects.toThrow(ResourceLimitError);
 });
+
+// An input outside inputBaseDir fails as containment whether or not it exists. Were the
+// open first, ENOENT (or a silent zero-size image in permissive mode) for a missing path
+// versus PathValidationError for an existing one would reveal what exists outside.
+const testDataArrayOutsideInputBaseDir = [
+    { id: 1, name: 'missing file outside inputBaseDir', actual: resolve('./test-data/expected/non-existing.png') },
+    { id: 2, name: 'missing file reached through ..', actual: './test-data/actual/../missing-dir/non-existing.png' },
+];
+
+for (const testData of testDataArrayOutsideInputBaseDir) {
+    for (const throwErrorOnInvalidInputData of [true, false]) {
+        test(`inputBaseDir outside ${testData.id}: ${testData.name} (throwErrorOnInvalidInputData: ${throwErrorOnInvalidInputData})`, async () => {
+            await expectThrownAs(
+                () =>
+                    comparePngAsync(testData.actual, validPng, {
+                        inputBaseDir: resolve('./test-data/actual'),
+                        throwErrorOnInvalidInputData,
+                    }),
+                PathValidationError,
+                'Path traversal detected',
+            );
+        });
+    }
+}

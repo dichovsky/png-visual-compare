@@ -99,6 +99,27 @@ export function assertPathSyntax(filePath: string): void {
 }
 
 /**
+ * Rejects a path that is lexically outside `baseDir`, before any filesystem call.
+ *
+ * The filesystem-free half of the containment check in {@link validatePathWithReal}.
+ * Callers that open before validating run it first, so a path outside the boundary
+ * fails as containment whether or not it exists, can be opened, or is a FIFO that
+ * would block the open — otherwise ENOENT versus `PathValidationError` becomes an
+ * existence oracle for files outside the boundary. It only ever rejects; approval
+ * still needs the symlink-resolved check, so it cannot be raced into letting
+ * anything through.
+ *
+ * @throws {PathValidationError} If the resolved path is not inside the resolved `baseDir`.
+ */
+export function assertLexicalContainment(filePath: string, baseDir: string): void {
+    const resolved = resolve(filePath);
+    const normalizedBaseDir = resolve(baseDir);
+    if (!isContained(normalizedBaseDir, resolved)) {
+        throw new PathValidationError(`Path traversal detected: "${resolved}" is outside the allowed directory "${normalizedBaseDir}"`);
+    }
+}
+
+/**
  * A validated path together with the canonical (symlink-resolved) path that the
  * containment check actually approved.
  *
@@ -168,10 +189,8 @@ export function validatePathWithReal(filePath: string, baseDir?: string, mode: V
     const resolved = resolve(filePath);
 
     if (baseDir !== undefined) {
+        assertLexicalContainment(resolved, baseDir);
         const normalizedBaseDir = resolve(baseDir);
-        if (!isContained(normalizedBaseDir, resolved)) {
-            throw new PathValidationError(`Path traversal detected: "${resolved}" is outside the allowed directory "${normalizedBaseDir}"`);
-        }
 
         const realBaseDir = realpathNative(normalizedBaseDir, 'Path validation failed: base directory does not exist or is not accessible');
         const realTargetPath =

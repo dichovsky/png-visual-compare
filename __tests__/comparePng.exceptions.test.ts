@@ -1,7 +1,8 @@
+import { mkdirSync, rmSync, truncateSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { PNG } from 'pngjs';
 import { expect, test, vi } from 'vitest';
-import { comparePng, InvalidInputError, PathValidationError, ResourceLimitError } from '../src';
+import { comparePng, DEFAULT_MAX_FILE_BYTES, InvalidInputError, PathValidationError, ResourceLimitError } from '../src';
 import type { ValidatedPath } from '../src/types/validated-path';
 import { validatePath } from '../src/validatePath';
 
@@ -517,4 +518,44 @@ test('maxFileBytes 6: Infinity disables the limit', () => {
 test('maxFileBytes 7: ignored for Buffer inputs', () => {
     const buffer = createPngBuffer(4, 4);
     expect(() => comparePng(buffer, buffer, { maxFileBytes: 1 })).not.toThrow();
+});
+
+// An input outside inputBaseDir fails as containment whether or not it exists. Were the
+// open first, ENOENT (or a silent zero-size image in permissive mode) for a missing path
+// versus PathValidationError for an existing one would reveal what exists outside.
+const testDataArrayOutsideInputBaseDir = [
+    { id: 1, name: 'missing file outside inputBaseDir', actual: resolve('./test-data/expected/non-existing.png') },
+    { id: 2, name: 'missing file reached through ..', actual: './test-data/actual/../missing-dir/non-existing.png' },
+];
+
+for (const testData of testDataArrayOutsideInputBaseDir) {
+    for (const throwErrorOnInvalidInputData of [true, false]) {
+        test(`inputBaseDir outside ${testData.id}: ${testData.name} (throwErrorOnInvalidInputData: ${throwErrorOnInvalidInputData})`, () => {
+            expectThrownAs(
+                () => comparePng(testData.actual, validPng, { inputBaseDir: resolve('./test-data/actual'), throwErrorOnInvalidInputData }),
+                PathValidationError,
+                'Path traversal detected',
+            );
+        });
+    }
+}
+
+test('maxFileBytes 8: the default cap applies when the option is omitted', () => {
+    // Sparse, so it costs no disk: one byte over the default is enough to prove the default
+    // is wired in — a regression to "no default" would read all of it.
+    const dir = resolve('./test-results/max-file-bytes-default');
+    rmSync(dir, { recursive: true, force: true });
+    mkdirSync(dir, { recursive: true });
+    const oversized = resolve(dir, 'oversized.png');
+    writeFileSync(oversized, '');
+    truncateSync(oversized, DEFAULT_MAX_FILE_BYTES + 1);
+    try {
+        expectThrownAs(
+            () => comparePng(oversized, realExpectedPngPath),
+            ResourceLimitError,
+            `maximum allowed ${DEFAULT_MAX_FILE_BYTES} bytes`,
+        );
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
 });

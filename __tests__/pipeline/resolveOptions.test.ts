@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { DEFAULT_EXCLUDED_AREA_COLOR, DEFAULT_EXTENDED_AREA_COLOR, DEFAULT_MAX_DIMENSION, DEFAULT_MAX_PIXELS } from '../../src/comparePng';
+import {
+    DEFAULT_EXCLUDED_AREA_COLOR,
+    DEFAULT_EXTENDED_AREA_COLOR,
+    DEFAULT_MAX_DIMENSION,
+    DEFAULT_MAX_FILE_BYTES,
+    DEFAULT_MAX_PIXELS,
+} from '../../src/comparePng';
 import { resolveOptions } from '../../src/pipeline/resolveOptions';
 
 describe('resolveOptions', () => {
@@ -15,7 +21,14 @@ describe('resolveOptions', () => {
             diffFilePath: undefined,
             maxDimension: DEFAULT_MAX_DIMENSION,
             maxPixels: DEFAULT_MAX_PIXELS,
+            maxFileBytes: DEFAULT_MAX_FILE_BYTES,
         });
+    });
+
+    test('default byte cap admits any PNG that passes the default pixel limit, 16-bit RGBA included', () => {
+        // 16-bit RGBA is the widest PNG pixel format: 8 raw bytes per pixel. A cap sized for
+        // 8-bit RGBA (4 bytes) rejected valid 16-bit files at half the pixel limit.
+        expect(DEFAULT_MAX_FILE_BYTES).toBeGreaterThanOrEqual(DEFAULT_MAX_PIXELS * 8);
     });
 
     test('rejects non-boolean throwErrorOnInvalidInputData values', () => {
