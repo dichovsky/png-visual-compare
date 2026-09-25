@@ -12,9 +12,9 @@ Schema: `codemap.v2`
     "schema": "codemap.v2",
     "repo": {
         "name": "png-visual-compare",
-        "version": "6.3.0"
+        "version": "7.0.0"
     },
-    "sourceHash": "52a9aa5e2630af613ac72988ab04e8bf0a565862bfd110a835def05f03040a8a",
+    "sourceHash": "5a207f397a2f3c4bd7b4bfcf7c69474251ed077a9f3a087a47b21c1bc615a817",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -29,7 +29,7 @@ Schema: `codemap.v2`
             "file": "src/types/area.ts",
             "line": 2,
             "signature": "export type Area = { x1: number; y1: number; x2: number; y2: number; };",
-            "jsdoc": "Defines a rectangular region of an image by its top-left and bottom-right pixel coordinates (inclusive). All coordinates must be finite integers. `x1 <= x2`, `y1 <= y2`. Reversed coordinates are rejected at runtime — they are not auto-normalized.",
+            "jsdoc": "Defines a rectangular region of an image by its top-left and bottom-right pixel coordinates (inclusive). All coordinates must be finite non-negative integers. `x1 <= x2`, `y1 <= y2`. Reversed coordinates are rejected at runtime — they are not auto-normalized.",
             "typeOnly": true
         },
         {
@@ -57,7 +57,7 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 119,
+            "line": 121,
             "signature": "export class ComparisonError extends Error",
             "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
             "typeOnly": false
@@ -97,7 +97,7 @@ Schema: `codemap.v2`
             "kind": "const",
             "entrypoint": "src/index.ts",
             "file": "src/defaults.ts",
-            "line": 29,
+            "line": 30,
             "signature": "export const DEFAULT_MAX_FILE_BYTES",
             "jsdoc": "Default maximum size, in bytes, of a PNG file read from disk.",
             "typeOnly": false
@@ -117,9 +117,9 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 17,
+            "line": 18,
             "signature": "export class InvalidInputError extends Error",
-            "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded. This error is recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid inputs as zero-size PNGs instead. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…",
+            "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded, or when an `excludedAreas`, colour, or `pixelmatchOptions` value is invalid. Per-input failures are recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid inputs as zero-size PNGs instead; invalid options, and both inputs being invalid, always throw. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…",
             "typeOnly": false
         },
         {
@@ -137,7 +137,7 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 53,
+            "line": 54,
             "signature": "export class PathValidationError extends Error",
             "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…",
             "typeOnly": false
@@ -157,9 +157,9 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 86,
+            "line": 88,
             "signature": "export class ResourceLimitError extends Error",
-            "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension` or `maxPixels`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Reject PNGs larger than 16384 × 16384 comparePng('huge.png', 'ima…",
+            "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…",
             "typeOnly": false
         },
         {
@@ -207,7 +207,7 @@ Schema: `codemap.v2`
             "kind": "const",
             "entrypoint": "src/playwright.ts",
             "file": "src/playwright.ts",
-            "line": 198,
+            "line": 210,
             "signature": "export const expect",
             "jsdoc": null,
             "typeOnly": false
@@ -217,7 +217,7 @@ Schema: `codemap.v2`
             "kind": "const",
             "entrypoint": "src/playwright.ts",
             "file": "src/playwright.ts",
-            "line": 192,
+            "line": 204,
             "signature": "export const pngMatchers = { toMatchPngSnapshot: createPngSnapshotMatcher((matcherContext, received, args) => matchAgainstBaseline(test.info(), (matcherContext as { isNot?: boolean }).isNot === true, …",
             "jsdoc": null,
             "typeOnly": false
@@ -417,7 +417,7 @@ Schema: `codemap.v2`
                 {
                     "name": "DEFAULT_MAX_FILE_BYTES",
                     "kind": "const",
-                    "line": 29,
+                    "line": 30,
                     "exported": true,
                     "signature": "export const DEFAULT_MAX_FILE_BYTES",
                     "members": null,
@@ -454,39 +454,39 @@ Schema: `codemap.v2`
                 {
                     "name": "InvalidInputError",
                     "kind": "class",
-                    "line": 17,
+                    "line": 18,
                     "exported": true,
                     "signature": "export class InvalidInputError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 18
+                            "line": 19
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 20
+                            "line": 21
                         }
                     ],
-                    "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded. This error is recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid inputs as zero-size PNGs instead. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…"
+                    "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded, or when an `excludedAreas`, colour, or `pixelmatchOptions` value is invalid. Per-input failures are recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid inputs as zero-size PNGs instead; invalid options, and both inputs being invalid, always throw. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…"
                 },
                 {
                     "name": "PathValidationError",
                     "kind": "class",
-                    "line": 53,
+                    "line": 54,
                     "exported": true,
                     "signature": "export class PathValidationError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 54
+                            "line": 55
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 56
+                            "line": 57
                         }
                     ],
                     "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…"
@@ -494,39 +494,39 @@ Schema: `codemap.v2`
                 {
                     "name": "ResourceLimitError",
                     "kind": "class",
-                    "line": 86,
+                    "line": 88,
                     "exported": true,
                     "signature": "export class ResourceLimitError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 87
+                            "line": 89
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 89
+                            "line": 91
                         }
                     ],
-                    "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension` or `maxPixels`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Reject PNGs larger than 16384 × 16384 comparePng('huge.png', 'ima…"
+                    "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…"
                 },
                 {
                     "name": "ComparisonError",
                     "kind": "class",
-                    "line": 119,
+                    "line": 121,
                     "exported": true,
                     "signature": "export class ComparisonError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 120
+                            "line": 122
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 122
+                            "line": 124
                         }
                     ],
                     "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
@@ -733,7 +733,7 @@ Schema: `codemap.v2`
                 {
                     "name": "componentsFrom",
                     "kind": "function",
-                    "line": 10,
+                    "line": 11,
                     "exported": false,
                     "signature": "function componentsFrom(baseDir: string, dir: string): string[] | null",
                     "members": null,
@@ -742,16 +742,34 @@ Schema: `codemap.v2`
                 {
                     "name": "refuseSymlink",
                     "kind": "function",
-                    "line": 25,
+                    "line": 26,
                     "exported": false,
-                    "signature": "function refuseSymlink(component: string): void",
+                    "signature": "function refuseSymlink(component: string): never",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "errorCode",
+                    "kind": "function",
+                    "line": 33,
+                    "exported": false,
+                    "signature": "function errorCode(error: unknown): string | undefined",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "isMissing",
+                    "kind": "function",
+                    "line": 37,
+                    "exported": false,
+                    "signature": "function isMissing(error: unknown): boolean",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "secureMkdirSync",
                     "kind": "function",
-                    "line": 49,
+                    "line": 64,
                     "exported": true,
                     "signature": "export function secureMkdirSync(dir: string, baseDir?: string): void",
                     "members": null,
@@ -760,7 +778,7 @@ Schema: `codemap.v2`
                 {
                     "name": "secureMkdir",
                     "kind": "function",
-                    "line": 79,
+                    "line": 100,
                     "exported": true,
                     "signature": "export async function secureMkdir(dir: string, baseDir?: string): Promise<void>",
                     "members": null,
@@ -1437,7 +1455,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_EXTENSION",
                     "kind": "const",
-                    "line": 15,
+                    "line": 17,
                     "exported": false,
                     "signature": "const PNG_EXTENSION",
                     "members": null,
@@ -1446,7 +1464,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_CONTENT_TYPE",
                     "kind": "const",
-                    "line": 16,
+                    "line": 18,
                     "exported": false,
                     "signature": "const PNG_CONTENT_TYPE = 'image/png'",
                     "members": null,
@@ -1455,7 +1473,7 @@ Schema: `codemap.v2`
                 {
                     "name": "UNNAMED_COUNTER_KEY",
                     "kind": "const",
-                    "line": 17,
+                    "line": 19,
                     "exported": false,
                     "signature": "const UNNAMED_COUNTER_KEY = 'unnamed'",
                     "members": null,
@@ -1464,7 +1482,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MAX_GENERATED_NAME_LENGTH",
                     "kind": "const",
-                    "line": 18,
+                    "line": 20,
                     "exported": false,
                     "signature": "const MAX_GENERATED_NAME_LENGTH = 100",
                     "members": null,
@@ -1473,7 +1491,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MANAGED_DIFF_OPTIONS",
                     "kind": "const",
-                    "line": 19,
+                    "line": 21,
                     "exported": false,
                     "signature": "const MANAGED_DIFF_OPTIONS",
                     "members": null,
@@ -1482,7 +1500,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MatcherResult",
                     "kind": "type",
-                    "line": 21,
+                    "line": 23,
                     "exported": false,
                     "signature": "type MatcherResult = { pass: boolean; message: () => string; softError?: Error; shouldNotRetryTest?: boolean; };",
                     "members": null,
@@ -1491,7 +1509,7 @@ Schema: `codemap.v2`
                 {
                     "name": "SnapshotNames",
                     "kind": "type",
-                    "line": 28,
+                    "line": 30,
                     "exported": false,
                     "signature": "type SnapshotNames = { baselineName: string; artifactBase: string };",
                     "members": null,
@@ -1500,7 +1518,7 @@ Schema: `codemap.v2`
                 {
                     "name": "noMessage",
                     "kind": "const",
-                    "line": 30,
+                    "line": 32,
                     "exported": false,
                     "signature": "const noMessage = (): string =>",
                     "members": null,
@@ -1509,7 +1527,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PASSED",
                     "kind": "const",
-                    "line": 31,
+                    "line": 33,
                     "exported": false,
                     "signature": "const PASSED: MatcherResult = { pass: true, message: noMessage }",
                     "members": null,
@@ -1518,7 +1536,7 @@ Schema: `codemap.v2`
                 {
                     "name": "snapshotCounters",
                     "kind": "const",
-                    "line": 33,
+                    "line": 35,
                     "exported": false,
                     "signature": "const snapshotCounters",
                     "members": null,
@@ -1527,7 +1545,7 @@ Schema: `codemap.v2`
                 {
                     "name": "nextSnapshotIndex",
                     "kind": "function",
-                    "line": 35,
+                    "line": 37,
                     "exported": false,
                     "signature": "function nextSnapshotIndex(testInfo: TestInfo, key: string): number",
                     "members": null,
@@ -1536,7 +1554,7 @@ Schema: `codemap.v2`
                 {
                     "name": "sanitizeForFilePath",
                     "kind": "function",
-                    "line": 43,
+                    "line": 45,
                     "exported": false,
                     "signature": "function sanitizeForFilePath(value: string): string",
                     "members": null,
@@ -1545,7 +1563,7 @@ Schema: `codemap.v2`
                 {
                     "name": "trimLongString",
                     "kind": "function",
-                    "line": 47,
+                    "line": 49,
                     "exported": false,
                     "signature": "function trimLongString(value: string): string",
                     "members": null,
@@ -1554,7 +1572,7 @@ Schema: `codemap.v2`
                 {
                     "name": "resolveSnapshotNames",
                     "kind": "function",
-                    "line": 62,
+                    "line": 64,
                     "exported": false,
                     "signature": "function resolveSnapshotNames(testInfo: TestInfo, hint: string | undefined): SnapshotNames",
                     "members": null,
@@ -1563,7 +1581,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertNoManagedDiffOptions",
                     "kind": "function",
-                    "line": 75,
+                    "line": 77,
                     "exported": false,
                     "signature": "function assertNoManagedDiffOptions(options: ComparePngOptions | undefined): void",
                     "members": null,
@@ -1572,7 +1590,7 @@ Schema: `codemap.v2`
                 {
                     "name": "attach",
                     "kind": "function",
-                    "line": 83,
+                    "line": 85,
                     "exported": false,
                     "signature": "function attach(testInfo: TestInfo, name: string, path: string): void",
                     "members": null,
@@ -1581,7 +1599,7 @@ Schema: `codemap.v2`
                 {
                     "name": "attachActual",
                     "kind": "function",
-                    "line": 87,
+                    "line": 89,
                     "exported": false,
                     "signature": "function attachActual(testInfo: TestInfo, artifactBase: string, received: Buffer): void",
                     "members": null,
@@ -1590,16 +1608,16 @@ Schema: `codemap.v2`
                 {
                     "name": "writeBaseline",
                     "kind": "function",
-                    "line": 93,
+                    "line": 97,
                     "exported": false,
-                    "signature": "function writeBaseline(baselinePath: string, received: Buffer): void",
+                    "signature": "function writeBaseline(baselinePath: string, received: Buffer, options: ComparePngOptions | undefined): void",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "pixelLabel",
                     "kind": "function",
-                    "line": 98,
+                    "line": 104,
                     "exported": false,
                     "signature": "function pixelLabel(count: number): string",
                     "members": null,
@@ -1608,16 +1626,16 @@ Schema: `codemap.v2`
                 {
                     "name": "matchMissingBaseline",
                     "kind": "function",
-                    "line": 102,
+                    "line": 108,
                     "exported": false,
-                    "signature": "function matchMissingBaseline(testInfo: TestInfo, received: Buffer, names: SnapshotNames, baselinePath: string): MatcherResult",
+                    "signature": "function matchMissingBaseline( testInfo: TestInfo, received: Buffer, names: SnapshotNames, baselinePath: string, options: ComparePngOptions | undefined, ): MatcherResult",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "matchAgainstBaseline",
                     "kind": "function",
-                    "line": 126,
+                    "line": 138,
                     "exported": false,
                     "signature": "function matchAgainstBaseline(testInfo: TestInfo, isNot: boolean, received: Buffer, args: PngSnapshotMatcherArgs): MatcherResult",
                     "members": null,
@@ -1626,7 +1644,7 @@ Schema: `codemap.v2`
                 {
                     "name": "pngMatchers",
                     "kind": "const",
-                    "line": 192,
+                    "line": 204,
                     "exported": true,
                     "signature": "export const pngMatchers = { toMatchPngSnapshot: createPngSnapshotMatcher((matcherContext, received, args) => matchAgainstBaseline(test.info(), (matcherContext as { isNot?: boolean }).isNot === true, …",
                     "members": null,
@@ -1635,7 +1653,7 @@ Schema: `codemap.v2`
                 {
                     "name": "expect",
                     "kind": "const",
-                    "line": 198,
+                    "line": 210,
                     "exported": true,
                     "signature": "export const expect",
                     "members": null,
@@ -1644,8 +1662,10 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "./comparePng",
+                "./getPngData",
                 "./matchers/createPngSnapshotMatcher",
                 "./matchers/pngSnapshot",
+                "./pipeline/resolveOptions",
                 "./types",
                 "@playwright/test",
                 "node:crypto",
@@ -1927,18 +1947,54 @@ Schema: `codemap.v2`
             "path": "src/readValidatedFile.ts",
             "symbols": [
                 {
+                    "name": "READ_CHUNK_BYTES",
+                    "kind": "const",
+                    "line": 11,
+                    "exported": false,
+                    "signature": "const READ_CHUNK_BYTES",
+                    "members": null,
+                    "jsdoc": "Read size once the stat size hint is used up (a growing file, a FIFO, a device)."
+                },
+                {
+                    "name": "hasByteCap",
+                    "kind": "function",
+                    "line": 13,
+                    "exported": false,
+                    "signature": "function hasByteCap(maxFileBytes: number | undefined): maxFileBytes is number",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "assertWithinByteCap",
                     "kind": "function",
-                    "line": 8,
+                    "line": 17,
                     "exported": false,
                     "signature": "function assertWithinByteCap(size: bigint, maxFileBytes: number | undefined): void",
                     "members": null,
                     "jsdoc": null
                 },
                 {
+                    "name": "readCappedSync",
+                    "kind": "function",
+                    "line": 37,
+                    "exported": false,
+                    "signature": "function readCappedSync(fd: number, sizeHint: bigint, maxFileBytes: number): Buffer",
+                    "members": null,
+                    "jsdoc": "Reads the handle to EOF, enforcing `maxFileBytes` on the bytes actually read."
+                },
+                {
+                    "name": "readCapped",
+                    "kind": "function",
+                    "line": 55,
+                    "exported": false,
+                    "signature": "async function readCapped(handle: FileHandle, sizeHint: bigint, maxFileBytes: number): Promise<Buffer>",
+                    "members": null,
+                    "jsdoc": "Asynchronous twin of ."
+                },
+                {
                     "name": "readValidatedFileSync",
                     "kind": "function",
-                    "line": 50,
+                    "line": 110,
                     "exported": true,
                     "signature": "export function readValidatedFileSync(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Buffer",
                     "members": null,
@@ -1947,7 +2003,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readValidatedFile",
                     "kind": "function",
-                    "line": 80,
+                    "line": 144,
                     "exported": true,
                     "signature": "export async function readValidatedFile(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Promise<Buffer>",
                     "members": null,
@@ -1960,7 +2016,8 @@ Schema: `codemap.v2`
                 "./validatePath",
                 "node:buffer",
                 "node:fs",
-                "node:fs/promises"
+                "node:fs/promises",
+                "node:path"
             ],
             "reExports": []
         },
@@ -1974,7 +2031,7 @@ Schema: `codemap.v2`
                     "exported": true,
                     "signature": "export type Area = { x1: number; y1: number; x2: number; y2: number; };",
                     "members": null,
-                    "jsdoc": "Defines a rectangular region of an image by its top-left and bottom-right pixel coordinates (inclusive). All coordinates must be finite integers. `x1 <= x2`, `y1 <= y2`. Reversed coordinates are rejected at runtime — they are not auto-normalized."
+                    "jsdoc": "Defines a rectangular region of an image by its top-left and bottom-right pixel coordinates (inclusive). All coordinates must be finite non-negative integers. `x1 <= x2`, `y1 <= y2`. Reversed coordinates are rejected at runtime — they are not auto-normalized."
                 }
             ],
             "imports": [],
@@ -2199,9 +2256,18 @@ Schema: `codemap.v2`
                     "jsdoc": "Rejects paths that are malformed as strings, before any filesystem call."
                 },
                 {
+                    "name": "assertLexicalContainment",
+                    "kind": "function",
+                    "line": 114,
+                    "exported": true,
+                    "signature": "export function assertLexicalContainment(filePath: string, baseDir: string): void",
+                    "members": null,
+                    "jsdoc": "Rejects a path that is lexically outside `baseDir`, before any filesystem call."
+                },
+                {
                     "name": "ValidatedPathWithReal",
                     "kind": "type",
-                    "line": 115,
+                    "line": 136,
                     "exported": true,
                     "signature": "export type ValidatedPathWithReal = { readonly validated: ValidatedPath; readonly real?: string; };",
                     "members": null,
@@ -2210,7 +2276,7 @@ Schema: `codemap.v2`
                 {
                     "name": "validatePath",
                     "kind": "function",
-                    "line": 155,
+                    "line": 176,
                     "exported": true,
                     "signature": "export function validatePath(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPath",
                     "members": null,
@@ -2219,7 +2285,7 @@ Schema: `codemap.v2`
                 {
                     "name": "validatePathWithReal",
                     "kind": "function",
-                    "line": 165,
+                    "line": 186,
                     "exported": true,
                     "signature": "export function validatePathWithReal(filePath: string, baseDir?: string, mode: ValidatePathMode = 'output'): ValidatedPathWithReal",
                     "members": null,
