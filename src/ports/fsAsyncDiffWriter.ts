@@ -72,10 +72,18 @@ export const fsAsyncDiffWriter: AsyncDiffWriterPort = {
 
         try {
             if (baseDir !== undefined) {
-                // Ties the handle to the canonical target, catching a swap between the
-                // open and here. `realDiffDirectory` is still synchronous internally
-                // (`realpathSync.native`); see the note on `readValidatedFile`.
-                assertSameFile(await handle.stat({ bigint: true }), await stat(target, { bigint: true }), 'diff file');
+                // Re-prove the parent chain *after* the open, as the sync writer does, and
+                // tie the handle to the file inside it. Stat'ing the pre-open `target` would
+                // walk the same possibly-swapped route and agree with itself: a real directory
+                // renamed away and replaced by a symlink just before the open would pass.
+                // `realDiffDirectory` is still synchronous internally (`realpathSync.native`);
+                // see the note on `readValidatedFile`.
+                const realDirectory = realDiffDirectory(directory, baseDir);
+                assertSameFile(
+                    await handle.stat({ bigint: true }),
+                    await stat(resolve(realDirectory, basename(path)), { bigint: true }),
+                    'diff file',
+                );
             }
             await handle.truncate(0);
             await handle.chmod(DIFF_FILE_MODE);
