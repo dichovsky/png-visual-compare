@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-09-25
+
+Two breaking changes — the Node.js floor and the Vitest peer range, both under
+**Changed** below. See the README's migration guide for upgrade steps.
+
 ### Added
 
 - **Playwright matcher** — `png-visual-compare/playwright` exports an `expect` extended
@@ -38,22 +43,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Vitest peer range is now `>=5.0.0 <6`** (was `>=4.1.0 <5`). Vitest 5 changed the
+- **BREAKING: Node.js 22.12.0 or later is required** — `engines.node` is now `>=22.12.0`
+  (was `>=20`). Node.js 20 reached end-of-life in April 2026. The floor is 22.12.0 rather
+  than 22.0.0 because the CommonJS build `require()`s `pixelmatch` 7, which is ESM-only,
+  and `require()` of an ES module is enabled by default only from Node.js 22.12.0. The
+  old `>=20` range was already inaccurate: 6.3.0 fails at load with `ERR_REQUIRE_ESM` on
+  Node.js 20.17 and 22.8, for example. The new range lets npm report the mismatch at
+  install time instead.
+- **BREAKING: Vitest peer range is now `>=5.0.0 <6`** (was `>=4.1.0 <5`). Vitest 5 changed the
   `Assertion`/`Matchers` interfaces to two type parameters (`<R, T>`), so the
   `toMatchPngSnapshot` module augmentation in `png-visual-compare/vitest` now targets
   `Matchers<R, T>` and no longer type-checks against Vitest 4. Stay on the previous
   release if you are still on Vitest 4.
-- **CI** — the test workflow now takes its Node version from `.nvmrc` instead of a
-  hardcoded `24.x`.
-- **CI** — restored the macOS job in `test.yml`, marked `continue-on-error` for now. macOS is a supported platform
-  (`"os": ["darwin", "linux"]`) but has had no CI coverage since it was dropped in a
-  general sync commit. This release adds filesystem-semantics-sensitive code
-  (`O_NOFOLLOW`, `O_EXCL`, symlink refusal, inode identity) whose behaviour differs
-  between Linux and macOS, so leaving a supported platform unexercised is no longer
-  reasonable. Windows remains unsupported and untested by design, dropped as a
-  breaking change in 6.0.0. The job does not gate merges yet: the suite hits a
-  pre-existing macOS-only Vitest fork crash in roughly 1 run in 5 under coverage
-  (tracked as TEST-08), which reproduces on `main` and is unrelated to this change.
+- **CI** — both test jobs now take their Node version from `.nvmrc` (`24`) instead of
+  hardcoded versions (`24.x` on Ubuntu, `20.x` on macOS).
+- **CI** — the macOS job in `test.yml` is now marked `continue-on-error`: it still runs
+  and reports, but does not gate merges while a pre-existing macOS-only Vitest fork
+  crash (roughly 1 run in 5 under coverage, tracked as TEST-08) remains unfixed. macOS
+  stays a supported platform (`"os": ["darwin", "linux"]`); Windows remains
+  unsupported and untested by design, dropped as a breaking change in 6.0.0.
 - **CI** — `actions/checkout` and `actions/setup-node` are now SHA-pinned in
   `publish.yml` as well as `test.yml`, both annotated with the matching release tag
   (`v7.0.1` / `v7.0.0`). Closes CI-05.
@@ -76,8 +84,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `diffOutputBaseDir`. Parent directories are now created one component at a time with
   symlinks refused, and the file is then opened inside the _resolved_ parent
   directory rather than the caller's path, so no symlink is traversed at open time
-  at all. `O_TRUNC` is deferred until the opened handle has been proven contained,
-  and a failed check removes only a file this write created — established by
+  at all. Truncation is deferred — the open no longer uses `O_TRUNC`, and `ftruncate`
+  runs only once the opened handle has been proven contained — and a failed check
+  removes only a file this write created — established by
   `O_EXCL` on the create attempt, since plain `O_CREAT` succeeds identically for a
   file that already existed empty. Only engages when `diffOutputBaseDir` is set.
   Closes SECU-09.
@@ -90,8 +99,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 
-- Bumped devDependencies to their latest stable releases: `@playwright/test` 1.62.1,
-  `@types/node` 26.2.0, `eslint` 10.8.1.
+- Runtime dependencies are unchanged: `pixelmatch` `~7.2.0`, `pngjs` `~7.0.0`.
+- Bumped devDependencies: `@playwright/test` `~1.63.0`, `@types/node` `~26.6.1`,
+  `@vitest/coverage-v8` `~5.0.1`, `eslint` `~10.10.0`, `prettier` `~3.9.8`,
+  `typescript-eslint` `~8.70.0`, `vitest` `~5.0.1`.
 
 ## [6.3.0] - 2026-07-29
 

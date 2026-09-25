@@ -1,6 +1,6 @@
 {
     "name": "png-visual-compare",
-    "version": "6.3.0",
+    "version": "7.0.0",
     "description": "Node.js utility to compare PNG files or their areas",
     "keywords": [
         "visual testing",
@@ -114,7 +114,7 @@
         }
     },
     "engines": {
-        "node": ">=20"
+        "node": ">=22.12.0"
     },
     "os": [
         "darwin",
