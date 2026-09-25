@@ -226,11 +226,11 @@ export const expect = baseExpect.extend(pngMatchers);
 
 The matcher is synchronous, like Playwright's own `toMatchSnapshot()`, so there is nothing to `await`. It follows Playwright's snapshot conventions:
 
-- **Baselines are PNG files** at `testInfo.snapshotPath(name)`, so they honour `snapshotPathTemplate` and sit next to your `toHaveScreenshot()` baselines. `'header'` becomes `header.png`; a name repeated in one test becomes `header-1.png`, `header-2.png`, …; unnamed assertions are named from the test title (`<title>-png-1.png`).
-- **`--update-snapshots`** works exactly as for `toMatchSnapshot()`: `missing` (the default) writes a missing baseline and fails the test, `changed` rewrites mismatching baselines, `all` rewrites every baseline that differs, and `none` never writes. `ignoreSnapshots: true` skips the assertion.
+- **Baselines are PNG files** at `testInfo.snapshotPath(name)`, so they honour `snapshotPathTemplate` and sit next to your `toHaveScreenshot()` baselines. `'header'` becomes `header.png`, and every assertion with that name compares against it, so `expect.poll(...).toMatchPngSnapshot('header')` works; a repeated name numbers only its report artifacts (`header-1-actual.png`, …). Unnamed assertions are named from the test title (`<title>-png-1.png`), shortened with a hash when long.
+- **`--update-snapshots`** works exactly as for `toMatchSnapshot()`: `missing` (the default) writes a missing baseline and fails the test softly, so every missing baseline is written in one run and the test is not retried against it, `changed` rewrites mismatching baselines, `all` rewrites every baseline that differs, and `none` never writes. `ignoreSnapshots: true` skips the assertion.
 - **On failure** the baseline, received image and diff image are attached as `<name>-expected.png`, `<name>-actual.png` and `<name>-diff.png`, so the HTML report shows its image diff viewer.
 - **The diff location is managed for you**: passing `diffFilePath` or `diffOutputBaseDir` throws.
-- **A missing baseline fails the test immediately.** Playwright's built-in matchers record it as a soft error and carry on, but custom matchers cannot, so a test with several new baselines writes one per run. Run `npx playwright test -u` (or wrap the assertions in `expect.soft`) to write them all at once.
+- **Requires `@playwright/test` 1.60 or later.** The soft, non-retried failure for a missing baseline uses the same matcher-result fields as Playwright's built-ins, which it honours from 1.60.
 
 How it differs from `toHaveScreenshot()` / `toMatchSnapshot()`:
 

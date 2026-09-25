@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (see `docs/adr/0001-playwright-baselines-as-png-files.md`), `--update-snapshots` and
   `ignoreSnapshots` behave as for Playwright's `toMatchSnapshot()`, and failures attach
   expected/actual/diff images for the HTML report's image diff viewer. `@playwright/test`
-  `>=1.50.0 <2` is an optional peer dependency.
+  `>=1.60.0 <2` is an optional peer dependency.
 
 - **`maxFileBytes` option** (default `67_108_864`, exported as `DEFAULT_MAX_FILE_BYTES`) —
   caps the size of a PNG read from a path, checked from the file's size before any

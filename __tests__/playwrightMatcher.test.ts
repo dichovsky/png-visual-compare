@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { PNG } from 'pngjs';
@@ -7,7 +7,7 @@ import { expect as extendedExpect, pngMatchers } from '../src/playwright';
 
 type UpdateSnapshotsMode = 'all' | 'changed' | 'missing' | 'none';
 type Attachment = { name: string; contentType: string; path?: string };
-type MatcherResult = { pass: boolean; message: () => string };
+type MatcherResult = { pass: boolean; message: () => string; softError?: Error; shouldNotRetryTest?: boolean };
 type FakeTestInfo = {
     titlePath: string[];
     config: { updateSnapshots: UpdateSnapshotsMode };
@@ -116,13 +116,69 @@ describe('baseline naming', () => {
         ]);
     });
 
-    test('numbers a hint repeated within the same test', () => {
+    test('compares a repeated hint against the same baseline and numbers only its artifacts', () => {
+        const testInfo = useTestInfo();
+        const baselinePath = seedBaseline('header.png', RED);
+
+        expect([match(BLUE, 'header').pass, match(BLUE, 'header').pass]).toEqual([false, false]);
+        expect(testInfo.attachments.map((attachment) => [attachment.name, attachment.path])).toEqual([
+            ['header-expected.png', baselinePath],
+            ['header-actual.png', join(workDir, 'output', 'header-actual.png')],
+            ['header-diff.png', join(workDir, 'output', 'header-diff.png')],
+            ['header-1-expected.png', baselinePath],
+            ['header-1-actual.png', join(workDir, 'output', 'header-1-actual.png')],
+            ['header-1-diff.png', join(workDir, 'output', 'header-1-diff.png')],
+        ]);
+    });
+
+    test('lets a retried (polled) assertion pass once it matches the one baseline', () => {
         useTestInfo();
         seedBaseline('header.png', RED);
-        seedBaseline('header-1.png', BLUE);
 
+        expect(match(BLUE, 'header').pass).toBe(false);
         expect(match(RED, 'header').pass).toBe(true);
-        expect(match(BLUE, 'header').pass).toBe(true);
+    });
+
+    test('keeps artifact names unique when the path template shares a file name', () => {
+        const testInfo = useTestInfo();
+        testInfo.snapshotPath = (name) => join(workDir, 'snapshots', name.replace('.png', ''), 'baseline.png');
+        seedBaseline(join('first', 'baseline.png'), RED);
+        seedBaseline(join('second', 'baseline.png'), RED);
+
+        match(BLUE, 'first');
+        match(BLUE, 'second');
+
+        expect(testInfo.attachments.map((attachment) => attachment.name)).toEqual([
+            'first-expected.png',
+            'first-actual.png',
+            'first-diff.png',
+            'second-expected.png',
+            'second-actual.png',
+            'second-diff.png',
+        ]);
+    });
+
+    test('sanitises a hint into its artifact names', () => {
+        const testInfo = useTestInfo();
+        seedBaseline(join('pages', 'home.png'), RED);
+
+        match(BLUE, 'pages/home');
+
+        expect(testInfo.attachments.map((attachment) => attachment.name)).toEqual([
+            'pages-home-expected.png',
+            'pages-home-actual.png',
+            'pages-home-diff.png',
+        ]);
+    });
+
+    test('shortens a long generated name with a hash, as Playwright does', () => {
+        const testInfo = useTestInfo('changed');
+        testInfo.titlePath = ['visual.spec.ts', 'x'.repeat(300)];
+
+        match(RED);
+
+        const [baselineName] = readdirSync(join(workDir, 'snapshots'));
+        expect(baselineName).toMatch(/^x{46}-[0-9a-f]{5}-x{41} png 1\.png$/);
     });
 
     test('generates <title>-png-<n>.png names for unnamed assertions', () => {
@@ -236,16 +292,18 @@ describe('comparison against an existing baseline', () => {
 });
 
 describe('missing baseline', () => {
-    test('writes the baseline and fails in missing mode', () => {
+    test('writes the baseline and fails softly without retry in missing mode', () => {
         const testInfo = useTestInfo('missing');
 
         const result = match(RED, 'header');
 
         const baselinePath = join(workDir, 'snapshots', 'header.png');
-        expect(result.pass).toBe(false);
-        expect(result.message()).toBe(
+        expect(result.pass).toBe(true);
+        expect(result.message()).toBe('');
+        expect(result.softError?.message).toBe(
             `Baseline "header.png" was missing and has been written to ${baselinePath}. Re-run the test to compare against it.`,
         );
+        expect(result.shouldNotRetryTest).toBe(true);
         expect(readFileSync(baselinePath)).toEqual(RED);
         expect(testInfo.attachments).toEqual([
             { name: 'header-expected.png', contentType: 'image/png', path: baselinePath },
