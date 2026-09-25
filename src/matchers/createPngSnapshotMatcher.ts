@@ -8,11 +8,7 @@ type SnapshotMatcherResult = {
     expected?: unknown;
 };
 
-type SnapshotMatcherDelegate = (
-    matcherContext: unknown,
-    received: Buffer,
-    args: PngSnapshotMatcherArgs,
-) => SnapshotMatcherResult | Promise<SnapshotMatcherResult>;
+type SnapshotMatcherDelegate<R> = (matcherContext: unknown, received: Buffer, args: PngSnapshotMatcherArgs) => R;
 
 type SnapshotMatcherContext = {
     isNot?: boolean;
@@ -50,13 +46,17 @@ function toBuffer(value: Uint8Array): Buffer {
     return Buffer.isBuffer(value) ? value : Buffer.from(value);
 }
 
-export function createPngSnapshotMatcher(delegate: SnapshotMatcherDelegate) {
+// Generic over the delegate's result so a synchronous delegate yields a synchronous
+// matcher type (Playwright types a Promise-returning matcher as one that must be awaited).
+export function createPngSnapshotMatcher<R extends SnapshotMatcherResult | Promise<SnapshotMatcherResult>>(
+    delegate: SnapshotMatcherDelegate<R>,
+) {
     return function toMatchPngSnapshot(
         this: SnapshotMatcherContext,
         received: unknown,
         hintOrOptions?: string | ComparePngOptions,
         options?: ComparePngOptions,
-    ) {
+    ): R | SnapshotMatcherResult {
         // Guard failures are reported as `pass: false`, which the framework
         // inverts under `.not` into a passing assertion. Throwing instead keeps
         // invalid input loud in both directions.

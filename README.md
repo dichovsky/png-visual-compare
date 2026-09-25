@@ -128,7 +128,7 @@ expect(asyncMismatchedPixels).toBe(0);
 
 ## Snapshot Matchers
 
-The package also ships side-effect matcher plugins for **Vitest** and **Jest** so PNG diff buffers can be asserted with `toMatchPngSnapshot()`.
+The package also ships `toMatchPngSnapshot()` matchers for **Vitest** and **Jest** (side-effect plugins) and for **Playwright** (an extended `expect`), so PNG buffers can be asserted against a stored baseline.
 
 ### Vitest
 
@@ -196,6 +196,51 @@ import { registerJestPngSnapshotMatcher } from 'png-visual-compare/jest';
 
 registerJestPngSnapshotMatcher(expect);
 ```
+
+### Playwright
+
+Import `expect` from the Playwright entry point instead of `@playwright/test`. Capture the screenshot yourself and assert the `Buffer`:
+
+```typescript
+import { test } from '@playwright/test';
+import { expect } from 'png-visual-compare/playwright';
+
+test('header', async ({ page }) => {
+    await page.goto('https://example.com');
+
+    expect(await page.screenshot()).toMatchPngSnapshot('header');
+    expect(await page.locator('canvas').screenshot()).toMatchPngSnapshot('chart', {
+        excludedAreas: [{ x1: 0, y1: 0, x2: 120, y2: 24 }], // e.g. a live timestamp drawn on the canvas
+    });
+});
+```
+
+Already extending `expect`? Add the matchers yourself, or combine with `mergeExpects`:
+
+```typescript
+import { expect as baseExpect } from '@playwright/test';
+import { pngMatchers } from 'png-visual-compare/playwright';
+
+export const expect = baseExpect.extend(pngMatchers);
+```
+
+The matcher is synchronous, like Playwright's own `toMatchSnapshot()`, so there is nothing to `await`. It follows Playwright's snapshot conventions:
+
+- **Baselines are PNG files** at `testInfo.snapshotPath(name)`, so they honour `snapshotPathTemplate` and sit next to your `toHaveScreenshot()` baselines. `'header'` becomes `header.png`; a name repeated in one test becomes `header-1.png`, `header-2.png`, …; unnamed assertions are named from the test title (`<title>-png-1.png`).
+- **`--update-snapshots`** works exactly as for `toMatchSnapshot()`: `missing` (the default) writes a missing baseline and fails the test, `changed` rewrites mismatching baselines, `all` rewrites every baseline that differs, and `none` never writes. `ignoreSnapshots: true` skips the assertion.
+- **On failure** the baseline, received image and diff image are attached as `<name>-expected.png`, `<name>-actual.png` and `<name>-diff.png`, so the HTML report shows its image diff viewer.
+- **The diff location is managed for you**: passing `diffFilePath` or `diffOutputBaseDir` throws.
+- **A missing baseline fails the test immediately.** Playwright's built-in matchers record it as a soft error and carry on, but custom matchers cannot, so a test with several new baselines writes one per run. Run `npx playwright test -u` (or wrap the assertions in `expect.soft`) to write them all at once.
+
+How it differs from `toHaveScreenshot()` / `toMatchSnapshot()`:
+
+|                                         | `toMatchPngSnapshot()`                                        | Playwright built-ins                                  |
+| --------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
+| Ignore a region                         | `excludedAreas` by pixel coordinates (canvas, video, images)  | `mask` by DOM locator                                 |
+| Received and baseline differ in size    | Compared on a padded canvas; reports a pixel count and a diff | Fails with "Expected an image W×H, received W×H"      |
+| Tolerance                               | Per-pixel `threshold` only; passes at 0 mismatched pixels     | `threshold`, `maxDiffPixels`, `maxDiffPixelRatio`     |
+| Capture and stabilisation               | You pass a `Buffer`                                           | `toHaveScreenshot()` retries until two captures match |
+| Same engine in Jest, Vitest, standalone | Yes                                                           | No                                                    |
 
 `toMatchPngSnapshot()` is intentionally strict: it accepts only PNG `Buffer` / `Uint8Array` input, and passes any provided `ComparePngOptions` to `comparePng` when checking the stored snapshot.
 

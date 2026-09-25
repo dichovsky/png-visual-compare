@@ -14,10 +14,11 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "6.3.0"
     },
-    "sourceHash": "eda4a8d1ede160014021a9bfb46b87007cc8bcc47c8d50fdaad1faf470bdd885",
+    "sourceHash": "efa99fe95ddb2fc605e176f0cee2be80cb3c3262d1588cd756fec4566b2c815b",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
+        "src/playwright.ts",
         "src/vitest.mts"
     ],
     "publicApi": [
@@ -198,6 +199,26 @@ Schema: `codemap.v2`
             "file": "src/jest.ts",
             "line": 218,
             "signature": "export function registerJestPngSnapshotMatcher(expect: ExpectLike): void",
+            "jsdoc": null,
+            "typeOnly": false
+        },
+        {
+            "name": "expect",
+            "kind": "const",
+            "entrypoint": "src/playwright.ts",
+            "file": "src/playwright.ts",
+            "line": 175,
+            "signature": "export const expect",
+            "jsdoc": null,
+            "typeOnly": false
+        },
+        {
+            "name": "pngMatchers",
+            "kind": "const",
+            "entrypoint": "src/playwright.ts",
+            "file": "src/playwright.ts",
+            "line": 169,
+            "signature": "export const pngMatchers = { toMatchPngSnapshot: createPngSnapshotMatcher((matcherContext, received, args) => matchAgainstBaseline(test.info(), (matcherContext as { isNot?: boolean }).isNot === true, …",
             "jsdoc": null,
             "typeOnly": false
         },
@@ -962,14 +983,14 @@ Schema: `codemap.v2`
                     "kind": "type",
                     "line": 11,
                     "exported": false,
-                    "signature": "type SnapshotMatcherDelegate = ( matcherContext: unknown, received: Buffer, args: PngSnapshotMatcherArgs, ) => SnapshotMatcherResult | Promise<SnapshotMatcherResult>;",
+                    "signature": "type SnapshotMatcherDelegate<R> = (matcherContext: unknown, received: Buffer, args: PngSnapshotMatcherArgs) => R;",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "SnapshotMatcherContext",
                     "kind": "type",
-                    "line": 17,
+                    "line": 13,
                     "exported": false,
                     "signature": "type SnapshotMatcherContext = { isNot?: boolean; };",
                     "members": null,
@@ -978,7 +999,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_SIGNATURE",
                     "kind": "const",
-                    "line": 21,
+                    "line": 17,
                     "exported": false,
                     "signature": "const PNG_SIGNATURE",
                     "members": null,
@@ -987,7 +1008,7 @@ Schema: `codemap.v2`
                 {
                     "name": "describeValue",
                     "kind": "function",
-                    "line": 23,
+                    "line": 19,
                     "exported": false,
                     "signature": "function describeValue(value: unknown): string",
                     "members": null,
@@ -996,7 +1017,7 @@ Schema: `codemap.v2`
                 {
                     "name": "hasPngSignature",
                     "kind": "function",
-                    "line": 35,
+                    "line": 31,
                     "exported": false,
                     "signature": "function hasPngSignature(value: Uint8Array): boolean",
                     "members": null,
@@ -1005,7 +1026,7 @@ Schema: `codemap.v2`
                 {
                     "name": "toBuffer",
                     "kind": "function",
-                    "line": 49,
+                    "line": 45,
                     "exported": false,
                     "signature": "function toBuffer(value: Uint8Array): Buffer",
                     "members": null,
@@ -1014,9 +1035,9 @@ Schema: `codemap.v2`
                 {
                     "name": "createPngSnapshotMatcher",
                     "kind": "function",
-                    "line": 53,
+                    "line": 51,
                     "exported": true,
-                    "signature": "export function createPngSnapshotMatcher(delegate: SnapshotMatcherDelegate)",
+                    "signature": "export function createPngSnapshotMatcher<R extends SnapshotMatcherResult | Promise<SnapshotMatcherResult>>( delegate: SnapshotMatcherDelegate<R>, )",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1407,6 +1428,183 @@ Schema: `codemap.v2`
                 "../types/validated-path",
                 "node:buffer",
                 "pngjs"
+            ],
+            "reExports": []
+        },
+        {
+            "path": "src/playwright.ts",
+            "symbols": [
+                {
+                    "name": "PNG_EXTENSION",
+                    "kind": "const",
+                    "line": 14,
+                    "exported": false,
+                    "signature": "const PNG_EXTENSION",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "PNG_CONTENT_TYPE",
+                    "kind": "const",
+                    "line": 15,
+                    "exported": false,
+                    "signature": "const PNG_CONTENT_TYPE = 'image/png'",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "UNNAMED_KEY",
+                    "kind": "const",
+                    "line": 16,
+                    "exported": false,
+                    "signature": "const UNNAMED_KEY = ''",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "MANAGED_DIFF_OPTIONS",
+                    "kind": "const",
+                    "line": 17,
+                    "exported": false,
+                    "signature": "const MANAGED_DIFF_OPTIONS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "MatcherResult",
+                    "kind": "type",
+                    "line": 19,
+                    "exported": false,
+                    "signature": "type MatcherResult = { pass: boolean; message: () => string };",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "noMessage",
+                    "kind": "const",
+                    "line": 21,
+                    "exported": false,
+                    "signature": "const noMessage = (): string =>",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "PASSED",
+                    "kind": "const",
+                    "line": 22,
+                    "exported": false,
+                    "signature": "const PASSED: MatcherResult = { pass: true, message: noMessage }",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "snapshotCounters",
+                    "kind": "const",
+                    "line": 24,
+                    "exported": false,
+                    "signature": "const snapshotCounters",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "nextSnapshotIndex",
+                    "kind": "function",
+                    "line": 26,
+                    "exported": false,
+                    "signature": "function nextSnapshotIndex(testInfo: TestInfo, key: string): number",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "resolveBaselineName",
+                    "kind": "function",
+                    "line": 36,
+                    "exported": false,
+                    "signature": "function resolveBaselineName(testInfo: TestInfo, hint: string | undefined): string",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "assertNoManagedDiffOptions",
+                    "kind": "function",
+                    "line": 47,
+                    "exported": false,
+                    "signature": "function assertNoManagedDiffOptions(options: ComparePngOptions | undefined): void",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "attach",
+                    "kind": "function",
+                    "line": 55,
+                    "exported": false,
+                    "signature": "function attach(testInfo: TestInfo, name: string, path: string): void",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "writeBaseline",
+                    "kind": "function",
+                    "line": 59,
+                    "exported": false,
+                    "signature": "function writeBaseline(baselinePath: string, received: Buffer): void",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "pixelLabel",
+                    "kind": "function",
+                    "line": 64,
+                    "exported": false,
+                    "signature": "function pixelLabel(count: number): string",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "matchMissingBaseline",
+                    "kind": "function",
+                    "line": 68,
+                    "exported": false,
+                    "signature": "function matchMissingBaseline( testInfo: TestInfo, received: Buffer, name: string, baselinePath: string, artifactBase: string, ): MatcherResult",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "matchAgainstBaseline",
+                    "kind": "function",
+                    "line": 100,
+                    "exported": false,
+                    "signature": "function matchAgainstBaseline(testInfo: TestInfo, isNot: boolean, received: Buffer, args: PngSnapshotMatcherArgs): MatcherResult",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "pngMatchers",
+                    "kind": "const",
+                    "line": 169,
+                    "exported": true,
+                    "signature": "export const pngMatchers = { toMatchPngSnapshot: createPngSnapshotMatcher((matcherContext, received, args) => matchAgainstBaseline(test.info(), (matcherContext as { isNot?: boolean }).isNot === true, …",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "expect",
+                    "kind": "const",
+                    "line": 175,
+                    "exported": true,
+                    "signature": "export const expect",
+                    "members": null,
+                    "jsdoc": null
+                }
+            ],
+            "imports": [
+                "./comparePng",
+                "./matchers/createPngSnapshotMatcher",
+                "./matchers/pngSnapshot",
+                "./types",
+                "@playwright/test",
+                "node:fs",
+                "node:path"
             ],
             "reExports": []
         },
