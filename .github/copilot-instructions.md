@@ -114,6 +114,7 @@ src/
     index.ts                      # re-exports all types
     area.ts                       # Area (x1,y1,x2,y2 rectangle)
     color.ts                      # Color (r,g,b)
+    compare.input.ts              # ComparePngInput (string | Buffer; internal — not exported from src/index.ts)
     compare.options.ts            # ComparePngOptions, PixelmatchOptions
     png.data.ts                   # LoadedPng discriminated union
     validated-path.ts             # ValidatedPath branded type (internal — not re-exported from types/index.ts)
@@ -188,6 +189,7 @@ All types live in `src/types/`, one file per type, collected in `src/types/index
 | Type                | Exported publicly | Purpose                                                              |
 | ------------------- | ----------------- | -------------------------------------------------------------------- |
 | `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left)     |
+| `ComparePngInput`   | no                | `string \| Buffer` input of `comparePng` / `comparePngAsync`         |
 | `ComparePngOptions` | yes               | Options bag for `comparePng`                                         |
 | `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                     |
 | `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                         |

@@ -9,8 +9,8 @@ import { describe, expect, test } from 'vitest';
 const INTERNAL_MODULE = /^\.\/(?:comparePngWithPorts|ports\/|pipeline\/)/;
 
 const publicSources = [
-    { file: 'src/comparePng.ts', expected: ['node:buffer', './types', './defaults'] },
-    { file: 'src/comparePngAsync.ts', expected: ['node:buffer', './types'] },
+    { file: 'src/comparePng.ts', expected: ['./types', './defaults'] },
+    { file: 'src/comparePngAsync.ts', expected: ['./types'] },
 ];
 
 describe('public declarations stay clear of internal modules', () => {

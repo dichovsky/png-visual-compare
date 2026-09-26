@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import { PNG } from 'pngjs';
 import { getPersistableDiff } from './pipeline/persistDiff';
 import { resolveOptions } from './pipeline/resolveOptions';
@@ -6,14 +5,14 @@ import { normalizeImages } from './pipeline/normalizeImages';
 import { runComparison } from './pipeline/runComparison';
 import { fsAsyncDiffWriter } from './ports/fsAsyncDiffWriter';
 import { fsAsyncImageSource } from './ports/fsAsyncImageSource';
-import type { ComparePngOptions } from './types';
+import type { ComparePngInput, ComparePngOptions } from './types';
 import type { LoadedSources } from './pipeline/types';
 import { describeBothInvalidSources } from './pipeline/describeInvalidSources';
 import { InvalidInputError } from './errors';
 
 async function loadSourcesAsync(
-    png1: string | Buffer,
-    png2: string | Buffer,
+    png1: ComparePngInput,
+    png2: ComparePngInput,
     opts: ReturnType<typeof resolveOptions>,
 ): Promise<LoadedSources> {
     const [first, second] = await Promise.all([fsAsyncImageSource.load(png1, opts), fsAsyncImageSource.load(png2, opts)]);
@@ -25,7 +24,7 @@ async function loadSourcesAsync(
     return { png1, png2, first, second };
 }
 
-export async function comparePngAsync(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): Promise<number> {
+export async function comparePngAsync(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): Promise<number> {
     const options = resolveOptions(opts);
     const sources = await loadSourcesAsync(png1, png2, options);
     const normalized = normalizeImages(sources, options);
