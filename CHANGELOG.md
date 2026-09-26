@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.0.1] - 2026-09-26
+
 ### Fixed
 
+- **Jest can load the package without extra configuration** — the CommonJS build
+  `require()`d `pixelmatch` 7, which ships only as an ES module. Node.js loads that through
+  `require(esm)`, but Jest's own module loader (Jest 29 and 30) cannot, so importing
+  `png-visual-compare` or `png-visual-compare/jest` failed in a stock Jest project — the root import since 4.0.0
+  moved to `pixelmatch` 7, and `png-visual-compare/jest` since that subpath shipped in
+  6.1.0. Vitest's `vmThreads` / `vmForks` pools failed too: on Node.js 22 the import
+  threw, and on Node.js 24 it loaded but every comparison threw
+  `pixelmatch_1.default is not a function`. `pixelmatch` 7.2.0 (ISC) is now vendored as a TypeScript port, checked
+  byte for byte against upstream, so the Babel workaround documented for 7.0.0 is no longer
+  needed. Closes RELI-11.
 - Reject undecodable PNGs, and PNGs over `maxDimension` / `maxPixels`, before
   recording or updating matcher baselines in Jest, Vitest, and Playwright.
   Jest and Vitest now reject oversized images during first-baseline recording
@@ -22,15 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when only new baselines may be recorded and the baseline already exists.
 - Support typed Jest registration and assertions with `expect` imported from
   `@jest/globals`, including `injectGlobals: false` projects.
-- **Jest can load the package without extra configuration** — the CommonJS build
-  `require()`d `pixelmatch` 7, which ships only as an ES module. Node.js loads that through
-  `require(esm)`, but Jest's own module loader (Jest 29 and 30) and Vitest's `vmThreads` /
-  `vmForks` pools on Node.js 22 cannot, so importing `png-visual-compare` or
-  `png-visual-compare/jest` failed in a stock Jest project — the root import since 4.0.0
-  moved to `pixelmatch` 7, and `png-visual-compare/jest` since that subpath shipped in
-  6.1.0. `pixelmatch` 7.2.0 (ISC) is now vendored as a TypeScript port, checked
-  byte for byte against upstream, so the Babel workaround documented for 7.0.0 is no longer
-  needed. Closes RELI-11.
 
 ### Security
 
@@ -46,16 +49,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **CI** — the post-release `version-live` check now retries with backoff for about
+  five minutes, so registry propagation delay no longer turns a successful publish
+  run red (it did for 7.0.0).
 - **CI** — include `CODEMAP.md` in the Docker test context and restrict unit-test
   discovery to the repository's `__tests__` directory, excluding nested worktrees.
 
 ### Dependencies
 
-- **BREAKING: new optional peer `expect` `>=29 <31`** — used only for the
-  `png-visual-compare/jest` type augmentation. npm checks this range at install
-  when `expect` is present, so a direct dependency on an incompatible version can
-  cause `ERESOLVE` even in a project that does not use Jest. A transitive
-  incompatible version can be nested separately.
+- **New optional peer `expect`, with no version range** — it lets pnpm 9 and later
+  resolve `expect` for the `png-visual-compare/jest` type augmentation, which targets
+  the `expect` shipped with Jest 29 and 30. pnpm 8 does not link optional peers the
+  root does not depend on, so on pnpm 8 add `expect` as a direct devDependency. Because the peer accepts any
+  version, it never causes `ERESOLVE`, whatever `expect` a project depends on.
 - `pixelmatch` is no longer a runtime dependency; `pngjs` is the only one. `pixelmatch`
   stays a devDependency as the parity oracle for the vendored copy.
 
