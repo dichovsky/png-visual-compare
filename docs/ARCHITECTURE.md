@@ -58,18 +58,19 @@ Each subpath adds a `toMatchPngSnapshot()` matcher for one test framework. All t
 
 ## Module layout
 
-| Area                  | Files                                                                                                                                  | Responsibility                                                                             |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Public entrypoints    | `src/index.ts`, `src/comparePng.ts`, `src/comparePngAsync.ts`                                                                          | Package exports and sync/async orchestration                                               |
-| Pipeline              | `src/pipeline/*`                                                                                                                       | Option resolution, source loading, normalization, comparison, diff persistence             |
-| Validation            | `src/validatePath.ts`, `src/validateArea.ts`, `src/validateColor.ts`, `src/validatePixelmatchOptions.ts`                               | Boundary validation for security and correctness                                           |
-| Image helpers         | `src/getPngData.ts`, `src/extendImage.ts`, `src/fillImageSizeDifference.ts`, `src/addColoredAreasToImage.ts`, `src/drawPixelOnBuff.ts` | PNG decoding and low-level image mutation                                                  |
-| Guarded file read     | `src/readValidatedFile.ts`                                                                                                             | Opens a file before validating it, so bytes provably come from the approved inode          |
-| Internal helpers      | `src/internal/*`                                                                                                                       | `assertSameFile`, `secureMkdir`, `realDiffDirectory` — shared filesystem-safety primitives |
-| Ports                 | `src/ports/*`                                                                                                                          | Sync/async filesystem adapters and internal test injection seams                           |
-| Types/defaults/errors | `src/types/*`, `src/defaults.ts`, `src/errors.ts`                                                                                      | Shared contracts and stable defaults                                                       |
-| Adapter boundary      | `src/adapters/toPixelmatchOptions.ts`                                                                                                  | Internal translation from public `PixelmatchOptions` to `pixelmatch`                       |
-| Matchers              | `src/vitest.mts`, `src/jest.ts`, `src/playwright.ts`, `src/matchers/*`                                                                 | `toMatchPngSnapshot` adapters for the `./vitest`, `./jest`, `./playwright` subpaths        |
+| Area                  | Files                                                                                                                                  | Responsibility                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Public entrypoints    | `src/index.ts`, `src/comparePng.ts`, `src/comparePngAsync.ts`                                                                          | Package exports and sync/async orchestration                                                    |
+| Pipeline              | `src/pipeline/*`                                                                                                                       | Option resolution, source loading, normalization, comparison, diff persistence                  |
+| Validation            | `src/validatePath.ts`, `src/validateArea.ts`, `src/validateColor.ts`, `src/validatePixelmatchOptions.ts`                               | Boundary validation for security and correctness                                                |
+| Image helpers         | `src/getPngData.ts`, `src/extendImage.ts`, `src/fillImageSizeDifference.ts`, `src/addColoredAreasToImage.ts`, `src/drawPixelOnBuff.ts` | PNG decoding and low-level image mutation                                                       |
+| Guarded file read     | `src/readValidatedFile.ts`                                                                                                             | Opens a file before validating it, so bytes provably come from the approved inode               |
+| Internal helpers      | `src/internal/*`                                                                                                                       | `assertSameFile`, `secureMkdir`, `realDiffDirectory` — shared filesystem-safety primitives      |
+| Ports                 | `src/ports/*`                                                                                                                          | Sync/async filesystem adapters and internal test injection seams                                |
+| Vendored kernel       | `src/vendor/pixelmatch.ts`                                                                                                             | `pixelmatch` 7.2.0 as a TypeScript port (ISC), so the CommonJS build has no ESM-only dependency |
+| Types/defaults/errors | `src/types/*`, `src/defaults.ts`, `src/errors.ts`                                                                                      | Shared contracts and stable defaults                                                            |
+| Adapter boundary      | `src/adapters/toPixelmatchOptions.ts`                                                                                                  | Internal translation from public `PixelmatchOptions` to `pixelmatch`                            |
+| Matchers              | `src/vitest.mts`, `src/jest.ts`, `src/playwright.ts`, `src/matchers/*`                                                                 | `toMatchPngSnapshot` adapters for the `./vitest`, `./jest`, `./playwright` subpaths             |
 
 ## Sync architecture
 
@@ -267,7 +268,9 @@ The public wrapper owns runtime validation for:
 - `diffColor`
 - `diffColorAlt`
 
-This prevents invalid data from leaking directly into the external `pixelmatch` API.
+This prevents invalid data from leaking directly into the `pixelmatch` kernel.
+
+`pixelmatch` itself is vendored as `src/vendor/pixelmatch.ts`, a line-for-line TypeScript port of 7.2.0 kept under its ISC notice. The CommonJS build used to `require()` the ESM-only upstream package, which Jest's module loader and Vitest's vm pools on Node.js 22 cannot load (RELI-11). `__tests__/vendor/pixelmatch.test.ts` checks the port against upstream, kept as a devDependency: mismatch counts and diff bytes across the fixtures and every option, error messages, and the exact colour-delta threshold boundary. A failure there after an upstream bump means the port needs re-syncing.
 
 ## Error model
 

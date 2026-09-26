@@ -86,6 +86,9 @@
 - [x] 🔴 ♻️ TYPE [TYPE-03]: Decouple public options from `pixelmatch`
     - **Impl:** Added `src/adapters/toPixelmatchOptions.ts` translating public `PixelmatchOptions` → pixelmatch raw shape; `comparePng` uses the adapter.
     - **Rat:** Public types mirrored `pixelmatch` directly — any pixelmatch option churn would propagate to the wrapper's stable surface.
+- [x] 🔴 🐛 RELI [RELI-11]: Jest cannot load the package — vendor `pixelmatch`
+    - **Impl:** `pixelmatch` 7.2.0 ported line for line to `src/vendor/pixelmatch.ts` under its ISC notice (a `/*!` header, kept in `out/`); `runComparison` and `toPixelmatchOptions` import it, and the npm package moved to devDependencies. `__tests__/vendor/pixelmatch.test.ts` is a differential oracle against upstream: counts and diff bytes over fixtures × 12 option sets × `Uint8Array`/`Uint8ClampedArray` output, error messages, and a bisected colour-delta threshold probe that catches coefficient drift. 100% coverage of the port.
+    - **Rat:** The CJS build `require()`d ESM-only `pixelmatch`. Node ≥ 22.12 handles that through `require(esm)`, but Jest's loader (29 and 30) and Vitest vm pools on Node 22 do not, so the `./jest` matcher never loaded in a stock Jest project. Vendoring beat build-time bundling (no new tooling, and the tests exercise the shipped code) and beat keeping the Babel workaround (a config burden on every consumer). Verified with the packed tarball in stock Jest 29.7 / 30.5 × Node 22.12 / 24 and Vitest 5 `vmThreads` / `vmForks` on Node 22.12.
 
 ## 🧪 Tests & QA
 

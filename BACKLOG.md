@@ -24,7 +24,6 @@
 
 ## 🏛️ Architecture · Types · API · Reliability
 
-- [ ] 🔴 🐛 RELI [RELI-11]: Jest cannot load the package without a Babel transform — the CJS build `require()`s ESM-only `pixelmatch`, which Jest's loader (and Vitest vm pools) cannot load; bundle `pixelmatch` (ISC) into the CJS build, then drop the README workaround
 - [ ] 🔴 🐛 RELI [RELI-12]: Jest 30.5+ `retryTimes` false green — the matcher bumps `snapshotState._counters` directly, which `clear(testIdentity)` does not roll back, so the retry resolves `<name> 2`, writes it and passes; route through `_bumpCounter` / `_markKeyChecked` / `_addSnapshot` / `_incrementSnapshotCount` with the test identity
 - [ ] 🟡 ♻️ ARCH [ARCH-02]: Split `getPngData` → `decodePngBuffer` + `loadPngFromPath`
 - [ ] 🟡 ♻️ ARCH [ARCH-03]: `comparePngAsyncWithPorts` for injection symmetry
