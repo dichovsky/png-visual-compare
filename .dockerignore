@@ -8,4 +8,6 @@ out
 dockerfile
 Dockerfile
 *.md
+!CODEMAP.md
 LICENSE
+.claude

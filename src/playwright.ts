@@ -8,10 +8,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { expect as baseExpect, test, type TestInfo } from '@playwright/test';
 import { comparePng } from './comparePng';
-import { getPngData } from './getPngData';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher';
-import { NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE, type PngSnapshotMatcherArgs } from './matchers/pngSnapshot';
-import { resolveOptions } from './pipeline/resolveOptions';
+import { NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE, validatePngSnapshot, type PngSnapshotMatcherArgs } from './matchers/pngSnapshot';
 import type { ComparePngOptions } from './types';
 
 const PNG_EXTENSION = /\.png$/i;
@@ -92,11 +90,8 @@ function attachActual(testInfo: TestInfo, artifactBase: string, received: Buffer
     attach(testInfo, `${artifactBase}-actual.png`, actualPath);
 }
 
-// A baseline over maxDimension/maxPixels could never be compared against, so refuse it
-// with the ResourceLimitError comparePng would throw. Decode errors are left to comparePng.
 function writeBaseline(baselinePath: string, received: Buffer, options: ComparePngOptions | undefined): void {
-    const { maxDimension, maxPixels } = resolveOptions(options);
-    getPngData(received, false, maxDimension, maxPixels);
+    validatePngSnapshot(received, options);
     mkdirSync(dirname(baselinePath), { recursive: true });
     writeFileSync(baselinePath, received);
 }

@@ -8,6 +8,7 @@ import {
     buildSnapshotTestName,
     compareAgainstSerializedPngSnapshot,
     NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE,
+    validatePngSnapshot,
     type PngSnapshotMatcherArgs,
 } from './matchers/pngSnapshot.js';
 import type { ComparePngOptions } from './types/index.js';
@@ -128,6 +129,11 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext: unknown, re
         expectedSnapshot.data === undefined
             ? undefined
             : compareAgainstSerializedPngSnapshot(received, expectedSnapshot.data, args.options);
+
+    if (comparison?.pass !== true) {
+        validatePngSnapshot(received, args.options);
+    }
+
     const result = context.snapshotState.processDomainSnapshot({
         assertionName: getAssertionName(context),
         error: context.error,

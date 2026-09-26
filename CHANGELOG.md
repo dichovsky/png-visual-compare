@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Reject PNGs with duplicate IHDR chunks before decoding, preventing later headers
+  from bypassing the image dimension and pixel limits.
+- Preserve replacement files when a diff write fails. Failed writes close their
+  handles without deleting paths that another writer may have replaced; an empty
+  or partial output can remain after a failure.
+- Reject undecodable PNGs before recording or updating matcher baselines in Jest,
+  Vitest, and Playwright.
+- Keep obsolete Jest baselines detectable, and preserve baselines and snapshot
+  counters inside `test.failing` assertions.
+- Support typed Jest registration and assertions with `expect` imported from
+  `@jest/globals`, including `injectGlobals: false` projects.
+- Include `CODEMAP.md` in the Docker test context and restrict unit-test discovery
+  to the repository's `__tests__` directory, excluding nested worktrees.
 - **Jest can load the package without extra configuration** — the CommonJS build
   `require()`d `pixelmatch` 7, which ships only as an ES module. Node.js loads that through
   `require(esm)`, but Jest's own module loader (Jest 29 and 30) and Vitest's `vmThreads` /

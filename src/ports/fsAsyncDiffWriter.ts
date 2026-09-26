@@ -1,5 +1,5 @@
 import { constants as fsConstants } from 'node:fs';
-import { open, stat, unlink } from 'node:fs/promises';
+import { open, stat } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { PathValidationError } from '../errors';
 import { assertSameFile } from '../internal/assertSameFile';
@@ -11,10 +11,8 @@ import type { AsyncDiffWriterPort } from './asyncTypes';
 // has been proven to live inside `diffOutputBaseDir` (SECU-09). Truncating on open
 // would destroy the contents of an escaped target before anything could detect it.
 //
-// The create attempt carries O_EXCL so that success proves *this* call created the
-// file. Without it, O_CREAT succeeds identically for a file that already existed
-// empty, and the cleanup path below could not tell the two apart — it would delete
-// a pre-existing zero-length file (a placeholder or lock) that it never created.
+// Separate exclusive creation from opening an existing target. Neither attempt
+// follows a symlink in the final component.
 const CREATE_FLAGS = fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_NOFOLLOW;
 const OPEN_EXISTING_FLAGS = fsConstants.O_WRONLY | fsConstants.O_NOFOLLOW;
 
@@ -51,7 +49,6 @@ export const fsAsyncDiffWriter: AsyncDiffWriterPort = {
         const target = baseDir === undefined ? path : resolve(realDiffDirectory(directory, baseDir), basename(path));
 
         let handle;
-        let created = true;
         try {
             handle = await open(target, CREATE_FLAGS, DIFF_FILE_MODE);
         } catch (error) {
@@ -62,7 +59,6 @@ export const fsAsyncDiffWriter: AsyncDiffWriterPort = {
             // The target already exists, so this call is an overwrite, not a create.
             // A symlink at the target reaches here as EEXIST (O_EXCL reports the link
             // itself); reopening without O_CREAT surfaces it as ELOOP via O_NOFOLLOW.
-            created = false;
             try {
                 handle = await open(target, OPEN_EXISTING_FLAGS, DIFF_FILE_MODE);
             } catch (reopenError) {
@@ -88,21 +84,12 @@ export const fsAsyncDiffWriter: AsyncDiffWriterPort = {
             await handle.truncate(0);
             await handle.chmod(DIFF_FILE_MODE);
             await handle.writeFile(data);
-        } catch (error) {
+        } finally {
+            // Close the pinned handle, but never unlink by pathname on failure. The
+            // target or an ancestor may have been replaced since opening or checking
+            // its identity; even a fresh stat cannot make a later unlink atomic.
+            // A refused write may therefore leave an empty or partial file behind.
             await handle.close();
-            // Remove only a file this call created, which O_EXCL establishes rather
-            // than infers. Leaving an empty file behind on an escaped path is litter;
-            // deleting a file this write did not create would be worse than the litter
-            // it cleans up.
-            if (created) {
-                try {
-                    await unlink(target);
-                } catch {
-                    /* best effort: the path may already be gone */
-                }
-            }
-            throw error;
         }
-        await handle.close();
     },
 };

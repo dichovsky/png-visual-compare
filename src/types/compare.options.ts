@@ -86,6 +86,8 @@ export type ComparePngOptions = {
      * requires renaming a real directory in the resolved chain rather than planting a
      * symlink. Without `diffOutputBaseDir` there is no boundary to enforce and none of
      * the parent-component checks run.
+     * Failed writes close their handles without deleting the output path, which another
+     * writer may have replaced. An empty or partial output can remain after a failure.
      *
      * @default undefined (no diff file written)
      * @throws {PathValidationError} if a symlink exists at the target path at write-time.
