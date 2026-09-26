@@ -1,6 +1,35 @@
 import { PathValidationError } from '../errors';
 
 /**
+ * The refusal for a special file inside a boundary (SECU-14), shared by
+ * the post-open {@link assertRegularFile} and by writers whose non-blocking open of a
+ * FIFO with no reader fails with `ENXIO` before there is a handle to check.
+ *
+ * @param subject - Human-readable description of what was being opened, used in the error message.
+ */
+export function notRegularFileError(subject: string): PathValidationError {
+    return new PathValidationError(`Path validation failed for ${subject}: not a regular file (FIFO, socket, or device)`);
+}
+
+/**
+ * Asserts that an opened handle refers to a regular file (SECU-14).
+ *
+ * Callers open with `O_NONBLOCK` when a boundary is set, so a FIFO planted inside it
+ * opens at once instead of blocking the call until a peer appears. This check then
+ * refuses it, and a device with it. Run it only after containment has been
+ * proven, so the file kind of a path outside the boundary is never reported.
+ *
+ * @param opened  - `fstat` of the open handle.
+ * @param subject - Human-readable description of what was being opened, used in the error message.
+ * @throws {PathValidationError} If the handle is not a regular file.
+ */
+export function assertRegularFile(opened: { isFile(): boolean }, subject: string): void {
+    if (!opened.isFile()) {
+        throw notRegularFileError(subject);
+    }
+}
+
+/**
  * Asserts that an opened file has no other name than the one being written (SECU-13).
  *
  * A hard link is the same inode under a second name, so the identity check that

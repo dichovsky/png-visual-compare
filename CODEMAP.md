@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.1.0"
     },
-    "sourceHash": "cd74a24de3d5ddf322c93f77cd2235629642518594e7157f73976e968cde67fb",
+    "sourceHash": "7120ce7424c19d207f5026a2157d7d79c559da20bd38b0819a3f056286f7876b",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -719,9 +719,27 @@ Schema: `codemap.v2`
             "path": "src/internal/assertPlainFile.ts",
             "symbols": [
                 {
+                    "name": "notRegularFileError",
+                    "kind": "function",
+                    "line": 10,
+                    "exported": true,
+                    "signature": "export function notRegularFileError(subject: string): PathValidationError",
+                    "members": null,
+                    "jsdoc": "The refusal for a special file inside a boundary (SECU-14), shared by the post-open and by writers whose non-blocking open of a FIFO with no reader fails with `ENXIO` before there is a handle to check."
+                },
+                {
+                    "name": "assertRegularFile",
+                    "kind": "function",
+                    "line": 26,
+                    "exported": true,
+                    "signature": "export function assertRegularFile(opened: { isFile(): boolean }, subject: string): void",
+                    "members": null,
+                    "jsdoc": "Asserts that an opened handle refers to a regular file (SECU-14)."
+                },
+                {
                     "name": "assertSingleLink",
                     "kind": "function",
-                    "line": 16,
+                    "line": 45,
                     "exported": true,
                     "signature": "export function assertSingleLink(opened: { readonly nlink: bigint }, subject: string): void",
                     "members": null,
@@ -1788,27 +1806,36 @@ Schema: `codemap.v2`
                     "jsdoc": null
                 },
                 {
+                    "name": "BOUNDED_OPEN_FLAGS",
+                    "kind": "const",
+                    "line": 20,
+                    "exported": false,
+                    "signature": "const BOUNDED_OPEN_FLAGS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 25,
+                    "line": 31,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
                     "jsdoc": null
                 },
                 {
-                    "name": "asSymlinkRefusal",
+                    "name": "asOpenRefusal",
                     "kind": "function",
-                    "line": 27,
+                    "line": 33,
                     "exported": false,
-                    "signature": "function asSymlinkRefusal(error: unknown): unknown",
+                    "signature": "function asOpenRefusal(error: unknown, baseDir: string | undefined): unknown",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "fsAsyncDiffWriter",
                     "kind": "const",
-                    "line": 34,
+                    "line": 44,
                     "exported": true,
                     "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data, baseDir) { const directory = dirname(path); await secureMkdir(directory, baseDir); const target = baseDir === undefined …",
                     "members": null,
@@ -1863,27 +1890,36 @@ Schema: `codemap.v2`
                     "jsdoc": null
                 },
                 {
+                    "name": "BOUNDED_OPEN_FLAGS",
+                    "kind": "const",
+                    "line": 19,
+                    "exported": false,
+                    "signature": "const BOUNDED_OPEN_FLAGS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 24,
+                    "line": 30,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
                     "jsdoc": null
                 },
                 {
-                    "name": "asSymlinkRefusal",
+                    "name": "asOpenRefusal",
                     "kind": "function",
-                    "line": 26,
+                    "line": 32,
                     "exported": false,
-                    "signature": "function asSymlinkRefusal(error: unknown): unknown",
+                    "signature": "function asOpenRefusal(error: unknown, baseDir: string | undefined): unknown",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "fsDiffWriter",
                     "kind": "const",
-                    "line": 33,
+                    "line": 43,
                     "exported": true,
                     "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data, baseDir) { const directory = dirname(path); secureMkdirSync(directory, baseDir); const target = baseDir === undefined ? path : resolve(r…",
                     "members": null,
@@ -2002,16 +2038,25 @@ Schema: `codemap.v2`
                 {
                     "name": "READ_CHUNK_BYTES",
                     "kind": "const",
-                    "line": 11,
+                    "line": 12,
                     "exported": false,
                     "signature": "const READ_CHUNK_BYTES",
                     "members": null,
                     "jsdoc": "Read size once the stat size hint is used up (a growing file, a FIFO, a device)."
                 },
                 {
+                    "name": "openFlags",
+                    "kind": "function",
+                    "line": 21,
+                    "exported": false,
+                    "signature": "function openFlags(inputBaseDir: string | undefined): number",
+                    "members": null,
+                    "jsdoc": "With a boundary set, the open must not block: a read-open of a FIFO waits for a writer, which a FIFO planted inside the boundary never gets (SECU-14). `O_NONBLOCK` returns at once and refuses the handle; it changes nothing for a regular file. Without a boundary the blocking open is kept, so a caller can still pass a pipe on purpose."
+                },
+                {
                     "name": "hasByteCap",
                     "kind": "function",
-                    "line": 13,
+                    "line": 25,
                     "exported": false,
                     "signature": "function hasByteCap(maxFileBytes: number | undefined): maxFileBytes is number",
                     "members": null,
@@ -2020,7 +2065,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertWithinByteCap",
                     "kind": "function",
-                    "line": 17,
+                    "line": 29,
                     "exported": false,
                     "signature": "function assertWithinByteCap(size: bigint, maxFileBytes: number | undefined): void",
                     "members": null,
@@ -2029,7 +2074,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readCappedSync",
                     "kind": "function",
-                    "line": 37,
+                    "line": 49,
                     "exported": false,
                     "signature": "function readCappedSync(fd: number, sizeHint: bigint, maxFileBytes: number): Buffer",
                     "members": null,
@@ -2038,7 +2083,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readCapped",
                     "kind": "function",
-                    "line": 55,
+                    "line": 67,
                     "exported": false,
                     "signature": "async function readCapped(handle: FileHandle, sizeHint: bigint, maxFileBytes: number): Promise<Buffer>",
                     "members": null,
@@ -2047,7 +2092,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readValidatedFileSync",
                     "kind": "function",
-                    "line": 110,
+                    "line": 126,
                     "exported": true,
                     "signature": "export function readValidatedFileSync(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Buffer",
                     "members": null,
@@ -2056,7 +2101,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readValidatedFile",
                     "kind": "function",
-                    "line": 144,
+                    "line": 161,
                     "exported": true,
                     "signature": "export async function readValidatedFile(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Promise<Buffer>",
                     "members": null,
@@ -2065,6 +2110,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "./errors",
+                "./internal/assertPlainFile",
                 "./internal/assertSameFile",
                 "./validatePath",
                 "node:buffer",
