@@ -18,7 +18,7 @@ npm run codemap:check  # fail if CODEMAP.md is stale (runs inside pretest:unit)
 npm run format         # format files with Prettier
 npm run format:check   # validate formatting with Prettier
 npm run release:check:pre   # pre-publish gate: version unpublished, CHANGELOG/CODEMAP/lockfile agree, tarball ships only ./out
-npm run release:check:post  # post-publish check: version live, `latest` dist-tag, provenance attestation, fresh install imports
+npm run release:check:post  # post-publish check: version live, `latest` dist-tag, provenance attestation, fresh install smoke (scripts/install-smoke.mjs)
 npm run tool:excluded-areas-builder  # open tools/excluded-areas-builder.html (macOS/Linux only)
 ```
 
@@ -132,6 +132,7 @@ scripts/
   check-licenses.mjs              # production dependency license allowlist
   prerelease-check.mjs            # pre-publish gate
   postrelease-check.mjs           # post-publish registry verification
+  install-smoke.mjs               # installs a tarball or name@version into a temp project and runs comparePng/comparePngAsync
 
 test-data/
   actual/                         # "actual" PNG fixtures (budweiser640x862.png used in diff-size test)
@@ -261,13 +262,21 @@ Current coverage is 100% across all source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches) and on every pull request
 
-| Job    | OS            | Node                      | Gates merges             |
-| ------ | ------------- | ------------------------- | ------------------------ |
-| ubuntu | ubuntu-latest | from `.nvmrc` (Node `24`) | yes                      |
-| macos  | macos-latest  | from `.nvmrc` (Node `24`) | no — `continue-on-error` |
+| Job           | OS            | Node                                               | Gates merges                     |
+| ------------- | ------------- | -------------------------------------------------- | -------------------------------- |
+| ubuntu        | ubuntu-latest | from `.nvmrc` (Node `24`)                          | yes                              |
+| macos         | macos-latest  | from `.nvmrc` (Node `24`)                          | no — `continue-on-error`         |
+| engines-floor | ubuntu-latest | `.nvmrc` to build, then `22.12.0` (`engines.node`) | no — not a required status check |
 
-Both jobs run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`; macOS omits
-that flag, which installs Linux system packages and does not apply there.
+`ubuntu` and `macos` run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`;
+macOS omits that flag, which installs Linux system packages and does not apply there.
+
+`engines-floor` builds and packs with the `.nvmrc` Node (the dev tooling needs newer than the
+floor), switches to Node 22.12.0 and runs `node ./scripts/install-smoke.mjs <tarball>`: an
+`--engine-strict` install into a fresh project, then `require()` and ESM `import` of the root
+entry and real `comparePng` / `comparePngAsync` calls checked against a known mismatch count.
+`release:check:post` runs the same script against the version it just published. Keep the job's
+`node-version` in sync with `engines.node`.
 
 macOS is a **supported** platform (`"os": ["darwin","linux"]`) and is exercised again, but its job
 is `continue-on-error` for now: the suite hits a macOS-only Vitest fork crash
@@ -318,7 +327,7 @@ environment.
 Both workflows pin every action (`actions/checkout`, `actions/setup-node`, and in `publish.yml`
 `actions/upload-artifact` / `actions/download-artifact`) by commit SHA with a `# vX.Y.Z` comment,
 and take their Node version from `.nvmrc`; the `publish` job reuses the exact Node version
-`verify` resolved.
+`verify` resolved, and `engines-floor` switches to `22.12.0` after packing.
 
 ---
 

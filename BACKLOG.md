@@ -71,7 +71,6 @@
 
 ## 🛠️ Build · Deps · CI · DX
 
-- [ ] 🟢 ♻️ CI [CI-07]: CI job at the engines floor (Node 22.12.0) — build and install-smoke the packed tarball
 - [ ] 🟢 ♻️ BUILD [BUILD-01]: `tsconfig.base.json` split
 - [ ] 🟢 ♻️ BUILD [BUILD-02]: `moduleResolution` → `nodenext`
 - [ ] 🟢 ♻️ BUILD [BUILD-03]: Explicit `import`/`require` in `exports`

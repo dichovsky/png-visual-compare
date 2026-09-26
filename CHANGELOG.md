@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the npm publish token. `verify` now tests, builds and packs the tarball; `publish` checks the
   tarball's sha256 and publishes it with `--ignore-scripts`, without a checkout, install or build.
   The published package is built the same way (CI-06).
+- **CI** — a new `engines-floor` job in the test workflow installs the packed tarball on
+  Node.js 22.12.0, the `engines.node` minimum, with `--engine-strict`. It then loads the package
+  through both `require()` and `import` and checks that `comparePng` and `comparePngAsync` return
+  the known mismatch count for two test PNGs. `release:check:post` runs the same smoke
+  (`scripts/install-smoke.mjs`) against the published version; before, it only checked that
+  the two functions existed (CI-07).
 
 ## [7.1.0] - 2026-09-26
 
