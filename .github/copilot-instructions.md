@@ -12,6 +12,7 @@ npm run test:unit      # unit-test gate: clean → codemap:check → lint → fo
 npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder and the png-visual-compare/playwright matcher
 npm run test:fast      # vitest run --reporter=verbose, skipping the pretest:unit gate
 npm run test:license   # check all production dependency licenses are in the approved list
+npm run test:consumer-types  # build, pack, and type-check every entry point from a fresh consumer (skipLibCheck: false, no @types/pngjs); CI job, not in npm test
 npm run test:docker    # clean → docker build → docker run (runs the full test suite in Docker)
 npm run codemap        # regenerate CODEMAP.md via scripts/generate-codemap.mjs
 npm run codemap:check  # fail if CODEMAP.md is stale (runs inside pretest:unit)
@@ -129,6 +130,7 @@ e2e/
 scripts/
   generate-codemap.mjs            # CODEMAP.md generator (`--check` mode for CI)
   check-licenses.mjs              # production dependency license allowlist
+  check-consumer-types.mjs        # type-checks the packed tarball from a fresh consumer (TYPE-06)
   prerelease-check.mjs            # pre-publish gate
   postrelease-check.mjs           # post-publish registry verification
 
@@ -259,13 +261,18 @@ Current coverage is 100% across all source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches) and on every pull request
 
-| Job    | OS            | Node                      | Gates merges             |
-| ------ | ------------- | ------------------------- | ------------------------ |
-| ubuntu | ubuntu-latest | from `.nvmrc` (Node `24`) | yes                      |
-| macos  | macos-latest  | from `.nvmrc` (Node `24`) | no — `continue-on-error` |
+| Job            | OS            | Node                      | Gates merges              |
+| -------------- | ------------- | ------------------------- | ------------------------- |
+| ubuntu         | ubuntu-latest | from `.nvmrc` (Node `24`) | yes                       |
+| macos          | macos-latest  | from `.nvmrc` (Node `24`) | no — `continue-on-error`  |
+| consumer-types | ubuntu-latest | from `.nvmrc` (Node `24`) | no — not a required check |
 
-Both jobs run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`; macOS omits
+`ubuntu` and `macos` run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`; macOS omits
 that flag, which installs Linux system packages and does not apply there.
+
+`consumer-types` runs `npm run test:consumer-types`: it type-checks the packed tarball from a fresh
+consumer without `@types/pngjs` (`skipLibCheck: false`), so public declarations that reach `pngjs`
+types fail CI (TYPE-06).
 
 macOS is a **supported** platform (`"os": ["darwin","linux"]`) and is exercised again, but its job
 is `continue-on-error` for now: the suite hits a macOS-only Vitest fork crash

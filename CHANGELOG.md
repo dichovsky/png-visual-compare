@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `TS7016`. Migration: delete any `import type { LoadedPng } from 'png-visual-compare'`
   (TYPE-06).
 
+### Changed
+
+- **CI** — a new `consumer-types` job in `test.yml` runs `npm run test:consumer-types`:
+  it installs the packed tarball into a fresh project without `@types/pngjs` and
+  type-checks every entry point (`strict`, `skipLibCheck: false`) under
+  `moduleResolution` `node16` and `bundler`, so declarations that reach `pngjs` again
+  fail CI (TYPE-06).
+
 ## [7.1.0] - 2026-09-26
 
 ### Deprecated
