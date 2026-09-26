@@ -1,6 +1,7 @@
 import { closeSync, constants as fsConstants, fchmodSync, fstatSync, ftruncateSync, openSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { PathValidationError } from '../errors';
+import { assertSingleLink } from '../internal/assertPlainFile';
 import { assertSameFile } from '../internal/assertSameFile';
 import { secureMkdirSync } from '../internal/secureMkdir';
 import { realDiffDirectory } from '../internal/realDiffDirectory';
@@ -53,11 +54,9 @@ export const fsDiffWriter: DiffWriterPort = {
         try {
             if (baseDir !== undefined) {
                 const realDirectory = realDiffDirectory(directory, baseDir);
-                assertSameFile(
-                    fstatSync(fd, { bigint: true }),
-                    statSync(resolve(realDirectory, basename(path)), { bigint: true }),
-                    'diff file',
-                );
+                const opened = fstatSync(fd, { bigint: true });
+                assertSameFile(opened, statSync(resolve(realDirectory, basename(path)), { bigint: true }), 'diff file');
+                assertSingleLink(opened, 'diff file');
             }
             ftruncateSync(fd, 0);
             fchmodSync(fd, DIFF_FILE_MODE);

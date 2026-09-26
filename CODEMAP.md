@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.1.0"
     },
-    "sourceHash": "2a73334f0e64268254e9dbbccdaa8e64a978f3ef7742887f6a79adbb31e16694",
+    "sourceHash": "cd74a24de3d5ddf322c93f77cd2235629642518594e7157f73976e968cde67fb",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -714,6 +714,24 @@ Schema: `codemap.v2`
                     "typeOnly": true
                 }
             ]
+        },
+        {
+            "path": "src/internal/assertPlainFile.ts",
+            "symbols": [
+                {
+                    "name": "assertSingleLink",
+                    "kind": "function",
+                    "line": 16,
+                    "exported": true,
+                    "signature": "export function assertSingleLink(opened: { readonly nlink: bigint }, subject: string): void",
+                    "members": null,
+                    "jsdoc": "Asserts that an opened file has no other name than the one being written (SECU-13)."
+                }
+            ],
+            "imports": [
+                "../errors"
+            ],
+            "reExports": []
         },
         {
             "path": "src/internal/assertSameFile.ts",
@@ -1763,7 +1781,7 @@ Schema: `codemap.v2`
                 {
                     "name": "OPEN_FLAGS",
                     "kind": "const",
-                    "line": 13,
+                    "line": 14,
                     "exported": false,
                     "signature": "const OPEN_FLAGS",
                     "members": null,
@@ -1772,7 +1790,7 @@ Schema: `codemap.v2`
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 24,
+                    "line": 25,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
@@ -1781,7 +1799,7 @@ Schema: `codemap.v2`
                 {
                     "name": "asSymlinkRefusal",
                     "kind": "function",
-                    "line": 26,
+                    "line": 27,
                     "exported": false,
                     "signature": "function asSymlinkRefusal(error: unknown): unknown",
                     "members": null,
@@ -1790,7 +1808,7 @@ Schema: `codemap.v2`
                 {
                     "name": "fsAsyncDiffWriter",
                     "kind": "const",
-                    "line": 33,
+                    "line": 34,
                     "exported": true,
                     "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data, baseDir) { const directory = dirname(path); await secureMkdir(directory, baseDir); const target = baseDir === undefined …",
                     "members": null,
@@ -1799,6 +1817,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../errors",
+                "../internal/assertPlainFile",
                 "../internal/assertSameFile",
                 "../internal/realDiffDirectory",
                 "../internal/secureMkdir",
@@ -1837,7 +1856,7 @@ Schema: `codemap.v2`
                 {
                     "name": "OPEN_FLAGS",
                     "kind": "const",
-                    "line": 12,
+                    "line": 13,
                     "exported": false,
                     "signature": "const OPEN_FLAGS",
                     "members": null,
@@ -1846,7 +1865,7 @@ Schema: `codemap.v2`
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 23,
+                    "line": 24,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
@@ -1855,7 +1874,7 @@ Schema: `codemap.v2`
                 {
                     "name": "asSymlinkRefusal",
                     "kind": "function",
-                    "line": 25,
+                    "line": 26,
                     "exported": false,
                     "signature": "function asSymlinkRefusal(error: unknown): unknown",
                     "members": null,
@@ -1864,7 +1883,7 @@ Schema: `codemap.v2`
                 {
                     "name": "fsDiffWriter",
                     "kind": "const",
-                    "line": 32,
+                    "line": 33,
                     "exported": true,
                     "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data, baseDir) { const directory = dirname(path); secureMkdirSync(directory, baseDir); const target = baseDir === undefined ? path : resolve(r…",
                     "members": null,
@@ -1873,6 +1892,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../errors",
+                "../internal/assertPlainFile",
                 "../internal/assertSameFile",
                 "../internal/realDiffDirectory",
                 "../internal/secureMkdir",
