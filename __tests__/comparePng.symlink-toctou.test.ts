@@ -3,7 +3,7 @@ import path from 'node:path';
 import { PNG } from 'pngjs';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { PathValidationError } from '../src';
-import { comparePngWithPorts } from '../src/comparePng';
+import { comparePngWithPorts } from '../src/comparePngWithPorts';
 import { fsDiffWriter } from '../src/ports/fsDiffWriter';
 import { fsImageSource } from '../src/ports/fsImageSource';
 import type { ComparisonPorts } from '../src/ports/types';

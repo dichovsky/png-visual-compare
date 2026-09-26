@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { PNG } from 'pngjs';
 import { describe, expect, test } from 'vitest';
 import { Area, Color, DEFAULT_EXCLUDED_AREA_COLOR, DEFAULT_EXTENDED_AREA_COLOR, comparePng } from '../src';
-import { comparePngWithPorts } from '../src/comparePng';
+import { comparePngWithPorts } from '../src/comparePngWithPorts';
 import type { DiffWriterPort } from '../src/ports/types';
 
 const testDataArray: {
