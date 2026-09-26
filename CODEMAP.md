@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.1.0"
     },
-    "sourceHash": "7120ce7424c19d207f5026a2157d7d79c559da20bd38b0819a3f056286f7876b",
+    "sourceHash": "f113cffb4f24f7e5a6a418f269c3165fc8e015535ea15775cc8bbd09a3fb8c99",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -57,7 +57,7 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 121,
+            "line": 125,
             "signature": "export class ComparisonError extends Error",
             "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
             "typeOnly": false
@@ -137,9 +137,9 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 54,
+            "line": 58,
             "signature": "export class PathValidationError extends Error",
-            "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…",
+            "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths - A FIFO or device inside a base directory, on reads and diff writes, refused instead of blocking the call - A diff file under `diffOutputBaseDir` that has more than one hard link, refused before it is truncated or written @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…",
             "typeOnly": false
         },
         {
@@ -157,7 +157,7 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 88,
+            "line": 92,
             "signature": "export class ResourceLimitError extends Error",
             "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…",
             "typeOnly": false
@@ -494,39 +494,39 @@ Schema: `codemap.v2`
                 {
                     "name": "PathValidationError",
                     "kind": "class",
-                    "line": 54,
+                    "line": 58,
                     "exported": true,
                     "signature": "export class PathValidationError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 55
+                            "line": 59
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 57
+                            "line": 61
                         }
                     ],
-                    "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…"
+                    "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths - A FIFO or device inside a base directory, on reads and diff writes, refused instead of blocking the call - A diff file under `diffOutputBaseDir` that has more than one hard link, refused before it is truncated or written @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…"
                 },
                 {
                     "name": "ResourceLimitError",
                     "kind": "class",
-                    "line": 88,
+                    "line": 92,
                     "exported": true,
                     "signature": "export class ResourceLimitError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 89
+                            "line": 93
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 91
+                            "line": 95
                         }
                     ],
                     "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…"
@@ -534,19 +534,19 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonError",
                     "kind": "class",
-                    "line": 121,
+                    "line": 125,
                     "exported": true,
                     "signature": "export class ComparisonError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 122
+                            "line": 126
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 124
+                            "line": 128
                         }
                     ],
                     "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
