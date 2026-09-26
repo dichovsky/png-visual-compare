@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING: `LoadedPng` type export** — deprecated in 7.1.0 because no public API returns
+  or accepts one. With it gone, no entry point's declarations reach `pngjs` types, so
+  type-checking with `skipLibCheck: false` and no `@types/pngjs` no longer reports
+  `TS7016`. Migration: delete any `import type { LoadedPng } from 'png-visual-compare'`
+  (TYPE-06).
+
 ## [7.1.0] - 2026-09-26
 
 ### Deprecated

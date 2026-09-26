@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.1.0"
     },
-    "sourceHash": "2a73334f0e64268254e9dbbccdaa8e64a978f3ef7742887f6a79adbb31e16694",
+    "sourceHash": "75feced554ca61882945bdc5301ea19223261323c459fc2c10e1c8890b4977d5",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -121,16 +121,6 @@ Schema: `codemap.v2`
             "signature": "export class InvalidInputError extends Error",
             "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded, or when an `excludedAreas`, colour, or `pixelmatchOptions` value is invalid. Per-input failures are recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid inputs as zero-size PNGs instead; invalid options, and both inputs being invalid, always throw. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…",
             "typeOnly": false
-        },
-        {
-            "name": "LoadedPng",
-            "kind": "type",
-            "entrypoint": "src/index.ts",
-            "file": "src/types/png.data.ts",
-            "line": 7,
-            "signature": "export type LoadedPng = InternalLoadedPng;",
-            "jsdoc": "@deprecated No public API returns or accepts a `LoadedPng` — it describes an internal loading step. It will be removed in 8.0.0; delete any import of it (TYPE-06).",
-            "typeOnly": true
         },
         {
             "name": "PathValidationError",
@@ -708,7 +698,6 @@ Schema: `codemap.v2`
                         "Area",
                         "Color",
                         "ComparePngOptions",
-                        "LoadedPng",
                         "PixelmatchOptions"
                     ],
                     "typeOnly": true
@@ -2140,33 +2129,8 @@ Schema: `codemap.v2`
                         "PixelmatchOptions"
                     ],
                     "typeOnly": true
-                },
-                {
-                    "source": "./png.data",
-                    "names": [
-                        "LoadedPng"
-                    ],
-                    "typeOnly": true
                 }
             ]
-        },
-        {
-            "path": "src/types/png.data.ts",
-            "symbols": [
-                {
-                    "name": "LoadedPng",
-                    "kind": "type",
-                    "line": 7,
-                    "exported": true,
-                    "signature": "export type LoadedPng = InternalLoadedPng;",
-                    "members": null,
-                    "jsdoc": "@deprecated No public API returns or accepts a `LoadedPng` — it describes an internal loading step. It will be removed in 8.0.0; delete any import of it (TYPE-06)."
-                }
-            ],
-            "imports": [
-                "../pipeline/types"
-            ],
-            "reExports": []
         },
         {
             "path": "src/types/validated-path.ts",

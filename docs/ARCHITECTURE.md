@@ -46,7 +46,6 @@ comparePng / comparePngAsync
 - `Color`
 - `ComparePngOptions`
 - `PixelmatchOptions`
-- `LoadedPng` — deprecated alias of the internal type in `src/pipeline/types.ts`; removed in 8.0.0 (TYPE-06)
 
 ### Subpath exports
 

@@ -23,6 +23,7 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 ## Table of Contents
 
 - [Installation](#installation)
+- [Migration Guide to v8.0.0](#migration-guide-to-v800)
 - [Migration Guide to v7.0.0](#migration-guide-to-v700)
 - [Migration Guide to v6.0.0](#migration-guide-to-v600)
 - [Quick Start](#quick-start)
@@ -44,6 +45,14 @@ npm install -D png-visual-compare
 > **Platform Requirement:** macOS or Linux only. Windows is not supported.
 >
 > **Node.js Requirement:** Node.js 22.12.0 or higher is required.
+
+---
+
+## Migration Guide to v8.0.0
+
+`LoadedPng` is no longer exported. It was deprecated in 7.1.0 because no public API returns or accepts one, so delete any `import type { LoadedPng } from 'png-visual-compare'`. If you are upgrading from 5.x, delete your `PngData` imports too rather than switching them to `LoadedPng` as the v6.0.0 guide describes.
+
+The declarations of the package's entry points no longer reference `pngjs`, so type-checking with `skipLibCheck: false` no longer needs `@types/pngjs`.
 
 ---
 
@@ -90,8 +99,6 @@ import type { PngData } from 'png-visual-compare';
 // After
 import type { LoadedPng } from 'png-visual-compare';
 ```
-
-`LoadedPng` itself is now deprecated and will be removed in 8.0.0: no public API returns or accepts one. If you are migrating now, delete the import rather than switching it.
 
 ### 2. Expect stricter option validation
 

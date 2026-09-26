@@ -115,7 +115,6 @@ src/
     area.ts                       # Area (x1,y1,x2,y2 rectangle)
     color.ts                      # Color (r,g,b)
     compare.options.ts            # ComparePngOptions, PixelmatchOptions
-    png.data.ts                   # LoadedPng discriminated union
     validated-path.ts             # ValidatedPath branded type (internal — not re-exported from types/index.ts)
 
 __tests__/                        # one file per source module; mirrors src/ layout
@@ -185,15 +184,14 @@ position = (image.width * y + x) * 4; // byte offset of red channel
 
 All types live in `src/types/`, one file per type, collected in `src/types/index.ts`.
 
-| Type                | Exported publicly | Purpose                                                              |
-| ------------------- | ----------------- | -------------------------------------------------------------------- |
-| `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left)     |
-| `ComparePngOptions` | yes               | Options bag for `comparePng`                                         |
-| `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                     |
-| `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                         |
-| `LoadedPng`         | yes               | Discriminated decoded-image result union used by loaders and helpers |
+| Type                | Exported publicly | Purpose                                                          |
+| ------------------- | ----------------- | ---------------------------------------------------------------- |
+| `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left) |
+| `ComparePngOptions` | yes               | Options bag for `comparePng`                                     |
+| `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                 |
+| `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                     |
 
-`Color` and `LoadedPng` are part of the public type surface via `src/index.ts`.
+`Color` is part of the public type surface via `src/index.ts`. The loaders' discriminated `LoadedPng` result union is internal (`src/pipeline/types.ts`); its public export was removed in 8.0.0 (TYPE-06).
 
 ---
 
