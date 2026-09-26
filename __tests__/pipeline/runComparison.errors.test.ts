@@ -1,16 +1,14 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-// `pixelmatch` is a third-party module — mock its default export so we can
-// drive `runComparison`'s catch path deterministically. This declaration is
-// intentionally placed before any module-under-test import so it matches the
-// hoisted-mock pattern used in `__tests__/getPngData.non-error.test.ts` and
-// `__tests__/validatePath.branches.test.ts`.
-vi.mock('pixelmatch', () => ({
-    __esModule: true,
-    default: vi.fn(),
+// Mock the vendored `pixelmatch` kernel so we can drive `runComparison`'s catch
+// path deterministically. This declaration is intentionally placed before any
+// module-under-test import so it matches the hoisted-mock pattern used in
+// `__tests__/getPngData.non-error.test.ts` and `__tests__/validatePath.branches.test.ts`.
+vi.mock('../../src/vendor/pixelmatch', () => ({
+    pixelmatch: vi.fn(),
 }));
 
-import pixelmatch from 'pixelmatch';
+import { pixelmatch } from '../../src/vendor/pixelmatch';
 import { PNG } from 'pngjs';
 import { ComparisonError } from '../../src';
 import { loadSources } from '../../src/pipeline/loadSources';

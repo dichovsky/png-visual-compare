@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.0.0"
     },
-    "sourceHash": "bb93fb6bb7a0343f303bd148f02571628e580b17f0357447d030560706e6496e",
+    "sourceHash": "9a3b7f49bade7f129b7cdb69eeac6fe6ce0c234199ea4b0723e72805a827a649",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -258,7 +258,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../types",
-                "pixelmatch"
+                "../vendor/pixelmatch"
             ],
             "reExports": []
         },
@@ -1384,8 +1384,8 @@ Schema: `codemap.v2`
             "imports": [
                 "../adapters/toPixelmatchOptions",
                 "../errors",
+                "../vendor/pixelmatch",
                 "./types",
-                "pixelmatch",
                 "pngjs"
             ],
             "reExports": []
@@ -2344,6 +2344,112 @@ Schema: `codemap.v2`
                 "./errors",
                 "./types"
             ],
+            "reExports": []
+        },
+        {
+            "path": "src/vendor/pixelmatch.ts",
+            "symbols": [
+                {
+                    "name": "PixelData",
+                    "kind": "type",
+                    "line": 32,
+                    "exported": false,
+                    "signature": "type PixelData = Uint8Array | Uint8ClampedArray;",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "RgbColor",
+                    "kind": "type",
+                    "line": 33,
+                    "exported": false,
+                    "signature": "type RgbColor = [number, number, number];",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "PixelmatchKernelOptions",
+                    "kind": "type",
+                    "line": 35,
+                    "exported": true,
+                    "signature": "export type PixelmatchKernelOptions = { threshold?: number; includeAA?: boolean; alpha?: number; aaColor?: RgbColor; diffColor?: RgbColor; diffColorAlt?: RgbColor; diffMask?: boolean; checkerboard?: b…",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "pixelmatch",
+                    "kind": "function",
+                    "line": 65,
+                    "exported": true,
+                    "signature": "export function pixelmatch( img1: PixelData, img2: PixelData, output: PixelData | undefined, width: number, height: number, options: PixelmatchKernelOptions = {}, ): number",
+                    "members": null,
+                    "jsdoc": "Compare two equally sized images, pixel by pixel."
+                },
+                {
+                    "name": "isPixelData",
+                    "kind": "function",
+                    "line": 160,
+                    "exported": false,
+                    "signature": "function isPixelData(arr: unknown): arr is PixelData",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "antialiased",
+                    "kind": "function",
+                    "line": 169,
+                    "exported": false,
+                    "signature": "function antialiased( img: PixelData, x1: number, y1: number, width: number, height: number, a32: Uint32Array, b32: Uint32Array, checkerboard: boolean, ): boolean",
+                    "members": null,
+                    "jsdoc": "Check if a pixel is likely a part of anti-aliasing; based on \"Anti-aliased Pixel and Intensity Slope Detector\" paper by V. Vysniauskas, 2009"
+                },
+                {
+                    "name": "hasManySiblings",
+                    "kind": "function",
+                    "line": 238,
+                    "exported": false,
+                    "signature": "function hasManySiblings(img: Uint32Array, x1: number, y1: number, width: number, height: number): boolean",
+                    "members": null,
+                    "jsdoc": "Check if a pixel has 3+ adjacent pixels of the same color."
+                },
+                {
+                    "name": "colorDelta",
+                    "kind": "function",
+                    "line": 262,
+                    "exported": false,
+                    "signature": "function colorDelta(img1: PixelData, img2: PixelData, k: number, m: number, checkerboard: boolean): number",
+                    "members": null,
+                    "jsdoc": "Calculate color difference according to the paper \"Measuring perceived color difference using YIQ NTSC transmission color space in mobile applications\" by Y. Kotsarenko and F. Ramos. Caller guarantees the two pixels differ, so the early-zero check is omitted."
+                },
+                {
+                    "name": "brightnessDelta",
+                    "kind": "function",
+                    "line": 306,
+                    "exported": false,
+                    "signature": "function brightnessDelta( img: PixelData, k: number, m: number, r1: number, g1: number, b1: number, a1: number, checkerboard: boolean, ): number",
+                    "members": null,
+                    "jsdoc": "Specialized brightness-only color delta for the anti-aliasing detector, with the center pixel's RGBA hoisted out of the neighbor loop."
+                },
+                {
+                    "name": "drawPixel",
+                    "kind": "function",
+                    "line": 345,
+                    "exported": false,
+                    "signature": "function drawPixel(output: PixelData, pos: number, r: number, g: number, b: number): void",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "drawGrayPixel",
+                    "kind": "function",
+                    "line": 352,
+                    "exported": false,
+                    "signature": "function drawGrayPixel(img: PixelData, i: number, alpha: number, output: PixelData): void",
+                    "members": null,
+                    "jsdoc": null
+                }
+            ],
+            "imports": [],
             "reExports": []
         },
         {

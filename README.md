@@ -56,7 +56,7 @@ npm install -D png-visual-compare
 
 ### 1. Node.js 22.12.0 or later is required
 
-`engines.node` is now `>=22.12.0` (was `>=20`). Node.js 20 is end-of-life, and the CommonJS build `require()`s the ESM-only `pixelmatch` 7, which Node.js 22 loads without a flag only from 22.12.0.
+`engines.node` is now `>=22.12.0` (was `>=20`). Node.js 20 is end-of-life.
 
 ### 2. The Vitest matcher requires Vitest 5
 
@@ -190,26 +190,7 @@ npx vitest run -u
 
 ### Jest
 
-Jest routes `require()` through its own module loader, which cannot load the ESM-only `pixelmatch` that this package's CommonJS build depends on. Without the setup below, loading `png-visual-compare` in Jest fails with `SyntaxError: Unexpected token 'export'` (Jest 29) or `Must use import to load ES Module` (Jest 30). Transform `pixelmatch` with Babel:
-
-```sh
-npm i -D @babel/plugin-transform-modules-commonjs@^7
-```
-
-```js
-// babel.config.js — the project-wide file; a .babelrc does not apply inside node_modules
-module.exports = { plugins: ['@babel/plugin-transform-modules-commonjs'] };
-```
-
-and in your Jest config (`package.json` → `jest`, or `jest.config.js`):
-
-```json
-{
-    "transformIgnorePatterns": ["/node_modules/(?!\\.pnpm/pixelmatch@|pixelmatch/)"]
-}
-```
-
-Keep the plugin on `^7`: `babel-jest` requires `@babel/core` 7, and Babel 8 plugins fail to install next to it. This setup is verified with Jest 29.7 and 30.5 on Node.js 22.12 and 24, under npm and pnpm. Bundling `pixelmatch` into the CommonJS build to remove this step is tracked as RELI-11.
+Releases after 7.0.0 work with a stock Jest configuration — no Babel or transform setup is needed. On 7.0.0 and earlier, Jest needs the Babel transform described in the [7.0.0 README](https://github.com/dichovsky/png-visual-compare/blob/release/v7.0.0/README.md#jest); drop it once you upgrade.
 
 > **Known issue (Jest 30.5+):** with `jest.retryTimes`, a mismatching PNG can pass on the retry and be recorded as a new snapshot (tracked as RELI-12). Do not enable retries for tests that use this matcher until it is fixed.
 
