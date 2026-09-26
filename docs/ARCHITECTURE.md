@@ -53,7 +53,7 @@ comparePng / comparePngAsync
 Each subpath adds a `toMatchPngSnapshot()` matcher for one test framework. All three validate the received PNG and the matcher arguments through `src/matchers/createPngSnapshotMatcher.ts` and compare with `comparePng`.
 
 - `png-visual-compare/vitest` (`src/vitest.mts`): side-effect import. Registers the matcher on Vitest's `expect` and augments `Matchers<R, T>` (Vitest 5). Baselines are serialised Buffers in Vitest's `.snap` file. Optional peer: `vitest` `>=5.0.0 <6`.
-- `png-visual-compare/jest` (`src/jest.ts`): side-effect import. Registers the matcher on Jest's global `expect` when present, exports `registerJestPngSnapshotMatcher`, and augments `jest.Matchers`. Baselines are serialised Buffers in Jest's `.snap` file. Optional peer: `jest` `>=29 <31`.
+- `png-visual-compare/jest` (`src/jest.ts`): side-effect import. Registers the matcher on Jest's global `expect` when present, exports `registerJestPngSnapshotMatcher`, and augments both global `jest.Matchers` and the imported `expect` matcher types. Baselines are serialised Buffers in Jest's `.snap` file. Optional peers: `jest` and `expect` `>=29 <31`.
 - `png-visual-compare/playwright` (`src/playwright.ts`): no side effects. Exports `expect` (Playwright's `expect` extended with a synchronous `toMatchPngSnapshot()`) and `pngMatchers`. Baselines are PNG files at `testInfo.snapshotPath(name)` (see `docs/adr/0001-playwright-baselines-as-png-files.md`). Optional peer: `@playwright/test` `>=1.60.0 <2`.
 
 ## Module layout
@@ -175,6 +175,7 @@ Key behavior:
 
 - string paths are read through `readValidatedFileSync` / `readValidatedFile` (see below), never with a bare `readFile`
 - file-backed PNGs are capped by `maxFileBytes` before any bytes are read, then pre-screened with IHDR dimension peeking before decode
+- all PNG sources are scanned for duplicate IHDR chunks before decode, so a later header cannot override the dimensions checked by the resource limits
 - zero-dimension decoded PNGs are explicitly rejected
 - malformed `Buffer`s are handled separately from malformed file paths
 - `throwErrorOnInvalidInputData: false` downgrades ordinary invalid image inputs, but not security/resource-boundary failures
@@ -235,7 +236,8 @@ The diff write:
 
 - creates parent directories one component at a time via `secureMkdir`, refusing any component that is a symlink. `mkdir(..., { recursive: true })` follows symlinks in every intermediate component while `O_NOFOLLOW` guards only the final one, so a symlinked parent could redirect the whole write outside `diffOutputBaseDir` (SECU-09). A component another writer creates between the `lstat` and the `mkdir` is not an error — the `EEXIST` re-checks what was created, so concurrent writes into one new directory succeed while a symlink planted in that window is still refused. Without `diffOutputBaseDir` there is no boundary to protect and the recursive form is kept.
 - resolves the parent chain with `realDiffDirectory` **before** opening, then opens inside that canonical directory. The path traversed at open time therefore contains no symlink at all: redirecting the write requires renaming a real directory in the resolved chain, not merely planting a link.
-- opens the target with `O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW`, falling back to a reopen without `O_CREAT` on `EEXIST` (target-component symlink race closed by SECU-03; a symlink reports `EEXIST` under `O_EXCL` and then surfaces as `ELOOP` on the reopen). `O_EXCL` also establishes whether _this_ call created the file, which plain `O_CREAT` cannot — so cleanup after a refused write removes only a file it created, never a pre-existing empty placeholder.
+- opens the target once with `O_WRONLY | O_CREAT | O_NOFOLLOW`, creating a new file or opening an existing file without truncation. A live or dangling symlink at the target fails with `ELOOP`, mapped to `PathValidationError` (SECU-03).
+- closes the handle on failure without unlinking the target path. Even after a successful identity check, another writer can replace that path before cleanup. Node has no atomic unlink-by-inode operation, so preserving replacement files takes precedence over removing failed output. A detected parent swap can leave an empty owner-only file at the redirected location outside `diffOutputBaseDir`, with no diff bytes written. A later write failure can leave partial output at the verified destination.
 - re-resolves the parent chain with `realDiffDirectory` **after** the open, in both writers, and ties the handle to the file inside it with `assertSameFile`. Stat'ing the pre-open canonical path instead would walk a route swapped since and agree with itself.
 - defers truncation: `O_TRUNC` is absent from the open, and `ftruncate(0)` runs only once `assertSameFile` has tied the handle to the canonical target. Truncating on open would empty an escaped target before anything could detect it.
 - passes an explicit POSIX create-mode `0o600` to `open` and then issues an explicit `fchmod(0o600)` on the open handle (SECU-12). The `open` mode alone is insufficient: POSIX masks it with `~umask` (a restrictive umask can only narrow it further, never widen it) and truncation does not reset the mode of a pre-existing file. The post-open `fchmod` makes the final mode `0o600` in both the create and overwrite cases.

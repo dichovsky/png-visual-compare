@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -45,18 +45,114 @@ describe('diff writers on failed handle verification', () => {
         rmSync(rootDir, { recursive: true, force: true });
     });
 
-    test('refuses the write and removes the file it created', () => {
+    test('refuses the write and preserves a replacement file', () => {
         const target = path.join(baseDir, 'diff.png');
-        stubMismatchedIdentity();
+        const moved = path.join(baseDir, 'moved.png');
+        const realOpenSync = nodeFs.openSync;
+        vi.spyOn(nodeFs, 'openSync').mockImplementationOnce((...args: Parameters<typeof nodeFs.openSync>) => {
+            const fd = realOpenSync(...args);
+            renameSync(target, moved);
+            writeFileSync(target, 'replacement payload');
+            return fd;
+        });
+
         expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(PathValidationError);
-        expect(existsSync(target)).toBe(false);
+        expect(readFileSync(target, 'utf8')).toBe('replacement payload');
+        expect(readFileSync(moved)).toHaveLength(0);
     });
 
-    test('refuses the write asynchronously and removes the file it created', async () => {
+    test('refuses the write asynchronously and preserves a replacement file', async () => {
         const target = path.join(baseDir, 'diff.png');
-        stubMismatchedIdentity();
+        const moved = path.join(baseDir, 'moved.png');
+        const realOpen = nodeFsPromises.open;
+        vi.spyOn(nodeFsPromises, 'open').mockImplementationOnce(async (...args: Parameters<typeof nodeFsPromises.open>) => {
+            const handle = await realOpen(...args);
+            renameSync(target, moved);
+            writeFileSync(target, 'replacement payload');
+            return handle;
+        });
+
         await expect(fsAsyncDiffWriter.write(asValidated(target), data, baseDir)).rejects.toThrow(PathValidationError);
-        expect(existsSync(target)).toBe(false);
+        expect(readFileSync(target, 'utf8')).toBe('replacement payload');
+        expect(readFileSync(moved)).toHaveLength(0);
+    });
+
+    test('preserves an outside file when the parent is redirected after open', () => {
+        const subDir = path.join(baseDir, 'nested');
+        const outsideDir = path.join(rootDir, 'outside');
+        const target = path.join(subDir, 'diff.png');
+        const outside = path.join(outsideDir, 'diff.png');
+        mkdirSync(subDir);
+        mkdirSync(outsideDir);
+        writeFileSync(outside, 'outside payload');
+        const realOpenSync = nodeFs.openSync;
+        vi.spyOn(nodeFs, 'openSync').mockImplementationOnce((...args: Parameters<typeof nodeFs.openSync>) => {
+            const fd = realOpenSync(...args);
+            renameSync(subDir, `${subDir}-moved`);
+            symlinkSync(outsideDir, subDir);
+            return fd;
+        });
+
+        expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(PathValidationError);
+        expect(readFileSync(outside, 'utf8')).toBe('outside payload');
+        expect(readFileSync(path.join(`${subDir}-moved`, 'diff.png'))).toHaveLength(0);
+    });
+
+    test('preserves an outside file asynchronously when the parent is redirected after open', async () => {
+        const subDir = path.join(baseDir, 'nested');
+        const outsideDir = path.join(rootDir, 'outside');
+        const target = path.join(subDir, 'diff.png');
+        const outside = path.join(outsideDir, 'diff.png');
+        mkdirSync(subDir);
+        mkdirSync(outsideDir);
+        writeFileSync(outside, 'outside payload');
+        const realOpen = nodeFsPromises.open;
+        vi.spyOn(nodeFsPromises, 'open').mockImplementationOnce(async (...args: Parameters<typeof nodeFsPromises.open>) => {
+            const handle = await realOpen(...args);
+            renameSync(subDir, `${subDir}-moved`);
+            symlinkSync(outsideDir, subDir);
+            return handle;
+        });
+
+        await expect(fsAsyncDiffWriter.write(asValidated(target), data, baseDir)).rejects.toThrow(PathValidationError);
+        expect(readFileSync(outside, 'utf8')).toBe('outside payload');
+        expect(readFileSync(path.join(`${subDir}-moved`, 'diff.png'))).toHaveLength(0);
+    });
+
+    test('preserves a replacement file after verification succeeds and writing fails', () => {
+        const target = path.join(baseDir, 'diff.png');
+        const failure = new Error('write failed');
+        const realWriteFileSync = nodeFs.writeFileSync;
+        const close = vi.spyOn(nodeFs, 'closeSync');
+        vi.spyOn(nodeFs, 'writeFileSync').mockImplementationOnce(() => {
+            renameSync(target, path.join(baseDir, 'moved.png'));
+            realWriteFileSync(target, 'replacement payload');
+            throw failure;
+        });
+
+        expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(failure);
+        expect(readFileSync(target, 'utf8')).toBe('replacement payload');
+        expect(close).toHaveBeenCalledOnce();
+    });
+
+    test('preserves a replacement file asynchronously after verification succeeds and writing fails', async () => {
+        const target = path.join(baseDir, 'diff.png');
+        const failure = new Error('write failed');
+        const realOpen = nodeFsPromises.open;
+        let handle: Awaited<ReturnType<typeof realOpen>>;
+        vi.spyOn(nodeFsPromises, 'open').mockImplementationOnce(async (...args: Parameters<typeof nodeFsPromises.open>) => {
+            handle = await realOpen(...args);
+            vi.spyOn(handle, 'writeFile').mockImplementationOnce(async () => {
+                renameSync(target, path.join(baseDir, 'moved.png'));
+                writeFileSync(target, 'replacement payload');
+                throw failure;
+            });
+            return handle;
+        });
+
+        await expect(fsAsyncDiffWriter.write(asValidated(target), data, baseDir)).rejects.toThrow(failure);
+        expect(readFileSync(target, 'utf8')).toBe('replacement payload');
+        await expect(handle!.stat()).rejects.toMatchObject({ code: 'EBADF' });
     });
 
     test('leaves a pre-existing non-empty file intact', () => {
@@ -76,10 +172,7 @@ describe('diff writers on failed handle verification', () => {
     });
 
     test('leaves a pre-existing empty file intact', () => {
-        // O_CREAT alone cannot distinguish "created empty" from "already existed empty".
-        // A zero-length placeholder or lock file this write did not create must survive
-        // a refusal, so creation has to be established by O_EXCL rather than inferred
-        // from the byte length.
+        // A zero-length placeholder or lock file must survive a refusal too.
         const target = path.join(baseDir, 'diff.png');
         writeFileSync(target, '');
         stubMismatchedIdentity();
@@ -95,11 +188,18 @@ describe('diff writers on failed handle verification', () => {
         expect(existsSync(target)).toBe(true);
     });
 
-    test('removes a file it created when verification fails', () => {
+    test('leaves an empty file when its identity cannot be verified', () => {
         const target = path.join(baseDir, 'created.png');
         stubMismatchedIdentity();
         expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(PathValidationError);
-        expect(existsSync(target)).toBe(false);
+        expect(readFileSync(target)).toHaveLength(0);
+    });
+
+    test('leaves an empty file asynchronously when its identity cannot be verified', async () => {
+        const target = path.join(baseDir, 'created.png');
+        stubMismatchedIdentity();
+        await expect(fsAsyncDiffWriter.write(asValidated(target), data, baseDir)).rejects.toThrow(PathValidationError);
+        expect(readFileSync(target)).toHaveLength(0);
     });
 
     test('refuses when the directory resolves outside the boundary', () => {
@@ -119,9 +219,7 @@ describe('diff writers on failed handle verification', () => {
         expect(existsSync(target)).toBe(false);
     });
 
-    test('propagates an open failure that is not a pre-existing target', () => {
-        // With O_EXCL a symlink at the target reports EEXIST, so this branch covers the
-        // genuinely unexpected open failures — a permission denial, for instance.
+    test('propagates a non-symlink open failure without wrapping it', () => {
         const target = path.join(baseDir, 'diff.png');
         vi.spyOn(nodeFs, 'openSync').mockImplementationOnce(() => {
             throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
@@ -129,7 +227,7 @@ describe('diff writers on failed handle verification', () => {
         expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(/EACCES/);
     });
 
-    test('propagates an open failure that is not a pre-existing target asynchronously', async () => {
+    test('propagates a non-symlink open failure asynchronously without wrapping it', async () => {
         const target = path.join(baseDir, 'diff.png');
         vi.spyOn(nodeFsPromises, 'open').mockImplementationOnce(() => {
             throw Object.assign(new Error('EACCES'), { code: 'EACCES' });

@@ -49,6 +49,24 @@ function assertImageLimits(buffer: Buffer, maxDimension: number | undefined, max
     }
 }
 
+/**
+ * pngjs accepts repeated IHDR chunks and decodes using the last dimensions.
+ * Reject them before decoding so a later header cannot bypass the size guard.
+ * Leave other malformed framing and CRC checks to the decoder; advancing by
+ * chunk length also avoids mistaking IHDR bytes inside chunk data for a header.
+ */
+function assertSinglePngHeader(buffer: Buffer): void {
+    if (!buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) return;
+
+    let hasHeader = false;
+    for (let offset = PNG_SIGNATURE.length; offset + 8 <= buffer.length; offset += buffer.readUInt32BE(offset) + 12) {
+        if (buffer.readUInt32BE(offset + 4) === 0x49484452 /* IHDR */) {
+            if (hasHeader) throw new Error('Duplicate PNG IHDR chunk');
+            hasHeader = true;
+        }
+    }
+}
+
 function finalizeDecodedPng(decoded: LoadedPng, throwErrorOnInvalidInputData: boolean): LoadedPng {
     if (decoded.kind === 'valid' && (decoded.png.width === 0 || decoded.png.height === 0)) {
         if (throwErrorOnInvalidInputData) {
@@ -94,6 +112,7 @@ export function getPngData(
         assertImageLimits(fileBuffer, maxDimension, maxPixels);
 
         try {
+            assertSinglePngHeader(fileBuffer);
             return finalizeDecodedPng({ kind: 'valid', png: PNG.sync.read(fileBuffer) }, throwErrorOnInvalidInputData);
         } catch (error) {
             if (throwErrorOnInvalidInputData) {
@@ -113,6 +132,7 @@ export function getPngData(
         assertImageLimits(pngSource, maxDimension, maxPixels);
 
         try {
+            assertSinglePngHeader(pngSource);
             return finalizeDecodedPng({ kind: 'valid', png: PNG.sync.read(pngSource) }, throwErrorOnInvalidInputData);
         } catch (error) {
             if (throwErrorOnInvalidInputData) {

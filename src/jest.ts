@@ -1,6 +1,9 @@
 /**
- * @sideEffect Registers a `toMatchPngSnapshot` matcher on Jest's global `expect` when present, and augments the global `jest.Matchers` interface.
+ * @sideEffect Registers a `toMatchPngSnapshot` matcher on Jest's global `expect` when present, and augments both global `jest.Matchers` and the `expect` module's `Matchers` interface.
  */
+// The production build excludes fixtures that load expect's declarations.
+// Import its types so the augmentation resolves (otherwise TS2664); no runtime import is emitted.
+import type {} from 'expect';
 import type { ComparePngOptions } from './types';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher';
 import {
@@ -8,12 +11,13 @@ import {
     compareAgainstSerializedPngSnapshot,
     NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE,
     serializePngSnapshot,
+    validatePngSnapshot,
 } from './matchers/pngSnapshot';
 
 const JEST_PNG_SNAPSHOT_MATCHER_KEY = Symbol.for('png-visual-compare/jest/toMatchPngSnapshot');
 
 type ExpectLike = {
-    extend: (matchers: Record<string, unknown>) => void;
+    extend: (matchers: { toMatchPngSnapshot: typeof toMatchPngSnapshot }) => void;
 };
 
 type SnapshotStateLike = {
@@ -22,7 +26,6 @@ type SnapshotStateLike = {
     matched?: number;
     unmatched?: number;
     updated?: number;
-    markSnapshotsAsCheckedForTest?: (testName: string) => void;
     [key: string]: unknown;
 };
 
@@ -83,7 +86,16 @@ function setSnapshotDirty(snapshotState: SnapshotStateLike): void {
     snapshotState._dirty = true;
 }
 
-function incrementSnapshotCounter(snapshotState: SnapshotStateLike, field: 'added' | 'matched' | 'unmatched' | 'updated'): void {
+function incrementSnapshotCounter(
+    snapshotState: SnapshotStateLike,
+    field: 'added' | 'matched' | 'unmatched' | 'updated',
+    testFailing: boolean | undefined,
+): void {
+    // Expected failures compare without contributing to Jest's snapshot failure totals.
+    if (testFailing === true) {
+        return;
+    }
+
     const currentValue = snapshotState[field];
     snapshotState[field] = typeof currentValue === 'number' ? currentValue + 1 : 1;
 }
@@ -133,7 +145,6 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
     const snapshotState = context.snapshotState;
     const { key } = resolveSnapshotKey(snapshotState, testName);
     getUncheckedKeys(snapshotState).delete(key);
-    snapshotState.markSnapshotsAsCheckedForTest?.(testName);
     const snapshotData = getSnapshotData(snapshotState);
     const storedSnapshot = snapshotData[key];
     const updateSnapshot = getUpdateSnapshotMode(snapshotState);
@@ -155,7 +166,7 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
             };
         }
 
-        incrementSnapshotCounter(snapshotState, 'unmatched');
+        incrementSnapshotCounter(snapshotState, 'unmatched', context.testFailing);
         return {
             pass: true,
             actual: comparison.actualSerialized,
@@ -168,23 +179,24 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
         const comparison = compareAgainstSerializedPngSnapshot(received, storedSnapshot, args.options);
 
         if (comparison.pass) {
-            incrementSnapshotCounter(snapshotState, 'matched');
+            incrementSnapshotCounter(snapshotState, 'matched', context.testFailing);
             return {
                 pass: true,
                 message: () => '',
             };
         }
 
-        if (updateSnapshot === 'all') {
+        if (updateSnapshot === 'all' && context.testFailing !== true) {
+            validatePngSnapshot(received, args.options);
             persistJestSnapshot(snapshotState, key, comparison.actualSerialized);
-            incrementSnapshotCounter(snapshotState, 'updated');
+            incrementSnapshotCounter(snapshotState, 'updated', context.testFailing);
             return {
                 pass: true,
                 message: () => '',
             };
         }
 
-        incrementSnapshotCounter(snapshotState, 'unmatched');
+        incrementSnapshotCounter(snapshotState, 'unmatched', context.testFailing);
         return {
             pass: false,
             actual: comparison.actualSerialized,
@@ -193,16 +205,17 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
         };
     }
 
-    if (updateSnapshot === 'new' || updateSnapshot === 'all') {
+    if ((updateSnapshot === 'new' || updateSnapshot === 'all') && context.testFailing !== true) {
+        validatePngSnapshot(received, args.options);
         persistJestSnapshot(snapshotState, key, serializePngSnapshot(received));
-        incrementSnapshotCounter(snapshotState, 'added');
+        incrementSnapshotCounter(snapshotState, 'added', context.testFailing);
         return {
             pass: true,
             message: () => '',
         };
     }
 
-    incrementSnapshotCounter(snapshotState, 'unmatched');
+    incrementSnapshotCounter(snapshotState, 'unmatched', context.testFailing);
     return {
         pass: false,
         actual: serializePngSnapshot(received),
@@ -236,6 +249,14 @@ declare global {
             toMatchPngSnapshot(opts?: ComparePngOptions): R;
             toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): R;
         }
+    }
+}
+
+declare module 'expect' {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    interface Matchers<R extends void | Promise<void>, T = unknown> {
+        toMatchPngSnapshot(opts?: ComparePngOptions): R;
+        toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): R;
     }
 }
 

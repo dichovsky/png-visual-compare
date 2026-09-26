@@ -471,6 +471,7 @@ describe('vitest matcher entrypoint', () => {
                     assertion,
                     currentTestName: 'creates PNG snapshot',
                     snapshotState: {
+                        snapshotUpdateState: 'new',
                         probeExpectedSnapshot: () => ({
                             count: 1,
                             data: undefined,
@@ -491,6 +492,158 @@ describe('vitest matcher entrypoint', () => {
 
         expect(result.pass).toBe(true);
         expect(result.actual).toContain('"type": "Buffer"');
+    });
+
+    test.each([false, true])('rejects malformed Vitest baselines before snapshot processing (existing: %s)', async (existing) => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+        await import('../src/vitest.mjs');
+        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'invalid-baseline' });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+        const processDomainSnapshot = vi.fn();
+        const storedSnapshot = existing ? serializePngSnapshot(createSolidPng(255, 0, 0)) : undefined;
+
+        expect(() =>
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    currentTestName: 'invalid baseline',
+                    snapshotState: {
+                        snapshotUpdateState: 'all',
+                        probeExpectedSnapshot: () => ({
+                            count: 1,
+                            data: storedSnapshot,
+                            key: 'invalid baseline 1',
+                            markAsChecked: vi.fn(),
+                        }),
+                        processDomainSnapshot,
+                    },
+                } as never,
+                Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+                { throwErrorOnInvalidInputData: false },
+            ),
+        ).toThrow('data could not be parsed');
+        expect(processDomainSnapshot).not.toHaveBeenCalled();
+    });
+
+    test.each([
+        { mode: 'none', existing: false },
+        { mode: 'none', existing: true },
+        { mode: 'new', existing: true },
+    ] as const)('reports a regular Vitest mismatch without validating a baseline it cannot write: %j', async ({ mode, existing }) => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+        await import('../src/vitest.mjs');
+        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'read-only-baseline' });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+        const processDomainSnapshot = vi.fn(({ received }: VitestProcessDomainSnapshotArgs) => ({
+            actual: received,
+            key: 'read-only baseline 1',
+            pass: false,
+        }));
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    snapshotState: {
+                        snapshotUpdateState: mode,
+                        probeExpectedSnapshot: () => ({
+                            count: 1,
+                            data: existing ? serializePngSnapshot(createSolidPng(255, 0, 0)) : undefined,
+                            key: 'read-only baseline 1',
+                            markAsChecked: vi.fn(),
+                        }),
+                        processDomainSnapshot,
+                    },
+                } as never,
+                Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+                { throwErrorOnInvalidInputData: false },
+            ),
+        );
+
+        expect(processDomainSnapshot).toHaveBeenCalledTimes(1);
+        expect(result.pass).toBe(false);
+        expect(result.message()).toBe('Snapshot `read-only baseline 1` mismatched');
+    });
+
+    test.each([
+        { mode: 'new', existing: false, matches: false },
+        { mode: 'all', existing: false, matches: false },
+        { mode: 'none', existing: true, matches: false },
+        { mode: 'all', existing: true, matches: false },
+        { mode: 'all', existing: true, matches: true },
+    ] as const)('returns the raw Vitest comparison without reconciliation for test.fails: %j', async ({ mode, existing, matches }) => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+        await import('../src/vitest.mjs');
+        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'expected-failure', fails: true });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+        const processDomainSnapshot = vi.fn();
+        const markAsChecked = vi.fn();
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    snapshotState: {
+                        snapshotUpdateState: mode,
+                        probeExpectedSnapshot: () => ({
+                            count: 1,
+                            data: existing ? serializePngSnapshot(createSolidPng(255, 0, 0)) : undefined,
+                            key: 'expected failure 1',
+                            markAsChecked,
+                        }),
+                        processDomainSnapshot,
+                    },
+                } as never,
+                matches ? createSolidPng(255, 0, 0) : createSolidPng(0, 0, 255),
+            ),
+        );
+
+        expect(result.pass).toBe(matches);
+        expect(result.message()).toBe('Snapshot `expected failure 1` mismatched');
+        expect(markAsChecked).toHaveBeenCalledTimes(1);
+        expect(processDomainSnapshot).not.toHaveBeenCalled();
+    });
+
+    test('rejects a new Vitest baseline over the configured image limits', async () => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+        await import('../src/vitest.mjs');
+        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'oversized-baseline' });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+        const processDomainSnapshot = vi.fn();
+
+        expect(() =>
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    snapshotState: {
+                        snapshotUpdateState: 'new',
+                        probeExpectedSnapshot: () => ({
+                            count: 1,
+                            key: 'oversized baseline 1',
+                            markAsChecked: vi.fn(),
+                        }),
+                        processDomainSnapshot,
+                    },
+                } as never,
+                PNG.sync.write(new PNG({ width: 2, height: 1 })),
+                { maxPixels: 1 },
+            ),
+        ).toThrow('exceed');
+        expect(processDomainSnapshot).not.toHaveBeenCalled();
     });
 
     test('throws when Vitest test context is unavailable', async () => {
@@ -1211,6 +1364,88 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState.unmatched).toBe(1);
         expect(snapshotState.matched).toBe(0);
         expect(snapshotState._dirty).toBe(false);
+    });
+
+    test('leaves unused sibling Jest snapshots unchecked', async () => {
+        vi.resetModules();
+        const extend = vi.fn();
+        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+        await import('../src/jest.js');
+        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+        const serialized = serializePngSnapshot(createSolidPng(255, 0, 0));
+        const snapshotState = createJestSnapshotState({ 'siblings 1': serialized, 'siblings 2': serialized });
+        const markSnapshotsAsCheckedForTest = vi.fn();
+
+        registeredMatchers.toMatchPngSnapshot.call(
+            { currentTestName: 'siblings', snapshotState: { ...snapshotState, markSnapshotsAsCheckedForTest } } as never,
+            createSolidPng(255, 0, 0),
+        );
+
+        expect([...snapshotState._uncheckedKeys]).toEqual(['siblings 2']);
+        expect(markSnapshotsAsCheckedForTest).not.toHaveBeenCalled();
+    });
+
+    test.each([
+        { mode: 'none', receivedMatches: false, existing: true, isNot: false },
+        { mode: 'all', receivedMatches: false, existing: true, isNot: false },
+        { mode: 'all', receivedMatches: true, existing: true, isNot: false },
+        { mode: 'all', receivedMatches: true, existing: true, isNot: true },
+        { mode: 'new', receivedMatches: false, existing: false, isNot: false },
+        { mode: 'all', receivedMatches: false, existing: false, isNot: false },
+    ] as const)('does not mutate snapshot state for a Jest expected failure: %j', async ({ mode, receivedMatches, existing, isNot }) => {
+        vi.resetModules();
+        const extend = vi.fn();
+        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+        await import('../src/jest.js');
+        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+        const original: Record<string, string> = existing ? { 'expected failure 1': serializePngSnapshot(createSolidPng(255, 0, 0)) } : {};
+        const snapshotState = createJestSnapshotState({ ...original }, mode);
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                { currentTestName: 'expected failure', snapshotState, testFailing: true, isNot } as never,
+                receivedMatches ? createSolidPng(255, 0, 0) : createSolidPng(0, 0, 255),
+            ),
+        );
+
+        expect(result.pass).toBe(receivedMatches);
+        expect(snapshotState._snapshotData).toEqual(original);
+        expect(snapshotState).toMatchObject({ _dirty: false, added: 0, matched: 0, unmatched: 0, updated: 0 });
+    });
+
+    test.each([false, true])('rejects malformed Jest baselines before persisting (existing: %s)', async (existing) => {
+        vi.resetModules();
+        const extend = vi.fn();
+        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+        await import('../src/jest.js');
+        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+        const original: Record<string, string> = existing ? { 'invalid baseline 1': serializePngSnapshot(createSolidPng(255, 0, 0)) } : {};
+        const snapshotState = createJestSnapshotState({ ...original }, 'all');
+
+        expect(() =>
+            registeredMatchers.toMatchPngSnapshot.call(
+                { currentTestName: 'invalid baseline', snapshotState } as never,
+                Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+                { throwErrorOnInvalidInputData: false },
+            ),
+        ).toThrow('data could not be parsed');
+        expect(snapshotState._snapshotData).toEqual(original);
+        expect(snapshotState).toMatchObject({ _dirty: false, added: 0, updated: 0 });
+    });
+
+    test('rejects a new Jest baseline over the configured image limits', async () => {
+        vi.resetModules();
+        const extend = vi.fn();
+        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+        await import('../src/jest.js');
+        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+        const snapshotState = createJestSnapshotState({}, 'new');
+
+        expect(() =>
+            registeredMatchers.toMatchPngSnapshot.call({ snapshotState } as never, PNG.sync.write(new PNG({ width: 2, height: 1 })), {
+                maxPixels: 1,
+            }),
+        ).toThrow('exceed');
+        expect(snapshotState).toMatchObject({ _dirty: false, added: 0, _snapshotData: {} });
     });
 
     test('reports a negated Jest match without a test name', async () => {

@@ -66,10 +66,10 @@ describe('diff writers under injected races', () => {
             });
         }
 
-        test('refuses and removes the file it created outside', () => {
+        test('refuses and leaves the file it created outside empty', () => {
             swapOnNextOpenSync();
             expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(PathValidationError);
-            expect(existsSync(escaped)).toBe(false);
+            expect(readFileSync(escaped)).toHaveLength(0);
         });
 
         test('refuses and leaves an existing outside file untouched', () => {
@@ -79,10 +79,10 @@ describe('diff writers under injected races', () => {
             expect(readFileSync(escaped, 'utf8')).toBe('outside content');
         });
 
-        test('refuses asynchronously and removes the file it created outside', async () => {
+        test('refuses asynchronously and leaves the file it created outside empty', async () => {
             swapOnNextOpen();
             await expect(fsAsyncDiffWriter.write(asValidated(target), data, baseDir)).rejects.toThrow(PathValidationError);
-            expect(existsSync(escaped)).toBe(false);
+            expect(readFileSync(escaped)).toHaveLength(0);
         });
 
         test('refuses asynchronously and leaves an existing outside file untouched', async () => {

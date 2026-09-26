@@ -1,5 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { comparePng } from '../comparePng';
+import { getPngData } from '../getPngData';
+import { resolveOptions } from '../pipeline/resolveOptions';
 import type { ComparePngOptions } from '../types';
 
 const PNG_SIGNATURE = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -108,6 +110,13 @@ export function buildSnapshotTestName(testName: string | undefined, hint: string
 
 export function serializePngSnapshot(received: Buffer): string {
     return JSON.stringify(received, null, 2);
+}
+
+// A persisted baseline must be decodable even when comparisons permit invalid inputs.
+// Validate only when a framework may save it, avoiding a second decode on matching runs.
+export function validatePngSnapshot(received: Buffer, options: ComparePngOptions | undefined): void {
+    const { maxDimension, maxPixels } = resolveOptions(options);
+    getPngData(received, true, maxDimension, maxPixels);
 }
 
 export function parseSerializedPngSnapshot(serializedSnapshot: string): Buffer {

@@ -413,6 +413,25 @@ describe('image limits', () => {
     });
 });
 
+describe('baseline validation', () => {
+    const TRUNCATED_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+    test.each(['missing', 'all', 'changed'] as const)('does not create a malformed baseline in %s mode', (mode) => {
+        useTestInfo(mode);
+
+        expect(() => match(TRUNCATED_PNG, 'header', { throwErrorOnInvalidInputData: false })).toThrow('data could not be parsed');
+        expect(existsSync(join(workDir, 'snapshots', 'header.png'))).toBe(false);
+    });
+
+    test.each(['all', 'changed'] as const)('preserves an existing baseline when an update is malformed in %s mode', (mode) => {
+        useTestInfo(mode);
+        const baselinePath = seedBaseline('header.png', RED);
+
+        expect(() => match(TRUNCATED_PNG, 'header', { throwErrorOnInvalidInputData: false })).toThrow('data could not be parsed');
+        expect(readFileSync(baselinePath)).toEqual(RED);
+    });
+});
+
 describe('negated assertions', () => {
     test('throws when the baseline is missing', () => {
         useTestInfo('all');

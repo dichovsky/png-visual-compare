@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.0.0"
     },
-    "sourceHash": "9a3b7f49bade7f129b7cdb69eeac6fe6ce0c234199ea4b0723e72805a827a649",
+    "sourceHash": "bea0e1622698491abc4e93a056eb7ab6ab0ef74d3b1b0df3def54857265f67c3",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -188,7 +188,7 @@ Schema: `codemap.v2`
             "entrypoint": "src/jest.ts",
             "file": "src/jest.ts",
             "line": 1,
-            "signature": "Registers a `toMatchPngSnapshot` matcher on Jest's global `expect` when present, and augments the global `jest.Matchers` interface.",
+            "signature": "Registers a `toMatchPngSnapshot` matcher on Jest's global `expect` when present, and augments both global `jest.Matchers` and the `expect` module's `Matchers` interface.",
             "jsdoc": null,
             "typeOnly": false
         },
@@ -197,7 +197,7 @@ Schema: `codemap.v2`
             "kind": "function",
             "entrypoint": "src/jest.ts",
             "file": "src/jest.ts",
-            "line": 218,
+            "line": 231,
             "signature": "export function registerJestPngSnapshotMatcher(expect: ExpectLike): void",
             "jsdoc": null,
             "typeOnly": false
@@ -207,7 +207,7 @@ Schema: `codemap.v2`
             "kind": "const",
             "entrypoint": "src/playwright.ts",
             "file": "src/playwright.ts",
-            "line": 210,
+            "line": 205,
             "signature": "export const expect",
             "jsdoc": null,
             "typeOnly": false
@@ -217,7 +217,7 @@ Schema: `codemap.v2`
             "kind": "const",
             "entrypoint": "src/playwright.ts",
             "file": "src/playwright.ts",
-            "line": 204,
+            "line": 199,
             "signature": "export const pngMatchers = { toMatchPngSnapshot: createPngSnapshotMatcher((matcherContext, received, args) => matchAgainstBaseline(test.info(), (matcherContext as { isNot?: boolean }).isNot === true, …",
             "jsdoc": null,
             "typeOnly": false
@@ -613,9 +613,18 @@ Schema: `codemap.v2`
                     "jsdoc": "Throws if the IHDR-declared dimensions exceed `maxDimension`. This check happens *before* `PNG.sync.read()` to prevent the decoder from allocating a huge output buffer for crafted PNGs with enormous header values. Always throws regardless of `throwErrorOnInvalidInputData`."
                 },
                 {
+                    "name": "assertSinglePngHeader",
+                    "kind": "function",
+                    "line": 58,
+                    "exported": false,
+                    "signature": "function assertSinglePngHeader(buffer: Buffer): void",
+                    "members": null,
+                    "jsdoc": "pngjs accepts repeated IHDR chunks and decodes using the last dimensions. Reject them before decoding so a later header cannot bypass the size guard. Leave other malformed framing and CRC checks to the decoder; advancing by chunk length also avoids mistaking IHDR bytes inside chunk data for a header."
+                },
+                {
                     "name": "finalizeDecodedPng",
                     "kind": "function",
-                    "line": 52,
+                    "line": 70,
                     "exported": false,
                     "signature": "function finalizeDecodedPng(decoded: LoadedPng, throwErrorOnInvalidInputData: boolean): LoadedPng",
                     "members": null,
@@ -624,7 +633,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getPngData",
                     "kind": "function",
-                    "line": 63,
+                    "line": 81,
                     "exported": true,
                     "signature": "export function getPngData( pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean, maxDimension?: number, maxPixels?: number, inputBaseDir?: string, maxFileBytes?: number, ): LoadedPng",
                     "members": null,
@@ -799,7 +808,7 @@ Schema: `codemap.v2`
                 {
                     "name": "JEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "kind": "const",
-                    "line": 13,
+                    "line": 17,
                     "exported": false,
                     "signature": "const JEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "members": null,
@@ -808,25 +817,25 @@ Schema: `codemap.v2`
                 {
                     "name": "ExpectLike",
                     "kind": "type",
-                    "line": 15,
+                    "line": 19,
                     "exported": false,
-                    "signature": "type ExpectLike = { extend: (matchers: Record<string, unknown>) => void; };",
+                    "signature": "type ExpectLike = { extend: (matchers: { toMatchPngSnapshot: typeof toMatchPngSnapshot }) => void; };",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "SnapshotStateLike",
                     "kind": "type",
-                    "line": 19,
+                    "line": 23,
                     "exported": false,
-                    "signature": "type SnapshotStateLike = { added?: number; expand?: boolean; matched?: number; unmatched?: number; updated?: number; markSnapshotsAsCheckedForTest?: (testName: string) => void; [key: string]: unknown;…",
+                    "signature": "type SnapshotStateLike = { added?: number; expand?: boolean; matched?: number; unmatched?: number; updated?: number; [key: string]: unknown; };",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "JestMatcherContext",
                     "kind": "type",
-                    "line": 29,
+                    "line": 32,
                     "exported": false,
                     "signature": "type JestMatcherContext = { currentConcurrentTestName?: () => string | undefined; currentTestName?: string; error?: Error; isNot?: boolean; snapshotState?: SnapshotStateLike | null; testFailing?: bool…",
                     "members": null,
@@ -835,7 +844,7 @@ Schema: `codemap.v2`
                 {
                     "name": "addOuterLineBreaks",
                     "kind": "function",
-                    "line": 38,
+                    "line": 41,
                     "exported": false,
                     "signature": "function addOuterLineBreaks(value: string): string",
                     "members": null,
@@ -844,7 +853,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getSnapshotData",
                     "kind": "function",
-                    "line": 42,
+                    "line": 45,
                     "exported": false,
                     "signature": "function getSnapshotData(snapshotState: SnapshotStateLike): Record<string, string>",
                     "members": null,
@@ -853,7 +862,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getSnapshotCounters",
                     "kind": "function",
-                    "line": 52,
+                    "line": 55,
                     "exported": false,
                     "signature": "function getSnapshotCounters(snapshotState: SnapshotStateLike): Map<string, number>",
                     "members": null,
@@ -862,7 +871,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getUncheckedKeys",
                     "kind": "function",
-                    "line": 62,
+                    "line": 65,
                     "exported": false,
                     "signature": "function getUncheckedKeys(snapshotState: SnapshotStateLike): Set<string>",
                     "members": null,
@@ -871,7 +880,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getUpdateSnapshotMode",
                     "kind": "function",
-                    "line": 72,
+                    "line": 75,
                     "exported": false,
                     "signature": "function getUpdateSnapshotMode(snapshotState: SnapshotStateLike): 'all' | 'new' | 'none'",
                     "members": null,
@@ -880,7 +889,7 @@ Schema: `codemap.v2`
                 {
                     "name": "setSnapshotDirty",
                     "kind": "function",
-                    "line": 82,
+                    "line": 85,
                     "exported": false,
                     "signature": "function setSnapshotDirty(snapshotState: SnapshotStateLike): void",
                     "members": null,
@@ -889,16 +898,16 @@ Schema: `codemap.v2`
                 {
                     "name": "incrementSnapshotCounter",
                     "kind": "function",
-                    "line": 86,
+                    "line": 89,
                     "exported": false,
-                    "signature": "function incrementSnapshotCounter(snapshotState: SnapshotStateLike, field: 'added' | 'matched' | 'unmatched' | 'updated'): void",
+                    "signature": "function incrementSnapshotCounter( snapshotState: SnapshotStateLike, field: 'added' | 'matched' | 'unmatched' | 'updated', testFailing: boolean | undefined, ): void",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "resolveSnapshotKey",
                     "kind": "function",
-                    "line": 91,
+                    "line": 103,
                     "exported": false,
                     "signature": "function resolveSnapshotKey(snapshotState: SnapshotStateLike, testName: string): { count: number; key: string }",
                     "members": null,
@@ -907,7 +916,7 @@ Schema: `codemap.v2`
                 {
                     "name": "createJestMismatchMessage",
                     "kind": "function",
-                    "line": 101,
+                    "line": 113,
                     "exported": false,
                     "signature": "function createJestMismatchMessage(testName: string, mismatchedPixels: number): string",
                     "members": null,
@@ -916,7 +925,7 @@ Schema: `codemap.v2`
                 {
                     "name": "createJestNegatedMatchMessage",
                     "kind": "function",
-                    "line": 108,
+                    "line": 120,
                     "exported": false,
                     "signature": "function createJestNegatedMatchMessage(testName: string): string",
                     "members": null,
@@ -925,7 +934,7 @@ Schema: `codemap.v2`
                 {
                     "name": "createJestMissingSnapshotMessage",
                     "kind": "function",
-                    "line": 114,
+                    "line": 126,
                     "exported": false,
                     "signature": "function createJestMissingSnapshotMessage(testName: string): string",
                     "members": null,
@@ -934,7 +943,7 @@ Schema: `codemap.v2`
                 {
                     "name": "persistJestSnapshot",
                     "kind": "function",
-                    "line": 120,
+                    "line": 132,
                     "exported": false,
                     "signature": "function persistJestSnapshot(snapshotState: SnapshotStateLike, key: string, serializedSnapshot: string): void",
                     "members": null,
@@ -943,7 +952,7 @@ Schema: `codemap.v2`
                 {
                     "name": "toMatchPngSnapshot",
                     "kind": "const",
-                    "line": 125,
+                    "line": 137,
                     "exported": false,
                     "signature": "const toMatchPngSnapshot",
                     "members": null,
@@ -952,7 +961,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getGlobalExpect",
                     "kind": "function",
-                    "line": 214,
+                    "line": 227,
                     "exported": false,
                     "signature": "function getGlobalExpect(): ExpectLike | undefined",
                     "members": null,
@@ -961,7 +970,7 @@ Schema: `codemap.v2`
                 {
                     "name": "registerJestPngSnapshotMatcher",
                     "kind": "function",
-                    "line": 218,
+                    "line": 231,
                     "exported": true,
                     "signature": "export function registerJestPngSnapshotMatcher(expect: ExpectLike): void",
                     "members": null,
@@ -970,7 +979,7 @@ Schema: `codemap.v2`
                 {
                     "name": "jestExpect",
                     "kind": "const",
-                    "line": 225,
+                    "line": 238,
                     "exported": false,
                     "signature": "const jestExpect",
                     "members": null,
@@ -980,7 +989,8 @@ Schema: `codemap.v2`
             "imports": [
                 "./matchers/createPngSnapshotMatcher",
                 "./matchers/pngSnapshot",
-                "./types"
+                "./types",
+                "expect"
             ],
             "reExports": []
         },
@@ -1072,7 +1082,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_SIGNATURE",
                     "kind": "const",
-                    "line": 5,
+                    "line": 7,
                     "exported": false,
                     "signature": "const PNG_SIGNATURE",
                     "members": null,
@@ -1081,7 +1091,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PngSnapshotMatcherArgs",
                     "kind": "type",
-                    "line": 7,
+                    "line": 9,
                     "exported": true,
                     "signature": "export type PngSnapshotMatcherArgs = { hint?: string; options?: ComparePngOptions; };",
                     "members": null,
@@ -1090,7 +1100,7 @@ Schema: `codemap.v2`
                 {
                     "name": "NormalizedMatcherArgsResult",
                     "kind": "type",
-                    "line": 12,
+                    "line": 14,
                     "exported": false,
                     "signature": "type NormalizedMatcherArgsResult = | { args: PngSnapshotMatcherArgs; } | { errorMessage: string; };",
                     "members": null,
@@ -1099,7 +1109,7 @@ Schema: `codemap.v2`
                 {
                     "name": "SerializedPngSnapshot",
                     "kind": "type",
-                    "line": 20,
+                    "line": 22,
                     "exported": false,
                     "signature": "type SerializedPngSnapshot = { data: number[]; type: 'Buffer'; };",
                     "members": null,
@@ -1108,7 +1118,7 @@ Schema: `codemap.v2`
                 {
                     "name": "NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE",
                     "kind": "const",
-                    "line": 30,
+                    "line": 32,
                     "exported": true,
                     "signature": "export const NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE = '.not.toMatchPngSnapshot() requires an existing snapshot to compare against.'",
                     "members": null,
@@ -1117,7 +1127,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparedPngSnapshot",
                     "kind": "type",
-                    "line": 32,
+                    "line": 34,
                     "exported": true,
                     "signature": "export type ComparedPngSnapshot = { pass: boolean; mismatchedPixels: number; actualSerialized: string; expectedSerialized: string; };",
                     "members": null,
@@ -1126,7 +1136,7 @@ Schema: `codemap.v2`
                 {
                     "name": "hasPngSignature",
                     "kind": "function",
-                    "line": 39,
+                    "line": 41,
                     "exported": false,
                     "signature": "function hasPngSignature(value: Uint8Array): boolean",
                     "members": null,
@@ -1135,7 +1145,7 @@ Schema: `codemap.v2`
                 {
                     "name": "isComparePngOptions",
                     "kind": "function",
-                    "line": 53,
+                    "line": 55,
                     "exported": false,
                     "signature": "function isComparePngOptions(value: unknown): value is ComparePngOptions",
                     "members": null,
@@ -1144,7 +1154,7 @@ Schema: `codemap.v2`
                 {
                     "name": "isSerializedPngSnapshot",
                     "kind": "function",
-                    "line": 57,
+                    "line": 59,
                     "exported": false,
                     "signature": "function isSerializedPngSnapshot(value: unknown): value is SerializedPngSnapshot",
                     "members": null,
@@ -1153,7 +1163,7 @@ Schema: `codemap.v2`
                 {
                     "name": "normalizePngSnapshotMatcherArgs",
                     "kind": "function",
-                    "line": 67,
+                    "line": 69,
                     "exported": true,
                     "signature": "export function normalizePngSnapshotMatcherArgs( hintOrOptions?: string | ComparePngOptions, options?: ComparePngOptions, ): NormalizedMatcherArgsResult",
                     "members": null,
@@ -1162,7 +1172,7 @@ Schema: `codemap.v2`
                 {
                     "name": "buildSnapshotTestName",
                     "kind": "function",
-                    "line": 105,
+                    "line": 107,
                     "exported": true,
                     "signature": "export function buildSnapshotTestName(testName: string | undefined, hint: string | undefined, separator: string): string",
                     "members": null,
@@ -1171,16 +1181,25 @@ Schema: `codemap.v2`
                 {
                     "name": "serializePngSnapshot",
                     "kind": "function",
-                    "line": 109,
+                    "line": 111,
                     "exported": true,
                     "signature": "export function serializePngSnapshot(received: Buffer): string",
                     "members": null,
                     "jsdoc": null
                 },
                 {
+                    "name": "validatePngSnapshot",
+                    "kind": "function",
+                    "line": 117,
+                    "exported": true,
+                    "signature": "export function validatePngSnapshot(received: Buffer, options: ComparePngOptions | undefined): void",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "parseSerializedPngSnapshot",
                     "kind": "function",
-                    "line": 113,
+                    "line": 122,
                     "exported": true,
                     "signature": "export function parseSerializedPngSnapshot(serializedSnapshot: string): Buffer",
                     "members": null,
@@ -1189,7 +1208,7 @@ Schema: `codemap.v2`
                 {
                     "name": "compareAgainstSerializedPngSnapshot",
                     "kind": "function",
-                    "line": 135,
+                    "line": 144,
                     "exported": true,
                     "signature": "export function compareAgainstSerializedPngSnapshot( received: Buffer, serializedExpectedSnapshot: string, options?: ComparePngOptions, ): ComparedPngSnapshot",
                     "members": null,
@@ -1198,6 +1217,8 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../comparePng",
+                "../getPngData",
+                "../pipeline/resolveOptions",
                 "../types",
                 "node:buffer"
             ],
@@ -1455,7 +1476,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_EXTENSION",
                     "kind": "const",
-                    "line": 17,
+                    "line": 15,
                     "exported": false,
                     "signature": "const PNG_EXTENSION",
                     "members": null,
@@ -1464,7 +1485,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_CONTENT_TYPE",
                     "kind": "const",
-                    "line": 18,
+                    "line": 16,
                     "exported": false,
                     "signature": "const PNG_CONTENT_TYPE = 'image/png'",
                     "members": null,
@@ -1473,7 +1494,7 @@ Schema: `codemap.v2`
                 {
                     "name": "UNNAMED_COUNTER_KEY",
                     "kind": "const",
-                    "line": 19,
+                    "line": 17,
                     "exported": false,
                     "signature": "const UNNAMED_COUNTER_KEY = 'unnamed'",
                     "members": null,
@@ -1482,7 +1503,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MAX_GENERATED_NAME_LENGTH",
                     "kind": "const",
-                    "line": 20,
+                    "line": 18,
                     "exported": false,
                     "signature": "const MAX_GENERATED_NAME_LENGTH = 100",
                     "members": null,
@@ -1491,7 +1512,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MANAGED_DIFF_OPTIONS",
                     "kind": "const",
-                    "line": 21,
+                    "line": 19,
                     "exported": false,
                     "signature": "const MANAGED_DIFF_OPTIONS",
                     "members": null,
@@ -1500,7 +1521,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MatcherResult",
                     "kind": "type",
-                    "line": 23,
+                    "line": 21,
                     "exported": false,
                     "signature": "type MatcherResult = { pass: boolean; message: () => string; softError?: Error; shouldNotRetryTest?: boolean; };",
                     "members": null,
@@ -1509,7 +1530,7 @@ Schema: `codemap.v2`
                 {
                     "name": "SnapshotNames",
                     "kind": "type",
-                    "line": 30,
+                    "line": 28,
                     "exported": false,
                     "signature": "type SnapshotNames = { baselineName: string; artifactBase: string };",
                     "members": null,
@@ -1518,7 +1539,7 @@ Schema: `codemap.v2`
                 {
                     "name": "noMessage",
                     "kind": "const",
-                    "line": 32,
+                    "line": 30,
                     "exported": false,
                     "signature": "const noMessage = (): string =>",
                     "members": null,
@@ -1527,7 +1548,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PASSED",
                     "kind": "const",
-                    "line": 33,
+                    "line": 31,
                     "exported": false,
                     "signature": "const PASSED: MatcherResult = { pass: true, message: noMessage }",
                     "members": null,
@@ -1536,7 +1557,7 @@ Schema: `codemap.v2`
                 {
                     "name": "snapshotCounters",
                     "kind": "const",
-                    "line": 35,
+                    "line": 33,
                     "exported": false,
                     "signature": "const snapshotCounters",
                     "members": null,
@@ -1545,7 +1566,7 @@ Schema: `codemap.v2`
                 {
                     "name": "nextSnapshotIndex",
                     "kind": "function",
-                    "line": 37,
+                    "line": 35,
                     "exported": false,
                     "signature": "function nextSnapshotIndex(testInfo: TestInfo, key: string): number",
                     "members": null,
@@ -1554,7 +1575,7 @@ Schema: `codemap.v2`
                 {
                     "name": "sanitizeForFilePath",
                     "kind": "function",
-                    "line": 45,
+                    "line": 43,
                     "exported": false,
                     "signature": "function sanitizeForFilePath(value: string): string",
                     "members": null,
@@ -1563,7 +1584,7 @@ Schema: `codemap.v2`
                 {
                     "name": "trimLongString",
                     "kind": "function",
-                    "line": 49,
+                    "line": 47,
                     "exported": false,
                     "signature": "function trimLongString(value: string): string",
                     "members": null,
@@ -1572,7 +1593,7 @@ Schema: `codemap.v2`
                 {
                     "name": "resolveSnapshotNames",
                     "kind": "function",
-                    "line": 64,
+                    "line": 62,
                     "exported": false,
                     "signature": "function resolveSnapshotNames(testInfo: TestInfo, hint: string | undefined): SnapshotNames",
                     "members": null,
@@ -1581,7 +1602,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertNoManagedDiffOptions",
                     "kind": "function",
-                    "line": 77,
+                    "line": 75,
                     "exported": false,
                     "signature": "function assertNoManagedDiffOptions(options: ComparePngOptions | undefined): void",
                     "members": null,
@@ -1590,7 +1611,7 @@ Schema: `codemap.v2`
                 {
                     "name": "attach",
                     "kind": "function",
-                    "line": 85,
+                    "line": 83,
                     "exported": false,
                     "signature": "function attach(testInfo: TestInfo, name: string, path: string): void",
                     "members": null,
@@ -1599,7 +1620,7 @@ Schema: `codemap.v2`
                 {
                     "name": "attachActual",
                     "kind": "function",
-                    "line": 89,
+                    "line": 87,
                     "exported": false,
                     "signature": "function attachActual(testInfo: TestInfo, artifactBase: string, received: Buffer): void",
                     "members": null,
@@ -1608,7 +1629,7 @@ Schema: `codemap.v2`
                 {
                     "name": "writeBaseline",
                     "kind": "function",
-                    "line": 97,
+                    "line": 93,
                     "exported": false,
                     "signature": "function writeBaseline(baselinePath: string, received: Buffer, options: ComparePngOptions | undefined): void",
                     "members": null,
@@ -1617,7 +1638,7 @@ Schema: `codemap.v2`
                 {
                     "name": "pixelLabel",
                     "kind": "function",
-                    "line": 104,
+                    "line": 99,
                     "exported": false,
                     "signature": "function pixelLabel(count: number): string",
                     "members": null,
@@ -1626,7 +1647,7 @@ Schema: `codemap.v2`
                 {
                     "name": "matchMissingBaseline",
                     "kind": "function",
-                    "line": 108,
+                    "line": 103,
                     "exported": false,
                     "signature": "function matchMissingBaseline( testInfo: TestInfo, received: Buffer, names: SnapshotNames, baselinePath: string, options: ComparePngOptions | undefined, ): MatcherResult",
                     "members": null,
@@ -1635,7 +1656,7 @@ Schema: `codemap.v2`
                 {
                     "name": "matchAgainstBaseline",
                     "kind": "function",
-                    "line": 138,
+                    "line": 133,
                     "exported": false,
                     "signature": "function matchAgainstBaseline(testInfo: TestInfo, isNot: boolean, received: Buffer, args: PngSnapshotMatcherArgs): MatcherResult",
                     "members": null,
@@ -1644,7 +1665,7 @@ Schema: `codemap.v2`
                 {
                     "name": "pngMatchers",
                     "kind": "const",
-                    "line": 204,
+                    "line": 199,
                     "exported": true,
                     "signature": "export const pngMatchers = { toMatchPngSnapshot: createPngSnapshotMatcher((matcherContext, received, args) => matchAgainstBaseline(test.info(), (matcherContext as { isNot?: boolean }).isNot === true, …",
                     "members": null,
@@ -1653,7 +1674,7 @@ Schema: `codemap.v2`
                 {
                     "name": "expect",
                     "kind": "const",
-                    "line": 210,
+                    "line": 205,
                     "exported": true,
                     "signature": "export const expect",
                     "members": null,
@@ -1662,10 +1683,8 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "./comparePng",
-                "./getPngData",
                 "./matchers/createPngSnapshotMatcher",
                 "./matchers/pngSnapshot",
-                "./pipeline/resolveOptions",
                 "./types",
                 "@playwright/test",
                 "node:crypto",
@@ -1708,27 +1727,18 @@ Schema: `codemap.v2`
             "path": "src/ports/fsAsyncDiffWriter.ts",
             "symbols": [
                 {
-                    "name": "CREATE_FLAGS",
+                    "name": "OPEN_FLAGS",
                     "kind": "const",
-                    "line": 18,
+                    "line": 13,
                     "exported": false,
-                    "signature": "const CREATE_FLAGS",
-                    "members": null,
-                    "jsdoc": null
-                },
-                {
-                    "name": "OPEN_EXISTING_FLAGS",
-                    "kind": "const",
-                    "line": 19,
-                    "exported": false,
-                    "signature": "const OPEN_EXISTING_FLAGS",
+                    "signature": "const OPEN_FLAGS",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 30,
+                    "line": 24,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
@@ -1737,7 +1747,7 @@ Schema: `codemap.v2`
                 {
                     "name": "asSymlinkRefusal",
                     "kind": "function",
-                    "line": 32,
+                    "line": 26,
                     "exported": false,
                     "signature": "function asSymlinkRefusal(error: unknown): unknown",
                     "members": null,
@@ -1746,7 +1756,7 @@ Schema: `codemap.v2`
                 {
                     "name": "fsAsyncDiffWriter",
                     "kind": "const",
-                    "line": 39,
+                    "line": 33,
                     "exported": true,
                     "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data, baseDir) { const directory = dirname(path); await secureMkdir(directory, baseDir); const target = baseDir === undefined …",
                     "members": null,
@@ -1791,27 +1801,18 @@ Schema: `codemap.v2`
             "path": "src/ports/fsDiffWriter.ts",
             "symbols": [
                 {
-                    "name": "CREATE_FLAGS",
+                    "name": "OPEN_FLAGS",
                     "kind": "const",
-                    "line": 27,
+                    "line": 12,
                     "exported": false,
-                    "signature": "const CREATE_FLAGS",
-                    "members": null,
-                    "jsdoc": null
-                },
-                {
-                    "name": "OPEN_EXISTING_FLAGS",
-                    "kind": "const",
-                    "line": 28,
-                    "exported": false,
-                    "signature": "const OPEN_EXISTING_FLAGS",
+                    "signature": "const OPEN_FLAGS",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 39,
+                    "line": 23,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
@@ -1820,7 +1821,7 @@ Schema: `codemap.v2`
                 {
                     "name": "asSymlinkRefusal",
                     "kind": "function",
-                    "line": 41,
+                    "line": 25,
                     "exported": false,
                     "signature": "function asSymlinkRefusal(error: unknown): unknown",
                     "members": null,
@@ -1829,7 +1830,7 @@ Schema: `codemap.v2`
                 {
                     "name": "fsDiffWriter",
                     "kind": "const",
-                    "line": 48,
+                    "line": 32,
                     "exported": true,
                     "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data, baseDir) { const directory = dirname(path); secureMkdirSync(directory, baseDir); const target = baseDir === undefined ? path : resolve(r…",
                     "members": null,
@@ -2458,7 +2459,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VITEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "kind": "const",
-                    "line": 24,
+                    "line": 25,
                     "exported": false,
                     "signature": "const VITEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "members": null,
@@ -2467,16 +2468,16 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestTestLike",
                     "kind": "type",
-                    "line": 26,
+                    "line": 27,
                     "exported": false,
-                    "signature": "type VitestTestLike = { id: string; };",
+                    "signature": "type VitestTestLike = { id: string; fails?: boolean; };",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "VitestExpectedSnapshot",
                     "kind": "type",
-                    "line": 30,
+                    "line": 32,
                     "exported": false,
                     "signature": "type VitestExpectedSnapshot = { count: number; data?: string; key: string; markAsChecked: () => void; };",
                     "members": null,
@@ -2485,7 +2486,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestSnapshotReturn",
                     "kind": "type",
-                    "line": 37,
+                    "line": 39,
                     "exported": false,
                     "signature": "type VitestSnapshotReturn = { actual: string; expected?: string; key: string; pass: boolean; };",
                     "members": null,
@@ -2494,16 +2495,16 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestSnapshotState",
                     "kind": "type",
-                    "line": 44,
+                    "line": 46,
                     "exported": false,
-                    "signature": "type VitestSnapshotState = { probeExpectedSnapshot: (options: { inlineSnapshot?: string; isInline: boolean; testId: string; testName: string; }) => VitestExpectedSnapshot; processDomainSnapshot: (opti…",
+                    "signature": "type VitestSnapshotState = { readonly snapshotUpdateState: 'all' | 'new' | 'none'; probeExpectedSnapshot: (options: { inlineSnapshot?: string; isInline: boolean; testId: string; testName: string; }) =…",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "MatcherStateWithSnapshot",
                     "kind": "type",
-                    "line": 66,
+                    "line": 69,
                     "exported": false,
                     "signature": "type MatcherStateWithSnapshot = MatcherState & { error?: Error; snapshotState?: VitestSnapshotState | null; };",
                     "members": null,
@@ -2512,7 +2513,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getVitestTest",
                     "kind": "function",
-                    "line": 71,
+                    "line": 74,
                     "exported": false,
                     "signature": "function getVitestTest(matcherContext: MatcherState): VitestTestLike",
                     "members": null,
@@ -2521,7 +2522,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getAssertionName",
                     "kind": "function",
-                    "line": 81,
+                    "line": 84,
                     "exported": false,
                     "signature": "function getAssertionName(matcherContext: MatcherState): string",
                     "members": null,
@@ -2530,7 +2531,7 @@ Schema: `codemap.v2`
                 {
                     "name": "toMatchPngSnapshot",
                     "kind": "const",
-                    "line": 91,
+                    "line": 94,
                     "exported": false,
                     "signature": "const toMatchPngSnapshot",
                     "members": null,

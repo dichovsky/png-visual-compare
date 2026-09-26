@@ -4,7 +4,7 @@ const isFullCoverageRun = process.env.VITEST_FULL_COVERAGE === 'true';
 
 export default defineConfig({
     test: {
-        exclude: ['**/node_modules/**', 'e2e/**'],
+        include: ['__tests__/**/*.test.{ts,mts}'],
         testTimeout: 30000,
         coverage: {
             provider: 'v8',

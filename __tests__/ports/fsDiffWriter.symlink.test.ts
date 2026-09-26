@@ -30,8 +30,8 @@ describe('fsDiffWriter symlink refusal (SECU-03)', () => {
         expect(readFileSync(target)).toEqual(payload);
     });
 
-    test('overwrites an existing regular file (overwrite contract preserved)', () => {
-        writeFileSync(target, 'stale-bytes');
+    test('overwrites a longer existing regular file without retaining stale bytes', () => {
+        writeFileSync(target, Buffer.alloc(payload.length + 100, 0xff));
         fsDiffWriter.write(asValidatedPath(target), payload);
         expect(readFileSync(target)).toEqual(payload);
     });
