@@ -10,7 +10,8 @@ import type { ComparisonResult, NormalizedImages, ResolvedOptions } from './type
 // known to be within `opts.maxPixels`.
 export function runComparison(images: NormalizedImages, opts: ResolvedOptions): ComparisonResult {
     const diff = opts.shouldCreateDiffFile ? new PNG({ width: images.width, height: images.height }) : undefined;
-    // RELI-10: `pixelmatch` is an external kernel; wrap any throw it raises in a
+    // RELI-10: the `pixelmatch` kernel (vendored in `src/vendor/pixelmatch.ts`, RELI-11)
+    // throws plain `Error`s on bad input; wrap any throw it raises in a
     // typed `ComparisonError` so consumers can match on `instanceof ComparisonError`
     // / `code === 'ERR_COMPARISON'` instead of parsing the underlying message.
     let mismatchedPixels: number;
