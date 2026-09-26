@@ -90,7 +90,7 @@
         "@types/pngjs": "~6.0.5",
         "@typescript/native": "npm:typescript@~7.0.2",
         "@vitest/coverage-v8": "~5.0.1",
-        "eslint": "~10.10.0",
+        "eslint": "~10.11.0",
         "expect": "~30.5.2",
         "jest": "~30.5.2",
         "pixelmatch": "~7.2.0",
