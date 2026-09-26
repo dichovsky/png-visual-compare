@@ -1,6 +1,8 @@
 /**
- * @sideEffect Registers a `toMatchPngSnapshot` matcher on Jest's global `expect` when present, and augments the global `jest.Matchers` interface.
+ * @sideEffect Registers a `toMatchPngSnapshot` matcher on Jest's global `expect` when present, and augments both global `jest.Matchers` and the `expect` module's `Matchers` interface.
  */
+// The production build excludes fixtures that load expect's declarations.
+// Import its types so the augmentation resolves (otherwise TS2664); no runtime import is emitted.
 import type {} from 'expect';
 import type { ComparePngOptions } from './types';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher';

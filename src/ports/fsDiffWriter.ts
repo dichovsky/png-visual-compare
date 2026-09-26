@@ -9,11 +9,7 @@ import type { DiffWriterPort } from './types';
 // O_TRUNC is deliberately absent: truncation happens only after the opened handle
 // has been proven to live inside `diffOutputBaseDir` (SECU-09). Truncating on open
 // would destroy the contents of an escaped target before anything could detect it.
-//
-// Separate exclusive creation from opening an existing target. Neither attempt
-// follows a symlink in the final component.
-const CREATE_FLAGS = fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_NOFOLLOW;
-const OPEN_EXISTING_FLAGS = fsConstants.O_WRONLY | fsConstants.O_NOFOLLOW;
+const OPEN_FLAGS = fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW;
 
 // SECU-12: lock diff files to owner-only access (no group, no world).
 // Passing `0o600` as the third arg to `openSync` covers the creation case
@@ -49,20 +45,9 @@ export const fsDiffWriter: DiffWriterPort = {
 
         let fd: number;
         try {
-            fd = openSync(target, CREATE_FLAGS, DIFF_FILE_MODE);
+            fd = openSync(target, OPEN_FLAGS, DIFF_FILE_MODE);
         } catch (error) {
-            const code = (error as NodeJS.ErrnoException).code;
-            if (code !== 'EEXIST') {
-                throw asSymlinkRefusal(error);
-            }
-            // The target already exists, so this call is an overwrite, not a create.
-            // A symlink at the target reaches here as EEXIST (O_EXCL reports the link
-            // itself); reopening without O_CREAT surfaces it as ELOOP via O_NOFOLLOW.
-            try {
-                fd = openSync(target, OPEN_EXISTING_FLAGS, DIFF_FILE_MODE);
-            } catch (reopenError) {
-                throw asSymlinkRefusal(reopenError);
-            }
+            throw asSymlinkRefusal(error);
         }
 
         try {

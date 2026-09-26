@@ -87,7 +87,10 @@ export type ComparePngOptions = {
      * symlink. Without `diffOutputBaseDir` there is no boundary to enforce and none of
      * the parent-component checks run.
      * Failed writes close their handles without deleting the output path, which another
-     * writer may have replaced. An empty or partial output can remain after a failure.
+     * writer may have replaced. A refused write can leave an empty owner-only file at
+     * a redirected location outside `diffOutputBaseDir` after a detected parent swap;
+     * no diff bytes are written to that file. A later write failure can leave partial
+     * output at the verified destination.
      *
      * @default undefined (no diff file written)
      * @throws {PathValidationError} if a symlink exists at the target path at write-time.

@@ -9,19 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Reject PNGs with duplicate IHDR chunks before decoding, preventing later headers
-  from bypassing the image dimension and pixel limits.
-- Preserve replacement files when a diff write fails. Failed writes close their
-  handles without deleting paths that another writer may have replaced; an empty
-  or partial output can remain after a failure.
-- Reject undecodable PNGs before recording or updating matcher baselines in Jest,
-  Vitest, and Playwright.
-- Keep obsolete Jest baselines detectable, and preserve baselines and snapshot
-  counters inside `test.failing` assertions.
+- Reject undecodable PNGs, and PNGs over `maxDimension` / `maxPixels`, before
+  recording or updating matcher baselines in Jest, Vitest, and Playwright.
+  Jest and Vitest now reject oversized images during first-baseline recording
+  instead of saving a baseline that only fails the limits on its next comparison.
+- Report obsolete sibling Jest PNG snapshots. Existing suites may fail `jest --ci`
+  until obsolete baselines are removed with `jest -u`.
+- Preserve baselines and snapshot counters inside Jest 30+ `test.failing` and
+  Vitest 5 `test.fails` assertions. Jest 29 does not expose its expected-failure
+  state to matchers and is not covered by this protection.
+- Keep Vitest's normal mismatch reporting when snapshot updates are disabled, or
+  when only new baselines may be recorded and the baseline already exists.
 - Support typed Jest registration and assertions with `expect` imported from
   `@jest/globals`, including `injectGlobals: false` projects.
-- Include `CODEMAP.md` in the Docker test context and restrict unit-test discovery
-  to the repository's `__tests__` directory, excluding nested worktrees.
 - **Jest can load the package without extra configuration** — the CommonJS build
   `require()`d `pixelmatch` 7, which ships only as an ES module. Node.js loads that through
   `require(esm)`, but Jest's own module loader (Jest 29 and 30) and Vitest's `vmThreads` /
@@ -32,8 +32,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   byte for byte against upstream, so the Babel workaround documented for 7.0.0 is no longer
   needed. Closes RELI-11.
 
+### Security
+
+- Reject PNGs with duplicate IHDR chunks before decoding, preventing later headers
+  from bypassing the image dimension and pixel limits.
+- **Refused diff writes no longer unlink by path** — in 7.0.0, a parent directory
+  swapped after the open could make cleanup delete a pre-existing file outside
+  `diffOutputBaseDir`, contrary to the 7.0.0 cleanup guarantee below. Failed writes
+  now only close their handle. An empty or partial output can remain, including an
+  empty owner-only file at a redirected location outside the boundary when the
+  post-open check detects a parent swap. No diff bytes are written to that refused
+  file. Follow-up to SECU-09.
+
+### Changed
+
+- **CI** — include `CODEMAP.md` in the Docker test context and restrict unit-test
+  discovery to the repository's `__tests__` directory, excluding nested worktrees.
+
 ### Dependencies
 
+- **BREAKING: new optional peer `expect` `>=29 <31`** — used only for the
+  `png-visual-compare/jest` type augmentation. npm checks this range at install
+  when `expect` is present, so a direct dependency on an incompatible version can
+  cause `ERESOLVE` even in a project that does not use Jest. A transitive
+  incompatible version can be nested separately.
 - `pixelmatch` is no longer a runtime dependency; `pngjs` is the only one. `pixelmatch`
   stays a devDependency as the parity oracle for the vendored copy.
 

@@ -26,6 +26,7 @@ const VITEST_PNG_SNAPSHOT_MATCHER_KEY = Symbol.for('png-visual-compare/vitest/to
 
 type VitestTestLike = {
     id: string;
+    fails?: boolean;
 };
 
 type VitestExpectedSnapshot = {
@@ -43,6 +44,7 @@ type VitestSnapshotReturn = {
 };
 
 type VitestSnapshotState = {
+    readonly snapshotUpdateState: 'all' | 'new' | 'none';
     probeExpectedSnapshot: (options: {
         inlineSnapshot?: string;
         isInline: boolean;
@@ -130,7 +132,17 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext: unknown, re
             ? undefined
             : compareAgainstSerializedPngSnapshot(received, expectedSnapshot.data, args.options);
 
-    if (comparison?.pass !== true) {
+    // Expected failures use the raw comparison. Reconciliation would update
+    // baselines or snapshot counters before Vitest inverts the test result.
+    if (test.fails === true) {
+        return {
+            pass: comparison?.pass === true,
+            message: () => `Snapshot \`${expectedSnapshot.key}\` mismatched`,
+        };
+    }
+
+    const mode = context.snapshotState.snapshotUpdateState;
+    if (comparison?.pass !== true && (mode === 'all' || (mode === 'new' && expectedSnapshot.data === undefined))) {
         validatePngSnapshot(received, args.options);
     }
 

@@ -192,7 +192,11 @@ npx vitest run -u
 
 Releases after 7.0.0 work with a stock Jest configuration — no Babel or transform setup is needed. On 7.0.0 and earlier, Jest needs the Babel transform described in the [7.0.0 README](https://github.com/dichovsky/png-visual-compare/blob/release/v7.0.0/README.md#jest); drop it once you upgrade.
 
+The Jest type augmentation uses an optional `expect` peer with range `>=29 <31`. npm checks optional peers when present: a direct dependency on another `expect` version can cause `ERESOLVE` during installation, even if your project does not use Jest. Incompatible transitive versions can be nested separately.
+
 > **Known issue (Jest 30.5+):** with `jest.retryTimes`, a mismatching PNG can pass on the retry and be recorded as a new snapshot (tracked as RELI-12). Do not enable retries for tests that use this matcher until it is fixed.
+
+On Jest 30+, `test.failing` PNG assertions compare without recording or updating baselines or snapshot totals. Jest 29 does not expose the expected-failure flag to matchers, so this protection is unavailable there. Obsolete sibling PNG baselines are reported by `jest --ci`; remove them with `jest -u` after deleting assertions.
 
 Register the matcher from `setupFilesAfterEnv`:
 
@@ -431,7 +435,7 @@ When `inputBaseDir` is set, containment is checked before the byte cap. The cap'
 When a boundary is set, the library defends against a path that changes underneath it:
 
 - **Reads** refuse a path that is lexically outside the boundary before touching the filesystem, so whether it exists is never disclosed. They then open the file, pinning one inode, and prove that inode is the one containment approved. Bytes are never returned from a file that failed the check.
-- **Writes** create each parent directory one component at a time and refuse any component that is a symlink. The parent chain is then resolved and the file is opened _inside the canonical directory_, so the path traversed at open time contains no symlink at all — redirecting the write requires renaming a real directory in that chain, not merely planting a link. Truncation is deferred until after the opened handle has been proven to sit inside the boundary, so an escaped target is never emptied. Failed writes close their handles without deleting the output path: another writer may have replaced it, and Node provides no atomic way to unlink only the originally opened inode. An empty or partial output can remain after a failure.
+- **Writes** create each parent directory one component at a time and refuse any component that is a symlink. The parent chain is then resolved and the file is opened _inside the canonical directory_, so the path traversed at open time contains no symlink at all — redirecting the write requires renaming a real directory in that chain, not merely planting a link. Truncation is deferred until after the opened handle has been proven to sit inside the boundary, so an escaped target is never emptied. Failed writes close their handles without deleting the output path: another writer may have replaced it, and Node provides no atomic way to unlink only the originally opened inode. A refused write can leave an empty owner-only file behind. After a detected parent-directory swap, that file can sit at the redirected location outside `diffOutputBaseDir`, with no diff bytes written to it. A later write failure can leave partial output at the verified destination.
 
 Node exposes no `openat`, so the underlying race cannot be _prevented_ portably. These checks **detect** a swap and refuse, rather than making the swap impossible. The practical guarantee is that no data crosses the boundary in either direction, not that an attacker cannot try.
 

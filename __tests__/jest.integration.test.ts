@@ -54,6 +54,7 @@ const received = Buffer.from(${JSON.stringify([...BLUE])});
 ${body}\n`,
     );
     const reportPath = join(workDir, 'report.json');
+    rmSync(reportPath, { force: true });
     const result = spawnSync(
         process.execPath,
         [
@@ -62,6 +63,7 @@ ${body}\n`,
             '--config',
             JSON.stringify({
                 rootDir: workDir,
+                cacheDirectory: join(workDir, '.jest-cache'),
                 testMatch: ['**/matcher.fixture.cjs'],
                 transform: { '\\.ts$': transformer },
                 modulePaths: [resolve('node_modules')],
@@ -76,6 +78,10 @@ ${body}\n`,
 
     if (result.error) {
         throw result.error;
+    }
+
+    if (!existsSync(reportPath)) {
+        throw new Error(`Jest wrote no report (exit ${result.status}):\n${result.stdout}${result.stderr}`);
     }
 
     return {

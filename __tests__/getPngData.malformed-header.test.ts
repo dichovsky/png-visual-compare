@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32 } from 'node:zlib';
 import { PNG } from 'pngjs';
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { comparePng, comparePngAsync, InvalidInputError, ResourceLimitError } from '../src';
 import { getPngData } from '../src/getPngData';
 
@@ -25,7 +25,6 @@ function createChunk(type: string, data: Buffer): Buffer {
 const small = createPng(1);
 const large = createPng(20);
 const signature = small.subarray(0, 8);
-const directory = mkdtempSync(join(tmpdir(), 'png-duplicate-header-'));
 const duplicateHeaders = [
     {
         name: 'larger header before IDAT',
@@ -42,17 +41,24 @@ const duplicateHeaders = [
 ];
 
 afterEach(() => vi.restoreAllMocks());
-afterAll(() => rmSync(directory, { recursive: true, force: true }));
 
 describe('duplicate PNG headers', () => {
+    let directory: string;
+
+    beforeAll(() => {
+        directory = mkdtempSync(join(tmpdir(), 'png-duplicate-header-'));
+        for (const { name, data } of duplicateHeaders) {
+            writeFileSync(join(directory, `${name}.png`), data);
+        }
+    });
+
+    afterAll(() => rmSync(directory, { recursive: true, force: true }));
+
     for (const { name, data } of duplicateHeaders) {
         for (const sourceType of ['buffer', 'path'] as const) {
-            const filePath = join(directory, `${name}.png`);
-            writeFileSync(filePath, data);
-            const source = sourceType === 'buffer' ? data : filePath;
-
             for (const compare of [comparePng, comparePngAsync]) {
                 it(`${compare.name} rejects ${name} from a ${sourceType} before decoding`, async () => {
+                    const source = sourceType === 'buffer' ? data : join(directory, `${name}.png`);
                     const read = vi.spyOn(PNG.sync, 'read');
 
                     await expect(async () => compare(source, small, { maxDimension: 1, maxPixels: 1 })).rejects.toThrow(InvalidInputError);
@@ -61,6 +67,7 @@ describe('duplicate PNG headers', () => {
                 });
 
                 it(`${compare.name} treats ${name} from a ${sourceType} as invalid in permissive mode`, async () => {
+                    const source = sourceType === 'buffer' ? data : join(directory, `${name}.png`);
                     const read = vi.spyOn(PNG.sync, 'read');
 
                     expect(

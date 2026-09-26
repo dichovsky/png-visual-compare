@@ -219,9 +219,7 @@ describe('diff writers on failed handle verification', () => {
         expect(existsSync(target)).toBe(false);
     });
 
-    test('propagates an open failure that is not a pre-existing target', () => {
-        // With O_EXCL a symlink at the target reports EEXIST, so this branch covers the
-        // genuinely unexpected open failures — a permission denial, for instance.
+    test('propagates a non-symlink open failure without wrapping it', () => {
         const target = path.join(baseDir, 'diff.png');
         vi.spyOn(nodeFs, 'openSync').mockImplementationOnce(() => {
             throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
@@ -229,7 +227,7 @@ describe('diff writers on failed handle verification', () => {
         expect(() => fsDiffWriter.write(asValidated(target), data, baseDir)).toThrow(/EACCES/);
     });
 
-    test('propagates an open failure that is not a pre-existing target asynchronously', async () => {
+    test('propagates a non-symlink open failure asynchronously without wrapping it', async () => {
         const target = path.join(baseDir, 'diff.png');
         vi.spyOn(nodeFsPromises, 'open').mockImplementationOnce(() => {
             throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
