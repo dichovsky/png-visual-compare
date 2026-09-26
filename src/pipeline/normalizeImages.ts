@@ -3,8 +3,7 @@ import { addColoredAreasToImage } from '../addColoredAreasToImage';
 import { ResourceLimitError } from '../errors';
 import { extendImage } from '../extendImage';
 import { fillImageSizeDifference } from '../fillImageSizeDifference';
-import type { LoadedPng } from '../types/png.data';
-import type { LoadedSources, NormalizedImages, ResolvedOptions } from './types';
+import type { LoadedPng, LoadedSources, NormalizedImages, ResolvedOptions } from './types';
 
 function clonePng(image: PNGWithMetadata): PNGWithMetadata {
     const cloned = new PNG({ width: image.width, height: image.height, fill: true });

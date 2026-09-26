@@ -1,6 +1,5 @@
 import type { Buffer } from 'node:buffer';
-import type { ResolvedOptions } from '../pipeline/types';
-import type { LoadedPng } from '../types/png.data';
+import type { LoadedPng, ResolvedOptions } from '../pipeline/types';
 import type { ValidatedPath } from '../types/validated-path';
 
 export interface AsyncImageSourcePort {
