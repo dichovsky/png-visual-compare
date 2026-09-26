@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.0.1"
     },
-    "sourceHash": "70a1b2cafa556b0442522f3679a46d37a7dc95b2b1d28ade085881b308aa652a",
+    "sourceHash": "2a73334f0e64268254e9dbbccdaa8e64a978f3ef7742887f6a79adbb31e16694",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -1442,7 +1442,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ResolvedOptions",
                     "kind": "type",
-                    "line": 7,
+                    "line": 11,
                     "exported": true,
                     "signature": "export type ResolvedOptions = { readonly excludedAreas: Area[]; readonly throwErrorOnInvalidInputData: boolean; readonly extendedAreaColor: Color; readonly excludedAreaColor: Color; readonly shouldCre…",
                     "members": null,
@@ -1451,7 +1451,7 @@ Schema: `codemap.v2`
                 {
                     "name": "LoadedPng",
                     "kind": "type",
-                    "line": 31,
+                    "line": 35,
                     "exported": true,
                     "signature": "export type LoadedPng = { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
                     "members": null,
@@ -1460,7 +1460,7 @@ Schema: `codemap.v2`
                 {
                     "name": "LoadedSources",
                     "kind": "type",
-                    "line": 34,
+                    "line": 38,
                     "exported": true,
                     "signature": "export type LoadedSources = { readonly png1: string | Buffer; readonly png2: string | Buffer; readonly first: LoadedPng; readonly second: LoadedPng; };",
                     "members": null,
@@ -1469,7 +1469,7 @@ Schema: `codemap.v2`
                 {
                     "name": "NormalizedImages",
                     "kind": "type",
-                    "line": 41,
+                    "line": 45,
                     "exported": true,
                     "signature": "export type NormalizedImages = { readonly first: PNGWithMetadata; readonly second: PNGWithMetadata; readonly width: number; readonly height: number; };",
                     "members": null,
@@ -1478,7 +1478,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonResult",
                     "kind": "type",
-                    "line": 48,
+                    "line": 52,
                     "exported": true,
                     "signature": "export type ComparisonResult = { readonly mismatchedPixels: number; readonly diff?: PNG; };",
                     "members": null,
@@ -1487,7 +1487,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonContext",
                     "kind": "type",
-                    "line": 53,
+                    "line": 57,
                     "exported": true,
                     "signature": "export type ComparisonContext = { readonly options: ResolvedOptions; readonly sources: LoadedSources; readonly normalized: NormalizedImages; readonly result: ComparisonResult; };",
                     "members": null,
@@ -1496,7 +1496,9 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../ports/types",
-                "../types",
+                "../types/area",
+                "../types/color",
+                "../types/compare.options",
                 "../types/validated-path",
                 "node:buffer",
                 "pngjs"

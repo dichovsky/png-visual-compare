@@ -1,6 +1,10 @@
 import type { Buffer } from 'node:buffer';
 import type { PNG, PNGWithMetadata } from 'pngjs';
-import type { Area, Color, ComparePngOptions, PixelmatchOptions } from '../types';
+// Concrete files, not the `../types` barrel: the barrel re-exports the public `LoadedPng`
+// alias of the type defined below, which would close a type-only import cycle.
+import type { Area } from '../types/area';
+import type { Color } from '../types/color';
+import type { ComparePngOptions, PixelmatchOptions } from '../types/compare.options';
 import type { ValidatedPath } from '../types/validated-path';
 import type { DiffWriterPort, ImageSourcePort } from '../ports/types';
 
