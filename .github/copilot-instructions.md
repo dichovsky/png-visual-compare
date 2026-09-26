@@ -87,6 +87,7 @@ import { expect } from 'png-visual-compare/playwright';
 src/
   index.ts                        # exports comparePng, comparePngAsync, errors, constants, and public types
   comparePng.ts                   # sync orchestrator
+  comparePngWithPorts.ts          # internal sync orchestration with injectable ports (test seam; not exported)
   comparePngAsync.ts              # async orchestrator
   vitest.mts                      # side-effect entry: registers toMatchPngSnapshot on Vitest's expect (ESM)
   jest.ts                         # side-effect entry: registers toMatchPngSnapshot on Jest's expect (CJS)

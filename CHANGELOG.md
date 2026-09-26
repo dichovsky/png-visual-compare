@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deprecated
+
+- **`LoadedPng` type export** — no public API returns or accepts a `LoadedPng`; it
+  describes an internal loading step. It will be removed in 8.0.0, so delete any
+  `import type { LoadedPng }` (TYPE-06).
+
+### Changed
+
+- **Public type declarations** — `comparePng`'s declarations no longer reference the
+  internal port types, and the package entry lists its public types explicitly instead of
+  re-exporting everything under `src/types`. The exported names are unchanged. This
+  removes one of the two paths by which the public declarations reach `pngjs` types
+  (`TS7016` when type-checking with `skipLibCheck: false` and no `@types/pngjs`); the
+  other, through `LoadedPng`, goes with it in 8.0.0.
+
 ## [7.0.1] - 2026-09-26
 
 ### Fixed

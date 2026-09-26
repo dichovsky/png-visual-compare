@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.0.1"
     },
-    "sourceHash": "bea0e1622698491abc4e93a056eb7ab6ab0ef74d3b1b0df3def54857265f67c3",
+    "sourceHash": "70a1b2cafa556b0442522f3679a46d37a7dc95b2b1d28ade085881b308aa652a",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -127,9 +127,9 @@ Schema: `codemap.v2`
             "kind": "type",
             "entrypoint": "src/index.ts",
             "file": "src/types/png.data.ts",
-            "line": 3,
-            "signature": "export type LoadedPng = { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
-            "jsdoc": null,
+            "line": 7,
+            "signature": "export type LoadedPng = InternalLoadedPng;",
+            "jsdoc": "@deprecated No public API returns or accepts a `LoadedPng` — it describes an internal loading step. It will be removed in 8.0.0; delete any import of it (TYPE-06).",
             "typeOnly": true
         },
         {
@@ -167,7 +167,7 @@ Schema: `codemap.v2`
             "kind": "function",
             "entrypoint": "src/index.ts",
             "file": "src/comparePng.ts",
-            "line": 34,
+            "line": 17,
             "signature": "export function comparePng(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): number",
             "jsdoc": "Compare two PNG inputs and return the mismatched pixel count.",
             "typeOnly": false
@@ -288,25 +288,16 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparePngInput",
                     "kind": "type",
-                    "line": 17,
+                    "line": 14,
                     "exported": false,
                     "signature": "type ComparePngInput = string | Buffer;",
                     "members": null,
                     "jsdoc": null
                 },
                 {
-                    "name": "comparePngWithPorts",
-                    "kind": "function",
-                    "line": 19,
-                    "exported": true,
-                    "signature": "export function comparePngWithPorts( png1: ComparePngInput, png2: ComparePngInput, opts: ComparePngOptions | undefined, ports?: ComparisonPorts, ): number",
-                    "members": null,
-                    "jsdoc": null
-                },
-                {
                     "name": "comparePng",
                     "kind": "function",
-                    "line": 34,
+                    "line": 17,
                     "exported": true,
                     "signature": "export function comparePng(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): number",
                     "members": null,
@@ -314,12 +305,7 @@ Schema: `codemap.v2`
                 }
             ],
             "imports": [
-                "./pipeline/loadSources",
-                "./pipeline/normalizeImages",
-                "./pipeline/persistDiff",
-                "./pipeline/resolveOptions",
-                "./pipeline/runComparison",
-                "./ports/types",
+                "./comparePngWithPorts",
                 "./types",
                 "node:buffer"
             ],
@@ -372,6 +358,40 @@ Schema: `codemap.v2`
                 "./types",
                 "node:buffer",
                 "pngjs"
+            ],
+            "reExports": []
+        },
+        {
+            "path": "src/comparePngWithPorts.ts",
+            "symbols": [
+                {
+                    "name": "ComparePngInput",
+                    "kind": "type",
+                    "line": 10,
+                    "exported": false,
+                    "signature": "type ComparePngInput = string | Buffer;",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "comparePngWithPorts",
+                    "kind": "function",
+                    "line": 20,
+                    "exported": true,
+                    "signature": "export function comparePngWithPorts( png1: ComparePngInput, png2: ComparePngInput, opts: ComparePngOptions | undefined, ports?: ComparisonPorts, ): number",
+                    "members": null,
+                    "jsdoc": "Sync orchestration with injectable ports — the internal test seam behind `comparePng`."
+                }
+            ],
+            "imports": [
+                "./pipeline/loadSources",
+                "./pipeline/normalizeImages",
+                "./pipeline/persistDiff",
+                "./pipeline/resolveOptions",
+                "./pipeline/runComparison",
+                "./ports/types",
+                "./types",
+                "node:buffer"
             ],
             "reExports": []
         },
@@ -642,8 +662,8 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "./errors",
+                "./pipeline/types",
                 "./readValidatedFile",
-                "./types/png.data",
                 "pngjs"
             ],
             "reExports": []
@@ -684,7 +704,13 @@ Schema: `codemap.v2`
                 },
                 {
                     "source": "./types",
-                    "names": "*",
+                    "names": [
+                        "Area",
+                        "Color",
+                        "ComparePngOptions",
+                        "LoadedPng",
+                        "PixelmatchOptions"
+                    ],
                     "typeOnly": true
                 }
             ]
@@ -1256,7 +1282,7 @@ Schema: `codemap.v2`
                 }
             ],
             "imports": [
-                "../types/png.data"
+                "./types"
             ],
             "reExports": []
         },
@@ -1288,7 +1314,7 @@ Schema: `codemap.v2`
                 {
                     "name": "clonePng",
                     "kind": "function",
-                    "line": 9,
+                    "line": 8,
                     "exported": false,
                     "signature": "function clonePng(image: PNGWithMetadata): PNGWithMetadata",
                     "members": null,
@@ -1297,7 +1323,7 @@ Schema: `codemap.v2`
                 {
                     "name": "toComparablePng",
                     "kind": "function",
-                    "line": 15,
+                    "line": 14,
                     "exported": false,
                     "signature": "function toComparablePng(source: LoadedPng): PNGWithMetadata",
                     "members": null,
@@ -1306,7 +1332,7 @@ Schema: `codemap.v2`
                 {
                     "name": "normalizeImages",
                     "kind": "function",
-                    "line": 24,
+                    "line": 23,
                     "exported": true,
                     "signature": "export function normalizeImages(sources: LoadedSources, opts: ResolvedOptions): NormalizedImages",
                     "members": null,
@@ -1318,7 +1344,6 @@ Schema: `codemap.v2`
                 "../errors",
                 "../extendImage",
                 "../fillImageSizeDifference",
-                "../types/png.data",
                 "./types",
                 "pngjs"
             ],
@@ -1417,16 +1442,25 @@ Schema: `codemap.v2`
                 {
                     "name": "ResolvedOptions",
                     "kind": "type",
-                    "line": 8,
+                    "line": 7,
                     "exported": true,
                     "signature": "export type ResolvedOptions = { readonly excludedAreas: Area[]; readonly throwErrorOnInvalidInputData: boolean; readonly extendedAreaColor: Color; readonly excludedAreaColor: Color; readonly shouldCre…",
                     "members": null,
                     "jsdoc": null
                 },
                 {
+                    "name": "LoadedPng",
+                    "kind": "type",
+                    "line": 31,
+                    "exported": true,
+                    "signature": "export type LoadedPng = { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
+                    "members": null,
+                    "jsdoc": "Result of loading one image source: the decoded PNG, or why it could not be loaded."
+                },
+                {
                     "name": "LoadedSources",
                     "kind": "type",
-                    "line": 26,
+                    "line": 34,
                     "exported": true,
                     "signature": "export type LoadedSources = { readonly png1: string | Buffer; readonly png2: string | Buffer; readonly first: LoadedPng; readonly second: LoadedPng; };",
                     "members": null,
@@ -1435,7 +1469,7 @@ Schema: `codemap.v2`
                 {
                     "name": "NormalizedImages",
                     "kind": "type",
-                    "line": 33,
+                    "line": 41,
                     "exported": true,
                     "signature": "export type NormalizedImages = { readonly first: PNGWithMetadata; readonly second: PNGWithMetadata; readonly width: number; readonly height: number; };",
                     "members": null,
@@ -1444,7 +1478,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonResult",
                     "kind": "type",
-                    "line": 40,
+                    "line": 48,
                     "exported": true,
                     "signature": "export type ComparisonResult = { readonly mismatchedPixels: number; readonly diff?: PNG; };",
                     "members": null,
@@ -1453,7 +1487,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonContext",
                     "kind": "type",
-                    "line": 45,
+                    "line": 53,
                     "exported": true,
                     "signature": "export type ComparisonContext = { readonly options: ResolvedOptions; readonly sources: LoadedSources; readonly normalized: NormalizedImages; readonly result: ComparisonResult; };",
                     "members": null,
@@ -1463,7 +1497,6 @@ Schema: `codemap.v2`
             "imports": [
                 "../ports/types",
                 "../types",
-                "../types/png.data",
                 "../types/validated-path",
                 "node:buffer",
                 "pngjs"
@@ -1699,7 +1732,7 @@ Schema: `codemap.v2`
                 {
                     "name": "AsyncImageSourcePort",
                     "kind": "interface",
-                    "line": 6,
+                    "line": 5,
                     "exported": true,
                     "signature": "export interface AsyncImageSourcePort { load(source: string | Buffer, opts: ResolvedOptions): Promise<LoadedPng>; }",
                     "members": null,
@@ -1708,7 +1741,7 @@ Schema: `codemap.v2`
                 {
                     "name": "AsyncDiffWriterPort",
                     "kind": "interface",
-                    "line": 10,
+                    "line": 9,
                     "exported": true,
                     "signature": "export interface AsyncDiffWriterPort { write(path: ValidatedPath, data: Buffer, baseDir?: string): Promise<void>; }",
                     "members": null,
@@ -1717,7 +1750,6 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../pipeline/types",
-                "../types/png.data",
                 "../types/validated-path",
                 "node:buffer"
             ],
@@ -1873,7 +1905,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ImageSourcePort",
                     "kind": "interface",
-                    "line": 6,
+                    "line": 5,
                     "exported": true,
                     "signature": "export interface ImageSourcePort { load(source: string | Buffer, opts: ResolvedOptions): LoadedPng; }",
                     "members": null,
@@ -1882,7 +1914,7 @@ Schema: `codemap.v2`
                 {
                     "name": "DiffWriterPort",
                     "kind": "interface",
-                    "line": 10,
+                    "line": 9,
                     "exported": true,
                     "signature": "export interface DiffWriterPort { write(path: ValidatedPath, data: Buffer, baseDir?: string): void; }",
                     "members": null,
@@ -1891,7 +1923,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonPorts",
                     "kind": "type",
-                    "line": 14,
+                    "line": 13,
                     "exported": true,
                     "signature": "export type ComparisonPorts = { readonly imageSource: ImageSourcePort; readonly diffWriter: DiffWriterPort; };",
                     "members": null,
@@ -1900,7 +1932,6 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../pipeline/types",
-                "../types/png.data",
                 "../types/validated-path",
                 "node:buffer"
             ],
@@ -1912,7 +1943,7 @@ Schema: `codemap.v2`
                 {
                     "name": "handlePathValidationError",
                     "kind": "function",
-                    "line": 12,
+                    "line": 11,
                     "exported": true,
                     "signature": "export function handlePathValidationError(error: unknown, opts: ResolvedOptions): LoadedPng",
                     "members": null,
@@ -1921,7 +1952,7 @@ Schema: `codemap.v2`
                 {
                     "name": "handleFileReadError",
                     "kind": "function",
-                    "line": 34,
+                    "line": 33,
                     "exported": true,
                     "signature": "export function handleFileReadError(_error: unknown, opts: ResolvedOptions): LoadedPng",
                     "members": null,
@@ -1930,7 +1961,7 @@ Schema: `codemap.v2`
                 {
                     "name": "handlePngDecodeError",
                     "kind": "function",
-                    "line": 49,
+                    "line": 48,
                     "exported": true,
                     "signature": "export function handlePngDecodeError(error: unknown, opts: ResolvedOptions): LoadedPng",
                     "members": null,
@@ -1939,8 +1970,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../errors",
-                "../pipeline/types",
-                "../types/png.data"
+                "../pipeline/types"
             ],
             "reExports": []
         },
@@ -2124,15 +2154,15 @@ Schema: `codemap.v2`
                 {
                     "name": "LoadedPng",
                     "kind": "type",
-                    "line": 3,
+                    "line": 7,
                     "exported": true,
-                    "signature": "export type LoadedPng = { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
+                    "signature": "export type LoadedPng = InternalLoadedPng;",
                     "members": null,
-                    "jsdoc": null
+                    "jsdoc": "@deprecated No public API returns or accepts a `LoadedPng` — it describes an internal loading step. It will be removed in 8.0.0; delete any import of it (TYPE-06)."
                 }
             ],
             "imports": [
-                "pngjs"
+                "../pipeline/types"
             ],
             "reExports": []
         },
