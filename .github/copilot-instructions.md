@@ -278,28 +278,47 @@ TEST-08; it reproduces on `main`. Windows is **not** supported — dropped as a 
 
 ### `publish.yml` — runs on GitHub release `published` (skipped for prereleases)
 
+Three jobs, in order:
+
 ```
-ensure npm >= 11.5.1   ← Trusted Publishing floor; upgrades within 11.x only if below it
-npm ci
-npx playwright install --with-deps chromium
-npm audit --audit-level=high
-npm run build            ← clean + fresh tsc using tsconfig.prod.json
-npm run release:check:pre  ← RELEASE_TAG from the GitHub release tag
-npm publish --provenance   ← publishes only ./out (per "files" in package.json)
-npm run release:check:post
+verify         (contents: read)
+  npm ci
+  npx playwright install --with-deps chromium
+  npm audit --audit-level=high
+  npm test                   ← full unit + e2e suite (what prepublishOnly ran before the split)
+  npm run build              ← clean + fresh tsc using tsconfig.prod.json
+  npm run release:check:pre  ← RELEASE_TAG from the GitHub release tag
+  npm pack                   ← tarball uploaded as an artifact; its sha256 is a job output
+
+publish        (contents: read, id-token: write) — no checkout, no npm ci, no build
+  ensure npm >= 11.5.1       ← Trusted Publishing floor; upgrades within 11.x only if below it
+  download the tarball, check its sha256
+  npm publish ./<tarball> --provenance --access public --ignore-scripts
+
+post-release   (contents: read) — checkout, no npm ci
+  npm run release:check:post
 ```
+
+The tarball ships only `./out` (per `"files"` in package.json). `id-token: write` is job-scoped
+on purpose: `verify` runs every devDependency's code, and any of it could mint the npm publish
+token if that job could request an OIDC token. A tarball publish runs no lifecycle scripts, so
+`prepublishOnly` does not run there; `--ignore-scripts` keeps it that way. Provenance is built
+from the runner's `GITHUB_*` environment and the tarball digest, which is why `publish` needs no
+checkout.
 
 `release:check:post` retries its registry checks because npm's CDN can serve a stale packument
 for a few minutes after publish. The first check, `version-live`, backs off for about 5 minutes
 (5 s doubling to 160 s, 7 attempts); the others make 6 attempts, 10 s apart.
 
-Publishing uses **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN` secret. The job requests
-`id-token: write` and the trusted publisher must be configured on npmjs.com (Package → Settings →
+Publishing uses **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN` secret. The `publish` job
+requests `id-token: write` and the trusted publisher must be configured on npmjs.com (Package → Settings →
 Trusted Publishing) for org `dichovsky`, repo `png-visual-compare`, workflow `publish.yml`, no
 environment.
 
-Both workflows pin `actions/checkout` and `actions/setup-node` by commit SHA with a `# vX.Y.Z`
-comment, and take their Node version from `.nvmrc`.
+Both workflows pin every action (`actions/checkout`, `actions/setup-node`, and in `publish.yml`
+`actions/upload-artifact` / `actions/download-artifact`) by commit SHA with a `# vX.Y.Z` comment,
+and take their Node version from `.nvmrc`; the `publish` job reuses the exact Node version
+`verify` resolved.
 
 ---
 

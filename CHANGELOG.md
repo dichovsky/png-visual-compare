@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **CI** — the publish workflow is split into `verify`, `publish` and `post-release` jobs, and
+  only `publish` can request the OIDC token npm Trusted Publishing uses. Before, the job that
+  published also ran `npm ci` and the full test suite, so any devDependency could have minted
+  the npm publish token. `verify` now tests, builds and packs the tarball; `publish` checks the
+  tarball's sha256 and publishes it with `--ignore-scripts`, without a checkout, install or build.
+  The published package is built the same way (CI-06).
+
 ## [7.1.0] - 2026-09-26
 
 ### Deprecated

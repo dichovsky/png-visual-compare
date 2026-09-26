@@ -71,7 +71,6 @@
 
 ## 🛠️ Build · Deps · CI · DX
 
-- [ ] 🟡 ♻️ CI [CI-06]: Split `publish.yml` into test and publish jobs — `id-token: write` is job-scoped, so every devDependency script `prepublishOnly` runs (`npm test`) can mint the OIDC publish token; publish from a job that only builds and runs `npm publish --ignore-scripts`
 - [ ] 🟢 ♻️ CI [CI-07]: CI job at the engines floor (Node 22.12.0) — build and install-smoke the packed tarball
 - [ ] 🟢 ♻️ BUILD [BUILD-01]: `tsconfig.base.json` split
 - [ ] 🟢 ♻️ BUILD [BUILD-02]: `moduleResolution` → `nodenext`
