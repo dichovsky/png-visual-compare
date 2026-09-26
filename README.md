@@ -269,7 +269,7 @@ The matcher is synchronous, like Playwright's own `toMatchSnapshot()`, so there 
 - **`--update-snapshots`** works exactly as for `toMatchSnapshot()`: `missing` (the default) writes a missing baseline and fails the test softly, so every missing baseline is written in one run and the test is not retried against it, `changed` rewrites mismatching baselines, `all` rewrites every baseline that differs, and `none` never writes. `ignoreSnapshots: true` skips the assertion.
 - **On failure** the baseline, received image and diff image are attached as `<name>-expected.png`, `<name>-actual.png` and `<name>-diff.png`, so the HTML report shows its image diff viewer.
 - **The diff location is managed for you**: passing `diffFilePath` or `diffOutputBaseDir` throws.
-- **Image limits apply to baselines too.** A received image over `maxDimension` or `maxPixels` throws `ResourceLimitError` rather than being written as a baseline no later run could compare against. Full-page or HiDPI screenshots pass the defaults quickly — at `deviceScaleFactor: 2`, a 1280 px wide `fullPage` capture exceeds `maxPixels` once the page is about 3,277 CSS px tall — so pass a larger `maxPixels` (and `maxDimension` for very long pages) to those assertions.
+- **Image limits apply to baselines too.** A received image over `maxDimension` or `maxPixels` throws `ResourceLimitError` rather than being written as a baseline no later run could compare against. The limits are read from the PNG header, so writing a baseline does not decode the image. Full-page or HiDPI screenshots pass the defaults quickly — at `deviceScaleFactor: 2`, a 1280 px wide `fullPage` capture exceeds `maxPixels` once the page is about 3,277 CSS px tall — so pass a larger `maxPixels` (and `maxDimension` for very long pages) to those assertions.
 - **Requires `@playwright/test` 1.60 or later.** The soft, non-retried failure for a missing baseline uses the same matcher-result fields as Playwright's built-ins, which it honours from 1.60.
 
 How it differs from `toHaveScreenshot()` / `toMatchSnapshot()`:
@@ -282,7 +282,7 @@ How it differs from `toHaveScreenshot()` / `toMatchSnapshot()`:
 | Capture and stabilisation               | You pass a `Buffer`                                           | `toHaveScreenshot()` retries until two captures match |
 | Same engine in Jest, Vitest, standalone | Yes                                                           | No                                                    |
 
-`toMatchPngSnapshot()` is intentionally strict: it accepts only PNG `Buffer` / `Uint8Array` input, and passes any provided `ComparePngOptions` to `comparePng` when checking the stored snapshot. Recording or updating a baseline always requires a decodable PNG within the configured image limits, even when `throwErrorOnInvalidInputData` is `false`.
+`toMatchPngSnapshot()` is intentionally strict: it accepts only PNG `Buffer` / `Uint8Array` input, and passes any provided `ComparePngOptions` to `comparePng` when checking the stored snapshot. Recording or updating a baseline always requires a PNG within the configured image limits, even when `throwErrorOnInvalidInputData` is `false`. Jest and Vitest decode it first. Playwright checks only its signature and header, so a PNG with a valid header but corrupt image data is written, and fails its next comparison.
 
 ### Negated assertions
 

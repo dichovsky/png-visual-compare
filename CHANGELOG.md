@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Playwright's `toMatchPngSnapshot` type declares the same two call forms as Jest and
   Vitest**: `(options?)` and `(name?, options?)`. Passing options in both positions, which
   always failed at runtime, is now also a type error (API-06).
+- **Playwright baseline writes no longer decode the image** — the image limits are
+  checked from the PNG signature and header alone, with the same `ResourceLimitError`
+  messages, so recording a large screenshot no longer decodes it in full. Malformed or
+  truncated headers still throw `InvalidInputError`, but a PNG with a valid header and
+  corrupt image data is now written, and fails its next comparison (PERF-08).
 
 ## [7.1.0] - 2026-09-26
 

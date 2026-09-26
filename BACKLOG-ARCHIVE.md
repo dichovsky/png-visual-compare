@@ -47,6 +47,9 @@
 - [x] 🔴 ♻️ PERF [PERF-01]: Lazy diff allocation
     - **Impl:** Diff `PNG` allocated only when `diffFilePath` is provided; `pixelmatch` receives `diff?.data`.
     - **Rat:** Unconditional `new PNG(maxWidth, maxHeight)` doubled memory pressure for the common compare-only case.
+- [x] 🟢 ♻️ PERF [PERF-08]: Playwright baseline writes fully decode the PNG to check limits — IHDR-only check
+    - **Impl:** `src/getPngData.ts` exports `assertPngHeaderLimits(buffer, maxDimension, maxPixels)` (internal; not in `src/index.ts`): it requires the signature and one complete 13-byte IHDR chunk, then runs the existing `assertImageLimits` (same `ResourceLimitError` messages as a full decode), the duplicate-IHDR scan and a zero-dimension check, each failure as `InvalidInputError`. Short or malformed input never reaches a `readUInt32BE` past the end. `src/playwright.ts` `writeBaseline` calls it with the resolved limits instead of `validatePngSnapshot`; Jest and Vitest keep the full decode. Tests: a malformed-header table (including the duplicate-IHDR fixtures), message parity with `getPngData` over each limit, and `PNG.sync.read` never called on Playwright baseline writes in `missing` / `all` / `changed` modes.
+    - **Rat:** The full decode existed only to enforce the image limits and cost a full RGBA allocation per baseline write, which is largest exactly for the full-page screenshots the limits target. Trade-off: a PNG with a valid header but corrupt image data is now written and fails its next comparison (README and CHANGELOG say so).
 
 ## 🏛️ Architecture · Types · API · Reliability
 

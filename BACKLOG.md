@@ -20,7 +20,6 @@
 - [ ] 🟡 ♻️ PERF [PERF-05]: PNG snapshot serialization → base64
 - [ ] 🟢 ♻️ PERF [PERF-06]: `extendImage` padding double-write
 - [ ] 🟢 ♻️ PERF [PERF-07]: `validateArea` allocation-free
-- [ ] 🟢 ♻️ PERF [PERF-08]: Playwright baseline writes fully decode the PNG to check limits — export an IHDR-only `assertImageLimits` from `getPngData`
 
 ## 🏛️ Architecture · Types · API · Reliability
 

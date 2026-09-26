@@ -82,6 +82,7 @@ beforeEach(() => {
 afterEach(() => {
     rmSync(workDir, { recursive: true, force: true });
     playwrightMock.testInfo = undefined;
+    vi.restoreAllMocks();
 });
 
 describe('playwright entrypoint exports', () => {
@@ -412,6 +413,24 @@ describe('image limits', () => {
 
         expect(() => match(OVER_DEFAULT_MAX_DIMENSION, 'header')).toThrow(ResourceLimitError);
         expect(existsSync(join(workDir, 'snapshots', 'header.png'))).toBe(false);
+    });
+
+    test.each([
+        { mode: 'missing', existing: false },
+        { mode: 'all', existing: false },
+        { mode: 'changed', existing: false },
+        { mode: 'all', existing: true },
+    ] as const)('checks the limits without decoding the image it writes: %j', ({ mode, existing }) => {
+        useTestInfo(mode);
+        if (existing) {
+            seedBaseline('header.png', RED);
+        }
+        const read = vi.spyOn(PNG.sync, 'read');
+
+        match(BLUE, 'header');
+
+        expect(read).not.toHaveBeenCalled();
+        expect(readFileSync(join(workDir, 'snapshots', 'header.png'))).toEqual(BLUE);
     });
 
     test.each(['all', 'changed'] as const)('refuses to overwrite a baseline with an image over maxPixels in %s mode', (mode) => {

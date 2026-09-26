@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.1.0"
     },
-    "sourceHash": "ca0e39228a1a8ffabde5893da3cc291f2b90d3d1dcbeeb91b87e2cef259c5246",
+    "sourceHash": "39e7e282becef87305c4dee6ce7e097fa735fedcd39253f584a92482426bb2e2",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -207,7 +207,7 @@ Schema: `codemap.v2`
             "kind": "const",
             "entrypoint": "src/playwright.ts",
             "file": "src/playwright.ts",
-            "line": 205,
+            "line": 210,
             "signature": "export const expect",
             "jsdoc": null,
             "typeOnly": false
@@ -217,7 +217,7 @@ Schema: `codemap.v2`
             "kind": "const",
             "entrypoint": "src/playwright.ts",
             "file": "src/playwright.ts",
-            "line": 199,
+            "line": 204,
             "signature": "export const pngMatchers = { toMatchPngSnapshot: createPngSnapshotMatcher((matcherContext, received, args) => matchAgainstBaseline(test.info(), (matcherContext as { isNot?: boolean }).isNot === true, …",
             "jsdoc": null,
             "typeOnly": false
@@ -615,9 +615,36 @@ Schema: `codemap.v2`
                     "jsdoc": "Minimum bytes required to read width/height from the IHDR chunk: 8 (signature) + 4 (chunk length) + 4 (chunk type) + 4 (width) + 4 (height)."
                 },
                 {
+                    "name": "IHDR_CHUNK_TYPE",
+                    "kind": "const",
+                    "line": 15,
+                    "exported": false,
+                    "signature": "const IHDR_CHUNK_TYPE = 0x49484452",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "IHDR_DATA_LENGTH",
+                    "kind": "const",
+                    "line": 16,
+                    "exported": false,
+                    "signature": "const IHDR_DATA_LENGTH = 13",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "IHDR_END",
+                    "kind": "const",
+                    "line": 18,
+                    "exported": false,
+                    "signature": "const IHDR_END = 33",
+                    "members": null,
+                    "jsdoc": "Signature + a complete IHDR chunk: length, type, 13 data bytes and CRC."
+                },
+                {
                     "name": "peekPngDimensions",
                     "kind": "function",
-                    "line": 20,
+                    "line": 25,
                     "exported": false,
                     "signature": "function peekPngDimensions(data: Buffer): { width: number; height: number } | null",
                     "members": null,
@@ -626,7 +653,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertImageLimits",
                     "kind": "function",
-                    "line": 32,
+                    "line": 37,
                     "exported": false,
                     "signature": "function assertImageLimits(buffer: Buffer, maxDimension: number | undefined, maxPixels: number | undefined): void",
                     "members": null,
@@ -635,16 +662,25 @@ Schema: `codemap.v2`
                 {
                     "name": "assertSinglePngHeader",
                     "kind": "function",
-                    "line": 58,
+                    "line": 63,
                     "exported": false,
                     "signature": "function assertSinglePngHeader(buffer: Buffer): void",
                     "members": null,
                     "jsdoc": "pngjs accepts repeated IHDR chunks and decodes using the last dimensions. Reject them before decoding so a later header cannot bypass the size guard. Leave other malformed framing and CRC checks to the decoder; advancing by chunk length also avoids mistaking IHDR bytes inside chunk data for a header."
                 },
                 {
+                    "name": "assertPngHeaderLimits",
+                    "kind": "function",
+                    "line": 84,
+                    "exported": true,
+                    "signature": "export function assertPngHeaderLimits(buffer: Buffer, maxDimension: number, maxPixels: number): void",
+                    "members": null,
+                    "jsdoc": "Enforces `maxDimension` / `maxPixels` from the PNG signature and IHDR header alone, without decoding the image, for bytes that are stored rather than compared (a Playwright baseline). Internal: not exported from the package entry."
+                },
+                {
                     "name": "finalizeDecodedPng",
                     "kind": "function",
-                    "line": 70,
+                    "line": 104,
                     "exported": false,
                     "signature": "function finalizeDecodedPng(decoded: LoadedPng, throwErrorOnInvalidInputData: boolean): LoadedPng",
                     "members": null,
@@ -653,7 +689,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getPngData",
                     "kind": "function",
-                    "line": 81,
+                    "line": 115,
                     "exported": true,
                     "signature": "export function getPngData( pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean, maxDimension?: number, maxPixels?: number, inputBaseDir?: string, maxFileBytes?: number, ): LoadedPng",
                     "members": null,
@@ -1547,7 +1583,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_EXTENSION",
                     "kind": "const",
-                    "line": 15,
+                    "line": 17,
                     "exported": false,
                     "signature": "const PNG_EXTENSION",
                     "members": null,
@@ -1556,7 +1592,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_CONTENT_TYPE",
                     "kind": "const",
-                    "line": 16,
+                    "line": 18,
                     "exported": false,
                     "signature": "const PNG_CONTENT_TYPE = 'image/png'",
                     "members": null,
@@ -1565,7 +1601,7 @@ Schema: `codemap.v2`
                 {
                     "name": "UNNAMED_COUNTER_KEY",
                     "kind": "const",
-                    "line": 17,
+                    "line": 19,
                     "exported": false,
                     "signature": "const UNNAMED_COUNTER_KEY = 'unnamed'",
                     "members": null,
@@ -1574,7 +1610,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MAX_GENERATED_NAME_LENGTH",
                     "kind": "const",
-                    "line": 18,
+                    "line": 20,
                     "exported": false,
                     "signature": "const MAX_GENERATED_NAME_LENGTH = 100",
                     "members": null,
@@ -1583,7 +1619,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MANAGED_DIFF_OPTIONS",
                     "kind": "const",
-                    "line": 19,
+                    "line": 21,
                     "exported": false,
                     "signature": "const MANAGED_DIFF_OPTIONS",
                     "members": null,
@@ -1592,7 +1628,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MatcherResult",
                     "kind": "type",
-                    "line": 21,
+                    "line": 23,
                     "exported": false,
                     "signature": "type MatcherResult = { pass: boolean; message: () => string; softError?: Error; shouldNotRetryTest?: boolean; };",
                     "members": null,
@@ -1601,7 +1637,7 @@ Schema: `codemap.v2`
                 {
                     "name": "SnapshotNames",
                     "kind": "type",
-                    "line": 28,
+                    "line": 30,
                     "exported": false,
                     "signature": "type SnapshotNames = { baselineName: string; artifactBase: string };",
                     "members": null,
@@ -1610,7 +1646,7 @@ Schema: `codemap.v2`
                 {
                     "name": "noMessage",
                     "kind": "const",
-                    "line": 30,
+                    "line": 32,
                     "exported": false,
                     "signature": "const noMessage = (): string =>",
                     "members": null,
@@ -1619,7 +1655,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PASSED",
                     "kind": "const",
-                    "line": 31,
+                    "line": 33,
                     "exported": false,
                     "signature": "const PASSED: MatcherResult = { pass: true, message: noMessage }",
                     "members": null,
@@ -1628,7 +1664,7 @@ Schema: `codemap.v2`
                 {
                     "name": "snapshotCounters",
                     "kind": "const",
-                    "line": 33,
+                    "line": 35,
                     "exported": false,
                     "signature": "const snapshotCounters",
                     "members": null,
@@ -1637,7 +1673,7 @@ Schema: `codemap.v2`
                 {
                     "name": "nextSnapshotIndex",
                     "kind": "function",
-                    "line": 35,
+                    "line": 37,
                     "exported": false,
                     "signature": "function nextSnapshotIndex(testInfo: TestInfo, key: string): number",
                     "members": null,
@@ -1646,7 +1682,7 @@ Schema: `codemap.v2`
                 {
                     "name": "sanitizeForFilePath",
                     "kind": "function",
-                    "line": 43,
+                    "line": 45,
                     "exported": false,
                     "signature": "function sanitizeForFilePath(value: string): string",
                     "members": null,
@@ -1655,7 +1691,7 @@ Schema: `codemap.v2`
                 {
                     "name": "trimLongString",
                     "kind": "function",
-                    "line": 47,
+                    "line": 49,
                     "exported": false,
                     "signature": "function trimLongString(value: string): string",
                     "members": null,
@@ -1664,7 +1700,7 @@ Schema: `codemap.v2`
                 {
                     "name": "resolveSnapshotNames",
                     "kind": "function",
-                    "line": 62,
+                    "line": 64,
                     "exported": false,
                     "signature": "function resolveSnapshotNames(testInfo: TestInfo, hint: string | undefined): SnapshotNames",
                     "members": null,
@@ -1673,7 +1709,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertNoManagedDiffOptions",
                     "kind": "function",
-                    "line": 75,
+                    "line": 77,
                     "exported": false,
                     "signature": "function assertNoManagedDiffOptions(options: ComparePngOptions | undefined): void",
                     "members": null,
@@ -1682,7 +1718,7 @@ Schema: `codemap.v2`
                 {
                     "name": "attach",
                     "kind": "function",
-                    "line": 83,
+                    "line": 85,
                     "exported": false,
                     "signature": "function attach(testInfo: TestInfo, name: string, path: string): void",
                     "members": null,
@@ -1691,7 +1727,7 @@ Schema: `codemap.v2`
                 {
                     "name": "attachActual",
                     "kind": "function",
-                    "line": 87,
+                    "line": 89,
                     "exported": false,
                     "signature": "function attachActual(testInfo: TestInfo, artifactBase: string, received: Buffer): void",
                     "members": null,
@@ -1700,7 +1736,7 @@ Schema: `codemap.v2`
                 {
                     "name": "writeBaseline",
                     "kind": "function",
-                    "line": 93,
+                    "line": 97,
                     "exported": false,
                     "signature": "function writeBaseline(baselinePath: string, received: Buffer, options: ComparePngOptions | undefined): void",
                     "members": null,
@@ -1709,7 +1745,7 @@ Schema: `codemap.v2`
                 {
                     "name": "pixelLabel",
                     "kind": "function",
-                    "line": 99,
+                    "line": 104,
                     "exported": false,
                     "signature": "function pixelLabel(count: number): string",
                     "members": null,
@@ -1718,7 +1754,7 @@ Schema: `codemap.v2`
                 {
                     "name": "matchMissingBaseline",
                     "kind": "function",
-                    "line": 103,
+                    "line": 108,
                     "exported": false,
                     "signature": "function matchMissingBaseline( testInfo: TestInfo, received: Buffer, names: SnapshotNames, baselinePath: string, options: ComparePngOptions | undefined, ): MatcherResult",
                     "members": null,
@@ -1727,7 +1763,7 @@ Schema: `codemap.v2`
                 {
                     "name": "matchAgainstBaseline",
                     "kind": "function",
-                    "line": 133,
+                    "line": 138,
                     "exported": false,
                     "signature": "function matchAgainstBaseline(testInfo: TestInfo, isNot: boolean, received: Buffer, args: PngSnapshotMatcherArgs): MatcherResult",
                     "members": null,
@@ -1736,7 +1772,7 @@ Schema: `codemap.v2`
                 {
                     "name": "pngMatchers",
                     "kind": "const",
-                    "line": 199,
+                    "line": 204,
                     "exported": true,
                     "signature": "export const pngMatchers = { toMatchPngSnapshot: createPngSnapshotMatcher((matcherContext, received, args) => matchAgainstBaseline(test.info(), (matcherContext as { isNot?: boolean }).isNot === true, …",
                     "members": null,
@@ -1745,7 +1781,7 @@ Schema: `codemap.v2`
                 {
                     "name": "expect",
                     "kind": "const",
-                    "line": 205,
+                    "line": 210,
                     "exported": true,
                     "signature": "export const expect",
                     "members": null,
@@ -1754,8 +1790,10 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "./comparePng",
+                "./getPngData",
                 "./matchers/createPngSnapshotMatcher",
                 "./matchers/pngSnapshot",
+                "./pipeline/resolveOptions",
                 "./types",
                 "@playwright/test",
                 "node:crypto",
