@@ -75,7 +75,7 @@ import { expect } from 'png-visual-compare/playwright';
 
 `pixelmatch` 7.2.0, the pixel-level comparison engine, is vendored as `src/vendor/pixelmatch.ts` (ISC, RELI-11) so the CommonJS build has no ESM-only dependency. The npm package stays a devDependency only as the parity oracle for `__tests__/vendor/pixelmatch.test.ts`.
 
-**Optional peer dependencies** (only needed for the matcher subpaths): `vitest >=5.0.0 <6`, `jest >=29 <31`, `@playwright/test >=1.60.0 <2`.
+**Optional peer dependencies** (only needed for the matcher subpaths): `vitest >=5.0.0 <6`, `jest >=29 <31`, `expect` (any version; only for the `./jest` type augmentation), `@playwright/test >=1.60.0 <2`.
 
 ---
 

@@ -190,9 +190,9 @@ npx vitest run -u
 
 ### Jest
 
-Releases after 7.0.0 work with a stock Jest configuration — no Babel or transform setup is needed. On 7.0.0 and earlier, Jest needs the Babel transform described in the [7.0.0 README](https://github.com/dichovsky/png-visual-compare/blob/release/v7.0.0/README.md#jest); drop it once you upgrade.
+From 7.0.1, it works with a stock Jest configuration — no Babel or transform setup is needed. On 7.0.0 and earlier, Jest needs the Babel transform described in the [7.0.0 README](https://github.com/dichovsky/png-visual-compare/blob/release/v7.0.0/README.md#jest); drop it once you upgrade.
 
-The Jest type augmentation uses an optional `expect` peer with range `>=29 <31`. npm checks optional peers when present: a direct dependency on another `expect` version can cause `ERESOLVE` during installation, even if your project does not use Jest. Incompatible transitive versions can be nested separately.
+The Jest type augmentation declares `expect` as an optional peer with no version range, so it never blocks an install. It is there so pnpm 9 and later can resolve `expect` for the augmentation, which targets the `expect` shipped with Jest 29 and 30. pnpm 8 does not link optional peers your project does not depend on, so on pnpm 8 add `expect` as a direct devDependency to get the types.
 
 > **Known issue (Jest 30.5+):** with `jest.retryTimes`, a mismatching PNG can pass on the retry and be recorded as a new snapshot (tracked as RELI-12). Do not enable retries for tests that use this matcher until it is fixed.
 
