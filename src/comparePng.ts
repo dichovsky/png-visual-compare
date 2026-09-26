@@ -1,11 +1,6 @@
 import { Buffer } from 'node:buffer';
+import { comparePngWithPorts } from './comparePngWithPorts';
 import type { ComparePngOptions } from './types';
-import { loadSources } from './pipeline/loadSources';
-import { normalizeImages } from './pipeline/normalizeImages';
-import { persistDiff } from './pipeline/persistDiff';
-import { resolveOptions } from './pipeline/resolveOptions';
-import { runComparison } from './pipeline/runComparison';
-import type { ComparisonPorts } from './ports/types';
 export {
     DEFAULT_EXCLUDED_AREA_COLOR,
     DEFAULT_EXTENDED_AREA_COLOR,
@@ -14,21 +9,9 @@ export {
     DEFAULT_MAX_PIXELS,
 } from './defaults';
 
+// Declared here rather than imported from `comparePngWithPorts`: a type import would put
+// that module — and the `pngjs` types its ports reach — into the public declarations.
 type ComparePngInput = string | Buffer;
-
-export function comparePngWithPorts(
-    png1: ComparePngInput,
-    png2: ComparePngInput,
-    opts: ComparePngOptions | undefined,
-    ports?: ComparisonPorts,
-): number {
-    const options = { ...resolveOptions(opts), imageSourcePort: ports?.imageSource, diffWriterPort: ports?.diffWriter };
-    const sources = loadSources(png1, png2, options);
-    const normalized = normalizeImages(sources, options);
-    const result = runComparison(normalized, options);
-    persistDiff(result, options);
-    return result.mismatchedPixels;
-}
 
 /** Compare two PNG inputs and return the mismatched pixel count. */
 export function comparePng(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): number {

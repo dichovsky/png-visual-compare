@@ -1,4 +1,4 @@
-import type { LoadedPng } from '../types/png.data';
+import type { LoadedPng } from './types';
 
 type InvalidPngReason = Extract<LoadedPng, { kind: 'invalid' }>['reason'];
 

@@ -1,6 +1,5 @@
 import { InvalidInputError, PathValidationError, ResourceLimitError } from '../errors';
-import type { LoadedPng } from '../types/png.data';
-import type { ResolvedOptions } from '../pipeline/types';
+import type { LoadedPng, ResolvedOptions } from '../pipeline/types';
 
 /**
  * Validates and handles errors from path validation during image source loading.

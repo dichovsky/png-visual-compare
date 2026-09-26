@@ -1,7 +1,7 @@
 import { PNG } from 'pngjs';
 import { InvalidInputError, PathValidationError, ResourceLimitError } from './errors';
 import { readValidatedFileSync } from './readValidatedFile';
-import type { LoadedPng } from './types/png.data';
+import type { LoadedPng } from './pipeline/types';
 
 /** PNG file signature (first 8 bytes of every valid PNG). */
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);

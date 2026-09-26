@@ -91,6 +91,8 @@ import type { PngData } from 'png-visual-compare';
 import type { LoadedPng } from 'png-visual-compare';
 ```
 
+`LoadedPng` itself is now deprecated and will be removed in 8.0.0: no public API returns or accepts one. If you are migrating now, delete the import rather than switching it.
+
 ### 2. Expect stricter option validation
 
 The library now fails fast for malformed option data instead of relying on downstream behavior:

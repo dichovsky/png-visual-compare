@@ -69,6 +69,7 @@ Both APIs share the same pipeline:
 src/
   index.ts                    # exports comparePng, comparePngAsync, errors, constants, and public types
   comparePng.ts               # sync orchestrator
+  comparePngWithPorts.ts      # internal sync orchestration with injectable ports (test seam; not exported)
   comparePngAsync.ts          # async orchestrator
   vitest.mts                  # ./vitest subpath: registers toMatchPngSnapshot on Vitest's expect (ESM)
   jest.ts                     # ./jest subpath: registers toMatchPngSnapshot on Jest's expect (CJS)

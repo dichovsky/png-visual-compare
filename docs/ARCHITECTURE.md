@@ -9,7 +9,7 @@ The package is a small PNG comparison engine with:
 - **Public sync API:** `comparePng(png1, png2, opts?)`
 - **Public async API:** `comparePngAsync(png1, png2, opts?)`
 - **Test-framework matchers:** `toMatchPngSnapshot()` via the `png-visual-compare/vitest`, `png-visual-compare/jest`, and `png-visual-compare/playwright` subpaths
-- **Internal sync hook:** `comparePngWithPorts(...)` for orchestrator/port tests
+- **Internal sync hook:** `comparePngWithPorts(...)` in `src/comparePngWithPorts.ts` for orchestrator/port tests — kept out of `comparePng.ts` so the public declarations never reference the port types
 
 The package accepts either absolute file paths or raw PNG `Buffer`s, normalizes both images to a comparable canvas, runs `pixelmatch`, and optionally writes a diff PNG.
 
@@ -46,7 +46,7 @@ comparePng / comparePngAsync
 - `Color`
 - `ComparePngOptions`
 - `PixelmatchOptions`
-- `LoadedPng`
+- `LoadedPng` — deprecated alias of the internal type in `src/pipeline/types.ts`; removed in 8.0.0 (TYPE-06)
 
 ### Subpath exports
 

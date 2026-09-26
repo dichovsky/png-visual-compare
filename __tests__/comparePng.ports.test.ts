@@ -1,7 +1,7 @@
 import { resolve } from 'path';
 import { PNG } from 'pngjs';
 import { describe, expect, test } from 'vitest';
-import { comparePngWithPorts } from '../src/comparePng';
+import { comparePngWithPorts } from '../src/comparePngWithPorts';
 import type { ComparisonPorts } from '../src/ports/types';
 
 function createPngBuffer(width: number, height: number, rgba: [number, number, number, number]): Buffer {
