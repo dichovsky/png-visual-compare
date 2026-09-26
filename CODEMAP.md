@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.1.0"
     },
-    "sourceHash": "9d42eec87e76d82668b3cb20aad65dab38868e2ba4adcaaca950e62eb809433c",
+    "sourceHash": "ca0e39228a1a8ffabde5893da3cc291f2b90d3d1dcbeeb91b87e2cef259c5246",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -1078,9 +1078,18 @@ Schema: `codemap.v2`
                     "jsdoc": null
                 },
                 {
+                    "name": "PngSnapshotMatcherParams",
+                    "kind": "type",
+                    "line": 19,
+                    "exported": false,
+                    "signature": "type PngSnapshotMatcherParams = [options?: ComparePngOptions] | [hint?: string, options?: ComparePngOptions];",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "PNG_SIGNATURE",
                     "kind": "const",
-                    "line": 17,
+                    "line": 21,
                     "exported": false,
                     "signature": "const PNG_SIGNATURE",
                     "members": null,
@@ -1089,7 +1098,7 @@ Schema: `codemap.v2`
                 {
                     "name": "describeValue",
                     "kind": "function",
-                    "line": 19,
+                    "line": 23,
                     "exported": false,
                     "signature": "function describeValue(value: unknown): string",
                     "members": null,
@@ -1098,7 +1107,7 @@ Schema: `codemap.v2`
                 {
                     "name": "hasPngSignature",
                     "kind": "function",
-                    "line": 31,
+                    "line": 35,
                     "exported": false,
                     "signature": "function hasPngSignature(value: Uint8Array): boolean",
                     "members": null,
@@ -1107,7 +1116,7 @@ Schema: `codemap.v2`
                 {
                     "name": "toBuffer",
                     "kind": "function",
-                    "line": 45,
+                    "line": 49,
                     "exported": false,
                     "signature": "function toBuffer(value: Uint8Array): Buffer",
                     "members": null,
@@ -1116,7 +1125,7 @@ Schema: `codemap.v2`
                 {
                     "name": "createPngSnapshotMatcher",
                     "kind": "function",
-                    "line": 51,
+                    "line": 55,
                     "exported": true,
                     "signature": "export function createPngSnapshotMatcher<R extends SnapshotMatcherResult | Promise<SnapshotMatcherResult>>( delegate: SnapshotMatcherDelegate<R>, )",
                     "members": null,
@@ -1225,7 +1234,7 @@ Schema: `codemap.v2`
                 {
                     "name": "buildSnapshotTestName",
                     "kind": "function",
-                    "line": 107,
+                    "line": 108,
                     "exported": true,
                     "signature": "export function buildSnapshotTestName(testName: string | undefined, hint: string | undefined, separator: string): string",
                     "members": null,
@@ -1234,7 +1243,7 @@ Schema: `codemap.v2`
                 {
                     "name": "serializePngSnapshot",
                     "kind": "function",
-                    "line": 111,
+                    "line": 112,
                     "exported": true,
                     "signature": "export function serializePngSnapshot(received: Buffer): string",
                     "members": null,
@@ -1243,7 +1252,7 @@ Schema: `codemap.v2`
                 {
                     "name": "validatePngSnapshot",
                     "kind": "function",
-                    "line": 117,
+                    "line": 118,
                     "exported": true,
                     "signature": "export function validatePngSnapshot(received: Buffer, options: ComparePngOptions | undefined): void",
                     "members": null,
@@ -1252,7 +1261,7 @@ Schema: `codemap.v2`
                 {
                     "name": "parseSerializedPngSnapshot",
                     "kind": "function",
-                    "line": 122,
+                    "line": 123,
                     "exported": true,
                     "signature": "export function parseSerializedPngSnapshot(serializedSnapshot: string): Buffer",
                     "members": null,
@@ -1261,7 +1270,7 @@ Schema: `codemap.v2`
                 {
                     "name": "compareAgainstSerializedPngSnapshot",
                     "kind": "function",
-                    "line": 144,
+                    "line": 145,
                     "exported": true,
                     "signature": "export function compareAgainstSerializedPngSnapshot( received: Buffer, serializedExpectedSnapshot: string, options?: ComparePngOptions, ): ComparedPngSnapshot",
                     "members": null,

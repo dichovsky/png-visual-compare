@@ -70,7 +70,8 @@ export function normalizePngSnapshotMatcherArgs(
     hintOrOptions?: string | ComparePngOptions,
     options?: ComparePngOptions,
 ): NormalizedMatcherArgsResult {
-    if (typeof hintOrOptions === 'string') {
+    // An undefined first argument is the `(hint?, options?)` overload without a hint.
+    if (typeof hintOrOptions === 'string' || hintOrOptions === undefined) {
         if (options !== undefined && !isComparePngOptions(options)) {
             return {
                 errorMessage: 'The second argument to toMatchPngSnapshot() must be a ComparePngOptions object when provided.',
@@ -85,7 +86,7 @@ export function normalizePngSnapshotMatcherArgs(
         };
     }
 
-    if (hintOrOptions !== undefined && !isComparePngOptions(hintOrOptions)) {
+    if (!isComparePngOptions(hintOrOptions)) {
         return {
             errorMessage: 'toMatchPngSnapshot() expects either a snapshot hint string or a ComparePngOptions object as the first argument.',
         };

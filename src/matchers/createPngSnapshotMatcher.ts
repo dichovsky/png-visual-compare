@@ -14,6 +14,10 @@ type SnapshotMatcherContext = {
     isNot?: boolean;
 };
 
+// The `(options?)` and `(hint?, options?)` forms the Jest and Vitest augmentations declare.
+// Playwright derives its matcher type from this signature, so it declares them too.
+type PngSnapshotMatcherParams = [options?: ComparePngOptions] | [hint?: string, options?: ComparePngOptions];
+
 const PNG_SIGNATURE = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 function describeValue(value: unknown): string {
@@ -54,8 +58,7 @@ export function createPngSnapshotMatcher<R extends SnapshotMatcherResult | Promi
     return function toMatchPngSnapshot(
         this: SnapshotMatcherContext,
         received: unknown,
-        hintOrOptions?: string | ComparePngOptions,
-        options?: ComparePngOptions,
+        ...args: PngSnapshotMatcherParams
     ): R | SnapshotMatcherResult {
         // Guard failures are reported as `pass: false`, which the framework
         // inverts under `.not` into a passing assertion. Throwing instead keeps
@@ -77,7 +80,7 @@ export function createPngSnapshotMatcher<R extends SnapshotMatcherResult | Promi
             };
         }
 
-        const normalizedArgs = normalizePngSnapshotMatcherArgs(hintOrOptions, options);
+        const normalizedArgs = normalizePngSnapshotMatcherArgs(...args);
 
         if ('errorMessage' in normalizedArgs) {
             if (isNot) {
@@ -86,7 +89,7 @@ export function createPngSnapshotMatcher<R extends SnapshotMatcherResult | Promi
 
             return {
                 pass: false,
-                actual: hintOrOptions,
+                actual: args[0],
                 expected: 'snapshot hint string or ComparePngOptions object',
                 message: () => normalizedArgs.errorMessage,
             };

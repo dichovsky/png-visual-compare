@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   too. The matcher now numbers keys, writes baselines and counts results through that
   record, so every attempt compares against the same baseline. Jest 29 and 30.0–30.4,
   which reset all snapshot counters before a retry, keep the previous behaviour (RELI-12).
+- **`toMatchPngSnapshot(undefined, options)` is accepted** — it matches the declared
+  `(name?, options?)` form but failed with "accepts ComparePngOptions as the first argument
+  unless a snapshot hint string is provided". In Jest, Vitest and Playwright it now
+  behaves like `toMatchPngSnapshot(options)` (API-06).
+
+### Changed
+
+- **Playwright's `toMatchPngSnapshot` type declares the same two call forms as Jest and
+  Vitest**: `(options?)` and `(name?, options?)`. Passing options in both positions, which
+  always failed at runtime, is now also a type error (API-06).
 
 ## [7.1.0] - 2026-09-26
 

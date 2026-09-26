@@ -95,6 +95,9 @@
 - [x] 🟢 🐛 RELI [RELI-13]: Jest 30 `test.failing` + `-u` overwrites the baseline with the known-bad image
     - **Impl:** No change needed — the entry predates 685c782 (shipped in 7.0.1), which made `src/jest.ts` read `context.testFailing`: expected failures compare without writing a baseline or counting a result. A packed-tarball consumer running `test.failing` under `-u` keeps the baseline on Jest 30.0.0, 30.4.2 and 30.5.2 (also for `test.concurrent.failing`); a mutant that ignores `testFailing` overwrites it on 30.5.2 and fails the three `test.failing` cases in `__tests__/jest.integration.test.ts`, which pin the behaviour. The Jest 30.5 attempt-tracking path from RELI-12 keeps it (a unit row covers it).
     - **Rat:** Verified against real Jest before closing rather than assumed. Jest 29.7 exposes no expected-failure flag to matchers, so the overwrite remains there, as README already documents.
+- [x] 🟢 🐛 API [API-06]: `toMatchPngSnapshot(undefined, options)` is rejected despite matching the declared overload
+    - **Impl:** `normalizePngSnapshotMatcherArgs` treats an undefined first argument as the `(hint?, options?)` form with no hint, so it resolves like `(options)`. `createPngSnapshotMatcher` types its arguments as `[options?] | [hint?, options?]`, which Playwright's `expect.extend` turns into the same two forms the Jest and Vitest augmentations declare. A table in `pngSnapshotMatcher.test.ts` pins every declared form and each rejection; Jest, Vitest and Playwright rows show `(undefined, options)` comparing the unnamed baseline; `e2e/fixtures/{jest,playwright}-matcher/types.fixture.ts` pin the types (`@ts-expect-error` on options in both positions).
+    - **Rat:** The runtime accepted less than the declared overloads, and Playwright's type accepted more than the runtime (options in both positions). Both now match the declared forms in all three frameworks.
 
 ## 🧪 Tests & QA
 

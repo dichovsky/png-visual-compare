@@ -182,8 +182,13 @@ describe('createPngSnapshotMatcher', () => {
             expectedMessage: 'second argument to toMatchPngSnapshot() must be a ComparePngOptions object',
         },
         {
-            name: 'options as second argument without hint',
-            matcherArgs: [undefined, {}],
+            name: 'invalid second argument without hint',
+            matcherArgs: [undefined, 123],
+            expectedMessage: 'second argument to toMatchPngSnapshot() must be a ComparePngOptions object',
+        },
+        {
+            name: 'options in both positions',
+            matcherArgs: [{}, {}],
             expectedMessage: 'accepts ComparePngOptions as the first argument unless a snapshot hint string is provided',
         },
     ])('rejects $name', ({ matcherArgs, expectedMessage }) => {
@@ -193,6 +198,28 @@ describe('createPngSnapshotMatcher', () => {
 
         expect(result.pass).toBe(false);
         expect(result.message()).toContain(expectedMessage);
+    });
+
+    // Every call form the declared overloads `(options?)` and `(hint?, options?)` allow.
+    test.each([
+        { name: 'no arguments', matcherArgs: [], args: {} },
+        { name: 'an undefined first argument', matcherArgs: [undefined], args: {} },
+        { name: 'two undefined arguments', matcherArgs: [undefined, undefined], args: {} },
+        { name: 'options', matcherArgs: [{ maxPixels: 9 }], args: { options: { maxPixels: 9 } } },
+        { name: 'an undefined hint with options', matcherArgs: [undefined, { maxPixels: 9 }], args: { options: { maxPixels: 9 } } },
+        { name: 'a hint', matcherArgs: ['diff'], args: { hint: 'diff' } },
+        { name: 'a hint with undefined options', matcherArgs: ['diff', undefined], args: { hint: 'diff' } },
+        { name: 'a hint with options', matcherArgs: ['diff', { maxPixels: 9 }], args: { hint: 'diff', options: { maxPixels: 9 } } },
+    ])('accepts $name', ({ matcherArgs, args }) => {
+        const snapshotDelegate = vi.fn<(...args: [unknown, Buffer, PngSnapshotMatcherArgs]) => { pass: true; message: () => string }>(
+            () => ({ pass: true, message: () => '' }),
+        );
+        const matcher = createPngSnapshotMatcher(snapshotDelegate);
+
+        const result = expectSyncResult(matcher.call({}, readFileSync(PNG_FILE), ...(matcherArgs as [never, never?])));
+
+        expect(result.pass).toBe(true);
+        expect(snapshotDelegate.mock.calls[0]?.[2]).toEqual(args);
     });
 });
 
@@ -447,6 +474,48 @@ describe('vitest matcher entrypoint', () => {
         expect(markAsChecked).toHaveBeenCalledTimes(1);
         expect(result.pass).toBe(true);
         expect(result.message()).toBe('Snapshot `compares PNG diffs > thresholded diff 1` mismatched');
+    });
+
+    test.each([
+        { name: 'options', matcherArgs: [{ pixelmatchOptions: { threshold: 0.97 } }] },
+        { name: 'an undefined name and options', matcherArgs: [undefined, { pixelmatchOptions: { threshold: 0.97 } }] },
+    ])('compares the unnamed Vitest snapshot with ComparePngOptions given $name', async ({ matcherArgs }) => {
+        vi.resetModules();
+        clearMatcherRegistration();
+        const extendSpy = vi.spyOn(expect, 'extend');
+        await import('../src/vitest.mjs');
+        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+        const assertion = {};
+        chai.util.flag(assertion, 'vitest-test', { id: 'vitest-unnamed-id' });
+        chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
+        const probeExpectedSnapshot = vi.fn(() => ({
+            count: 1,
+            data: serializePngSnapshot(readFileSync(resolve('./test-data/expected/ILTQq copy.png'))),
+            key: 'compares PNG diffs 1',
+            markAsChecked: vi.fn(),
+        }));
+
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                {
+                    assertion,
+                    currentTestName: 'compares PNG diffs',
+                    snapshotState: {
+                        probeExpectedSnapshot,
+                        processDomainSnapshot: ({ expectedSnapshot, matchResult, received }: VitestProcessDomainSnapshotArgs) => ({
+                            actual: received,
+                            key: expectedSnapshot.key,
+                            pass: matchResult?.pass ?? false,
+                        }),
+                    },
+                } as never,
+                readFileSync(resolve('./test-data/actual/ILTQq copy.png')),
+                ...(matcherArgs as [never, never?]),
+            ),
+        );
+
+        expect(result.pass).toBe(true);
+        expect(probeExpectedSnapshot).toHaveBeenCalledWith(expect.objectContaining({ testName: 'compares PNG diffs' }));
     });
 
     test('uses serialized received PNG when a Vitest snapshot does not exist yet', async () => {
@@ -1468,6 +1537,30 @@ describe('jest matcher entrypoint', () => {
 
         expect(result.pass).toBe(true);
         expect(result.message()).toBe('Received PNG snapshot matches the stored snapshot, but was expected to differ.');
+    });
+
+    test.each([
+        { name: 'options', matcherArgs: [{ pixelmatchOptions: { threshold: 0.97 } }] },
+        { name: 'an undefined name and options', matcherArgs: [undefined, { pixelmatchOptions: { threshold: 0.97 } }] },
+    ])('compares the unnamed Jest snapshot with ComparePngOptions given $name', async ({ matcherArgs }) => {
+        const { registerJestPngSnapshotMatcher } = (await import('../src/jest.js')) as JestPluginModule;
+        const extend = vi.fn();
+        registerJestPngSnapshotMatcher({ extend });
+        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+        const snapshotState = createJestSnapshotState({
+            'compares PNG diffs 1': serializePngSnapshot(readFileSync(resolve('./test-data/expected/ILTQq copy.png'))),
+        });
+
+        const result = expectSyncResult(
+            registeredMatchers.toMatchPngSnapshot.call(
+                { currentTestName: 'compares PNG diffs', snapshotState } as never,
+                readFileSync(resolve('./test-data/actual/ILTQq copy.png')),
+                ...(matcherArgs as [never, never?]),
+            ),
+        );
+
+        expect(result.pass).toBe(true);
+        expect(snapshotState.matched).toBe(1);
     });
 
     // Jest 30.5+ records each attempt against its test identity so `clear(testIdentity)` can undo

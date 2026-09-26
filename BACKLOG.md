@@ -48,7 +48,6 @@
 - [ ] 🟢 📦 API [API-03]: In-memory diff buffer (no disk round-trip)
 - [ ] 🟢 📦 API [API-04]: Accept `string|URL` for path options
 - [ ] 🟢 📦 API [API-05]: `comparePngWithResult` verbose return shape
-- [ ] 🟢 🐛 API [API-06]: `toMatchPngSnapshot(undefined, options)` is rejected despite matching the declared overload
 
 ## 🧪 Tests & QA
 

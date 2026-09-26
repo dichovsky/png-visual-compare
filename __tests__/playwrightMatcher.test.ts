@@ -211,6 +211,16 @@ describe('baseline naming', () => {
         expect(match(BLUE, { excludedAreas: [] }).pass).toBe(true);
     });
 
+    test.each([
+        { name: 'options', matcherArgs: [{ excludedAreas: [{ x1: 0, y1: 0, x2: 0, y2: 0 }] }] },
+        { name: 'an undefined name and options', matcherArgs: [undefined, { excludedAreas: [{ x1: 0, y1: 0, x2: 0, y2: 0 }] }] },
+    ])('compares the unnamed baseline with ComparePngOptions given $name', ({ matcherArgs }) => {
+        useTestInfo('none');
+        seedBaseline('header renders png 1.png', RED);
+
+        expect(match(BLUE, ...matcherArgs).pass).toBe(true);
+    });
+
     test('sanitises the test title into artifact names for unnamed assertions', () => {
         const testInfo = useTestInfo('none');
         testInfo.titlePath = ['visual.spec.ts', 'GET /api/users'];
