@@ -23,6 +23,11 @@ const { name, version } = pkg;
 
 const MAX_ATTEMPTS = 6;
 const RETRY_DELAY_MS = 10_000;
+const DEFAULT_DELAYS_MS = Array(MAX_ATTEMPTS - 1).fill(RETRY_DELAY_MS);
+// version-live runs first, straight after publish, while the registry CDN can
+// still serve a stale packument for minutes ("may take a few minutes to become
+// available"; the 7.0.0 publish took ~90s). Doubling backoff, ~5 min in total.
+const VERSION_LIVE_DELAYS_MS = [5_000, 10_000, 20_000, 40_000, 80_000, 160_000];
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -36,14 +41,16 @@ function npm(args, options = {}) {
  *
  * @param {string} label
  * @param {() => boolean} attempt
+ * @param {number[]} [delaysMs] wait before each retry; attempts = delaysMs.length + 1
  * @returns {Promise<boolean>}
  */
-async function withRetry(label, attempt) {
-    for (let i = 1; i <= MAX_ATTEMPTS; i += 1) {
+async function withRetry(label, attempt, delaysMs = DEFAULT_DELAYS_MS) {
+    const attempts = delaysMs.length + 1;
+    for (let i = 1; i <= attempts; i += 1) {
         if (attempt()) return true;
-        if (i < MAX_ATTEMPTS) {
-            process.stdout.write(`  …${label}: attempt ${i}/${MAX_ATTEMPTS} not ready, retrying in ${RETRY_DELAY_MS / 1000}s\n`);
-            await delay(RETRY_DELAY_MS);
+        if (i < attempts) {
+            process.stdout.write(`  …${label}: attempt ${i}/${attempts} not ready, retrying in ${delaysMs[i - 1] / 1000}s\n`);
+            await delay(delaysMs[i - 1]);
         }
     }
     return false;
@@ -56,16 +63,21 @@ const record = (ok, checkName, detail) => results.push({ ok, name: checkName, de
 // 1. Version resolves on the registry.
 async function checkVersionLive() {
     let detail = '';
-    const ok = await withRetry('version-live', () => {
-        const view = npm(['view', `${name}@${version}`, 'version']);
-        const out = (view.stdout ?? '').trim();
-        detail = out || (view.stderr ?? '').trim();
-        return view.status === 0 && out === version;
-    });
+    const ok = await withRetry(
+        'version-live',
+        () => {
+            const view = npm(['view', `${name}@${version}`, 'version']);
+            const out = (view.stdout ?? '').trim();
+            detail = out || (view.stderr ?? '').trim();
+            return view.status === 0 && out === version;
+        },
+        VERSION_LIVE_DELAYS_MS,
+    );
+    const attempts = VERSION_LIVE_DELAYS_MS.length + 1;
     record(
         ok,
         'version-live',
-        ok ? `${name}@${version} is live on npm.` : `${name}@${version} did not resolve after ${MAX_ATTEMPTS} attempts (last: ${detail}).`,
+        ok ? `${name}@${version} is live on npm.` : `${name}@${version} did not resolve after ${attempts} attempts (last: ${detail}).`,
     );
 }
 

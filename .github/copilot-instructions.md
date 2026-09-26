@@ -286,6 +286,10 @@ npm publish --provenance   ← publishes only ./out (per "files" in package.json
 npm run release:check:post
 ```
 
+`release:check:post` retries its registry checks because npm's CDN can serve a stale packument
+for a few minutes after publish. The first check, `version-live`, backs off for about 5 minutes
+(5 s doubling to 160 s); the others retry 6 times, 10 s apart.
+
 Publishing uses **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN` secret. The job requests
 `id-token: write` and the trusted publisher must be configured on npmjs.com (Package → Settings →
 Trusted Publishing) for org `dichovsky`, repo `png-visual-compare`, workflow `publish.yml`, no
