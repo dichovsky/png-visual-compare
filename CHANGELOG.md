@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Diff writes refuse a hard-linked target** — with `diffOutputBaseDir` set, a diff file
+  that has more than one hard link is refused with `PathValidationError` before it is
+  truncated or written. A hard link is the same inode as the file it links to, so the
+  containment and identity checks passed for a link planted inside the boundary to a
+  file elsewhere on the same filesystem, and the write overwrote that file. A new diff
+  file, and one that only ever had one name, are unaffected. A diff output you hard-link
+  on purpose now fails to write under `diffOutputBaseDir`; remove the extra link first.
+  Without `diffOutputBaseDir` nothing changes. Reads are not checked — see README →
+  Security Model → What is not covered. Closes SECU-13.
+- **A FIFO or device inside a boundary is refused instead of blocking** — with
+  `inputBaseDir` or `diffOutputBaseDir` set, a FIFO or device at an input path or at
+  `diffFilePath` is refused with `PathValidationError`. Previously the open waited for
+  something to open the other end, which blocked `comparePng`'s whole thread, and a
+  diff written to a FIFO that already had a reader went into the pipe. Under a boundary
+  both opens now use `O_NONBLOCK`, which makes no difference for a regular file, and
+  the opened handle must be a regular file once containment is proven. Without a base
+  directory the open still blocks, so a pipe passed on purpose keeps working.
+  Closes SECU-14.
+
 ## [7.1.0] - 2026-09-26
 
 ### Deprecated

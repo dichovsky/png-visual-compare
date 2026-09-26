@@ -105,7 +105,7 @@ src/
   validatePath.ts                 # assertPathSyntax / validatePathWithReal / validatePath: containment, symlink checks
   validatePixelmatchOptions.ts    # PixelmatchOptions validation
   adapters/                       # public-to-external library boundaries (toPixelmatchOptions)
-  internal/                       # assertSameFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
+  internal/                       # assertSameFile, assertPlainFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
   matchers/                       # framework-agnostic snapshot matcher core shared by vitest.mts/jest.ts/playwright.ts
   pipeline/                       # resolveOptions, loadSources, normalizeImages, runComparison, persistDiff
   ports/                          # sync/async filesystem adapters and test seams

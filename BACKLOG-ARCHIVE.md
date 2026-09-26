@@ -41,6 +41,12 @@
 - [x] 🟡 🐛 SECU [SECU-09]: Refuse symlink in mkdir parent component
     - **Impl:** `secureMkdir` walks from `diffOutputBaseDir` downward, refusing symlinked components and creating missing ones singly; the file is then opened inside the `realDiffDirectory`-resolved parent so no symlink is traversed at open time; `O_TRUNC` moved off the open to an `ftruncate` gated on an inode match; `O_EXCL` establishes whether this call created the file, and cleanup unlinks only in that case.
     - **Rat:** `mkdir` with `recursive: true` follows symlinks in every intermediate component and `O_NOFOLLOW` guards only the final one, so a symlinked parent redirected the whole write outside the boundary — and `O_TRUNC` would have emptied whatever it landed on before anything noticed.
+- [x] 🟡 🐛 SECU [SECU-13]: Refuse a hard-linked diff target under `diffOutputBaseDir`
+    - **Impl:** New `assertSingleLink` in `src/internal/assertPlainFile.ts`; both diff writers run it on the opened handle's `fstat` after `assertSameFile` and before `ftruncate`/`fchmod`/write, refusing `nlink > 1` with `PathValidationError`. Only with `diffOutputBaseDir`. Reads are deliberately unchecked (README → What is not covered).
+    - **Rat:** A hard link is the same inode, so the identity check passed for a link planted inside the boundary to a file elsewhere on the filesystem, and the write overwrote it. The count is read from the pinned handle, so a link made after the check can only name the diff file itself. Reads stay open to linked files because hard-linked baselines (content-addressed caches, `cp -al` snapshots) are legitimate.
+- [x] 🟡 🐛 SECU [SECU-14]: Refuse a FIFO/special file inside a boundary without blocking
+    - **Impl:** With a base dir set, `readValidatedFile(Sync)` and both diff writers add `O_NONBLOCK` to the open, and new `assertRegularFile` (`src/internal/assertPlainFile.ts`) refuses a non-regular handle after containment is proven. A writer's `ENXIO` (FIFO with no reader) maps to the same `PathValidationError`. Without a base dir the blocking open is kept.
+    - **Rat:** A planted FIFO blocked the open until a peer appeared — the whole thread for the sync API — and a FIFO with a reader received the diff bytes. The check runs after containment so the kind of a file outside the boundary is never reported.
 
 ## ⚡ Performance
 
