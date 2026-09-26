@@ -24,7 +24,6 @@
 
 ## 🏛️ Architecture · Types · API · Reliability
 
-- [ ] 🔴 🐛 RELI [RELI-12]: Jest 30.5+ `retryTimes` false green — the matcher bumps `snapshotState._counters` directly, which `clear(testIdentity)` does not roll back, so the retry resolves `<name> 2`, writes it and passes; route through `_bumpCounter` / `_markKeyChecked` / `_addSnapshot` / `_incrementSnapshotCount` with the test identity
 - [ ] 🟡 ♻️ ARCH [ARCH-02]: Split `getPngData` → `decodePngBuffer` + `loadPngFromPath`
 - [ ] 🟡 ♻️ ARCH [ARCH-03]: `comparePngAsyncWithPorts` for injection symmetry
 - [ ] 🟡 ♻️ ARCH [ARCH-09]: Unify image-loading module — fuse `getPngData` + `validateImageSourceLoad` + `fs(Async)ImageSource` policy; seam at read primitive only (supersedes ARCH-02 + ARCH-06)

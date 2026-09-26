@@ -1469,4 +1469,55 @@ describe('jest matcher entrypoint', () => {
         expect(result.pass).toBe(true);
         expect(result.message()).toBe('Received PNG snapshot matches the stored snapshot, but was expected to differ.');
     });
+
+    // Jest 30.5+ records each attempt against its test identity so `clear(testIdentity)` can undo
+    // it before a `jest.retryTimes` retry; every key, write and count must go through those methods.
+    test.each([
+        { name: 'counts a match', mode: 'none', stored: true, matches: true, status: 'matched', writes: false },
+        { name: 'counts a mismatch', mode: 'none', stored: true, matches: false, status: 'unmatched', writes: false },
+        { name: 'records an update', mode: 'all', stored: true, matches: false, status: 'updated', writes: true },
+        { name: 'records a new baseline', mode: 'new', stored: false, matches: false, status: 'added', writes: true },
+        { name: 'counts a missing baseline', mode: 'none', stored: false, matches: false, status: 'unmatched', writes: false },
+        { name: 'counts a negated match', mode: 'all', stored: true, matches: true, isNot: true, status: 'unmatched', writes: false },
+        { name: 'leaves an expected failure uncounted', mode: 'all', stored: true, matches: false, testFailing: true, writes: false },
+    ] as const)('routes Jest 30.5 snapshot state through the test identity: $name', async (row) => {
+        const { registerJestPngSnapshotMatcher } = (await import('../src/jest.js')) as JestPluginModule;
+        const extend = vi.fn();
+        registerJestPngSnapshotMatcher({ extend });
+        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+        const stored = createSolidPng(255, 0, 0);
+        const received = row.matches ? stored : createSolidPng(0, 0, 255);
+        const original: Record<string, string> = row.stored ? { 'attempt 1': serializePngSnapshot(stored) } : {};
+        const testIdentity = { name: 'attempt' };
+        const snapshotState = {
+            ...createJestSnapshotState({ ...original }, row.mode),
+            _addSnapshot: vi.fn(),
+            _bumpCounter: vi.fn(() => 1),
+            _incrementSnapshotCount: vi.fn(),
+            _markKeyChecked: vi.fn(),
+        };
+
+        registeredMatchers.toMatchPngSnapshot.call(
+            {
+                currentTestIdentity: () => testIdentity,
+                currentTestName: 'attempt',
+                isNot: 'isNot' in row,
+                snapshotState,
+                testFailing: 'testFailing' in row,
+            } as never,
+            received,
+        );
+
+        expect(snapshotState._bumpCounter.mock.calls).toEqual([['attempt', testIdentity]]);
+        expect(snapshotState._markKeyChecked.mock.calls).toEqual([['attempt 1', testIdentity]]);
+        expect(snapshotState._incrementSnapshotCount.mock.calls).toEqual('status' in row ? [[row.status, testIdentity]] : []);
+        expect(snapshotState._addSnapshot.mock.calls).toEqual(
+            row.writes ? [['attempt 1', `\n${serializePngSnapshot(received)}\n`, { isInline: false, testIdentity }]] : [],
+        );
+        // Nothing may bypass the attempt record, or a retry could not roll it back.
+        expect(snapshotState._counters.size).toBe(0);
+        expect([...snapshotState._uncheckedKeys]).toEqual(Object.keys(original));
+        expect(snapshotState._snapshotData).toEqual(original);
+        expect(snapshotState).toMatchObject({ _dirty: false, added: 0, matched: 0, unmatched: 0, updated: 0 });
+    });
 });

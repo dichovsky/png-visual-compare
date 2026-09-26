@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A retried Jest test no longer passes on a PNG mismatch** — on Jest 30.5 and later,
+  `jest.retryTimes` undoes only the snapshot changes a test made through Jest's per-test
+  attempt record, and the matcher numbered its keys outside it. Outside `--ci`, a retry
+  therefore looked up `<name> 2`, recorded the mismatching image as a new baseline, and
+  passed; a first attempt that failed for another reason left a stray `<name> 2` baseline
+  too. The matcher now numbers keys, writes baselines and counts results through that
+  record, so every attempt compares against the same baseline. Jest 29 and 30.0–30.4,
+  which reset all snapshot counters before a retry, keep the previous behaviour (RELI-12).
+
 ## [7.1.0] - 2026-09-26
 
 ### Deprecated

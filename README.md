@@ -196,7 +196,7 @@ From 7.0.1, it works with a stock Jest configuration — no Babel or transform s
 
 The Jest type augmentation declares `expect` as an optional peer with no version range, so it never blocks an install. It is there so pnpm 9 and later can resolve `expect` for the augmentation, which targets the `expect` shipped with Jest 29 and 30. pnpm 8 does not link optional peers your project does not depend on, so on pnpm 8 add `expect` as a direct devDependency to get the types.
 
-> **Known issue (Jest 30.5+):** with `jest.retryTimes`, a mismatching PNG can pass on the retry and be recorded as a new snapshot (tracked as RELI-12). Do not enable retries for tests that use this matcher until it is fixed.
+Tests that use the matcher can be retried with `jest.retryTimes`: every attempt compares against the same baseline. On Jest 30.5 and later, Jest also discards the baselines a failed attempt recorded, and its snapshot totals, before the retry.
 
 On Jest 30+, `test.failing` PNG assertions compare without recording or updating baselines or snapshot totals. Jest 29 does not expose the expected-failure flag to matchers, so this protection is unavailable there. Obsolete sibling PNG baselines are reported by `jest --ci`; remove them with `jest -u` after deleting assertions.
 

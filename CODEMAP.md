@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.1.0"
     },
-    "sourceHash": "2a73334f0e64268254e9dbbccdaa8e64a978f3ef7742887f6a79adbb31e16694",
+    "sourceHash": "9d42eec87e76d82668b3cb20aad65dab38868e2ba4adcaaca950e62eb809433c",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -197,7 +197,7 @@ Schema: `codemap.v2`
             "kind": "function",
             "entrypoint": "src/jest.ts",
             "file": "src/jest.ts",
-            "line": 231,
+            "line": 265,
             "signature": "export function registerJestPngSnapshotMatcher(expect: ExpectLike): void",
             "jsdoc": null,
             "typeOnly": false
@@ -850,27 +850,45 @@ Schema: `codemap.v2`
                     "jsdoc": null
                 },
                 {
-                    "name": "SnapshotStateLike",
+                    "name": "SnapshotCount",
                     "kind": "type",
                     "line": 23,
+                    "exported": false,
+                    "signature": "type SnapshotCount = 'added' | 'matched' | 'unmatched' | 'updated';",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "SnapshotStateLike",
+                    "kind": "type",
+                    "line": 25,
                     "exported": false,
                     "signature": "type SnapshotStateLike = { added?: number; expand?: boolean; matched?: number; unmatched?: number; updated?: number; [key: string]: unknown; };",
                     "members": null,
                     "jsdoc": null
                 },
                 {
+                    "name": "AttemptTrackingSnapshotState",
+                    "kind": "type",
+                    "line": 37,
+                    "exported": false,
+                    "signature": "type AttemptTrackingSnapshotState = SnapshotStateLike & { _addSnapshot: (key: string, serialized: string, options: { isInline: false; testIdentity: unknown }) => void; _bumpCounter: (testName: string,…",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "JestMatcherContext",
                     "kind": "type",
-                    "line": 32,
+                    "line": 44,
                     "exported": false,
-                    "signature": "type JestMatcherContext = { currentConcurrentTestName?: () => string | undefined; currentTestName?: string; error?: Error; isNot?: boolean; snapshotState?: SnapshotStateLike | null; testFailing?: bool…",
+                    "signature": "type JestMatcherContext = { currentConcurrentTestName?: () => string | undefined; currentTestIdentity?: () => unknown; currentTestName?: string; error?: Error; isNot?: boolean; snapshotState?: Snapsho…",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "addOuterLineBreaks",
                     "kind": "function",
-                    "line": 41,
+                    "line": 54,
                     "exported": false,
                     "signature": "function addOuterLineBreaks(value: string): string",
                     "members": null,
@@ -879,7 +897,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getSnapshotData",
                     "kind": "function",
-                    "line": 45,
+                    "line": 58,
                     "exported": false,
                     "signature": "function getSnapshotData(snapshotState: SnapshotStateLike): Record<string, string>",
                     "members": null,
@@ -888,7 +906,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getSnapshotCounters",
                     "kind": "function",
-                    "line": 55,
+                    "line": 68,
                     "exported": false,
                     "signature": "function getSnapshotCounters(snapshotState: SnapshotStateLike): Map<string, number>",
                     "members": null,
@@ -897,7 +915,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getUncheckedKeys",
                     "kind": "function",
-                    "line": 65,
+                    "line": 78,
                     "exported": false,
                     "signature": "function getUncheckedKeys(snapshotState: SnapshotStateLike): Set<string>",
                     "members": null,
@@ -906,7 +924,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getUpdateSnapshotMode",
                     "kind": "function",
-                    "line": 75,
+                    "line": 88,
                     "exported": false,
                     "signature": "function getUpdateSnapshotMode(snapshotState: SnapshotStateLike): 'all' | 'new' | 'none'",
                     "members": null,
@@ -915,34 +933,43 @@ Schema: `codemap.v2`
                 {
                     "name": "setSnapshotDirty",
                     "kind": "function",
-                    "line": 85,
+                    "line": 98,
                     "exported": false,
                     "signature": "function setSnapshotDirty(snapshotState: SnapshotStateLike): void",
                     "members": null,
                     "jsdoc": null
                 },
                 {
+                    "name": "tracksAttempts",
+                    "kind": "function",
+                    "line": 102,
+                    "exported": false,
+                    "signature": "function tracksAttempts(snapshotState: SnapshotStateLike): snapshotState is AttemptTrackingSnapshotState",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "incrementSnapshotCounter",
                     "kind": "function",
-                    "line": 89,
+                    "line": 106,
                     "exported": false,
-                    "signature": "function incrementSnapshotCounter( snapshotState: SnapshotStateLike, field: 'added' | 'matched' | 'unmatched' | 'updated', testFailing: boolean | undefined, ): void",
+                    "signature": "function incrementSnapshotCounter( snapshotState: SnapshotStateLike, field: SnapshotCount, testFailing: boolean | undefined, testIdentity: unknown, ): void",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "resolveSnapshotKey",
                     "kind": "function",
-                    "line": 103,
+                    "line": 127,
                     "exported": false,
-                    "signature": "function resolveSnapshotKey(snapshotState: SnapshotStateLike, testName: string): { count: number; key: string }",
+                    "signature": "function resolveSnapshotKey(snapshotState: SnapshotStateLike, testName: string, testIdentity: unknown): string",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "createJestMismatchMessage",
                     "kind": "function",
-                    "line": 113,
+                    "line": 142,
                     "exported": false,
                     "signature": "function createJestMismatchMessage(testName: string, mismatchedPixels: number): string",
                     "members": null,
@@ -951,7 +978,7 @@ Schema: `codemap.v2`
                 {
                     "name": "createJestNegatedMatchMessage",
                     "kind": "function",
-                    "line": 120,
+                    "line": 149,
                     "exported": false,
                     "signature": "function createJestNegatedMatchMessage(testName: string): string",
                     "members": null,
@@ -960,7 +987,7 @@ Schema: `codemap.v2`
                 {
                     "name": "createJestMissingSnapshotMessage",
                     "kind": "function",
-                    "line": 126,
+                    "line": 155,
                     "exported": false,
                     "signature": "function createJestMissingSnapshotMessage(testName: string): string",
                     "members": null,
@@ -969,16 +996,16 @@ Schema: `codemap.v2`
                 {
                     "name": "persistJestSnapshot",
                     "kind": "function",
-                    "line": 132,
+                    "line": 161,
                     "exported": false,
-                    "signature": "function persistJestSnapshot(snapshotState: SnapshotStateLike, key: string, serializedSnapshot: string): void",
+                    "signature": "function persistJestSnapshot(snapshotState: SnapshotStateLike, key: string, serializedSnapshot: string, testIdentity: unknown): void",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "toMatchPngSnapshot",
                     "kind": "const",
-                    "line": 137,
+                    "line": 171,
                     "exported": false,
                     "signature": "const toMatchPngSnapshot",
                     "members": null,
@@ -987,7 +1014,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getGlobalExpect",
                     "kind": "function",
-                    "line": 227,
+                    "line": 261,
                     "exported": false,
                     "signature": "function getGlobalExpect(): ExpectLike | undefined",
                     "members": null,
@@ -996,7 +1023,7 @@ Schema: `codemap.v2`
                 {
                     "name": "registerJestPngSnapshotMatcher",
                     "kind": "function",
-                    "line": 231,
+                    "line": 265,
                     "exported": true,
                     "signature": "export function registerJestPngSnapshotMatcher(expect: ExpectLike): void",
                     "members": null,
@@ -1005,7 +1032,7 @@ Schema: `codemap.v2`
                 {
                     "name": "jestExpect",
                     "kind": "const",
-                    "line": 238,
+                    "line": 272,
                     "exported": false,
                     "signature": "const jestExpect",
                     "members": null,
