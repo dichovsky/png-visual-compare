@@ -49,7 +49,6 @@
 - [ ] 🟢 📦 API [API-04]: Accept `string|URL` for path options
 - [ ] 🟢 📦 API [API-05]: `comparePngWithResult` verbose return shape
 - [ ] 🟢 🐛 API [API-06]: `toMatchPngSnapshot(undefined, options)` is rejected despite matching the declared overload
-- [ ] 🟢 🐛 RELI [RELI-13]: Jest 30 `test.failing` + `-u` overwrites the baseline with the known-bad image (`context.testFailing` is never read)
 
 ## 🧪 Tests & QA
 
