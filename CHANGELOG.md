@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `require()`d `pixelmatch` 7, which ships only as an ES module. Node.js loads that through
   `require(esm)`, but Jest's own module loader (Jest 29 and 30) and Vitest's `vmThreads` /
   `vmForks` pools on Node.js 22 cannot, so importing `png-visual-compare` or
-  `png-visual-compare/jest` failed in a stock Jest project — true since the Jest matcher
-  shipped in 6.2.0. `pixelmatch` 7.2.0 (ISC) is now vendored as a TypeScript port, checked
+  `png-visual-compare/jest` failed in a stock Jest project — the root import since 4.0.0
+  moved to `pixelmatch` 7, and `png-visual-compare/jest` since that subpath shipped in
+  6.1.0. `pixelmatch` 7.2.0 (ISC) is now vendored as a TypeScript port, checked
   byte for byte against upstream, so the Babel workaround documented for 7.0.0 is no longer
   needed. Closes RELI-11.
 

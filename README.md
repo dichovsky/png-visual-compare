@@ -190,7 +190,7 @@ npx vitest run -u
 
 ### Jest
 
-It works with a stock Jest configuration — no Babel or transform setup is needed. If you added the Babel workaround the 7.0.0 README documented, you can remove it.
+Releases after 7.0.0 work with a stock Jest configuration — no Babel or transform setup is needed. On 7.0.0 and earlier, Jest needs the Babel transform described in the [7.0.0 README](https://github.com/dichovsky/png-visual-compare/blob/release/v7.0.0/README.md#jest); drop it once you upgrade.
 
 > **Known issue (Jest 30.5+):** with `jest.retryTimes`, a mismatching PNG can pass on the retry and be recorded as a new snapshot (tracked as RELI-12). Do not enable retries for tests that use this matcher until it is fixed.
 

@@ -64,6 +64,25 @@ function synthetic(width: number, height: number, offset: number): Image {
     return { data, width, height };
 }
 
+/**
+ * Few colours with varied alpha, so neighbouring pixels often share RGB but not alpha: that
+ * drives the anti-aliasing detector's brightness delta into its alpha-only branch.
+ */
+function paletteImage(width: number, height: number, seed: number): Image {
+    const random = seededRandom(seed);
+    const palette = [
+        [200, 40, 40],
+        [40, 200, 40],
+        [30, 30, 30],
+    ];
+    const alphas = [255, 180, 90];
+    const data = new Uint8Array(width * height * 4);
+    for (let pos = 0; pos < data.length; pos += 4) {
+        data.set([...palette[(random() * palette.length) | 0], alphas[(random() * alphas.length) | 0]], pos);
+    }
+    return { data, width, height };
+}
+
 const fixtureDirs = [path.resolve('./test-data/actual'), path.resolve('./test-data/expected')];
 const fixtures = fixtureDirs.flatMap((dir) =>
     readdirSync(dir)
@@ -89,6 +108,11 @@ pairs.push(
     { name: 'synthetic edge vs shifted edge', first: synthetic(40, 32, 0), second: synthetic(40, 32, 1) },
     { name: 'synthetic edge vs perturbed', first: synthetic(40, 32, 0), second: perturb(synthetic(40, 32, 0), 99) },
     { name: '1x1 images that differ', first: synthetic(1, 1, 0), second: perturb(synthetic(1, 1, 5), 7) },
+    ...[11, 12, 13].map((seed) => ({
+        name: `palette with alpha-only neighbours, seed ${seed}`,
+        first: paletteImage(24, 24, seed),
+        second: perturb(paletteImage(24, 24, seed), seed + 100),
+    })),
 );
 
 const optionSets: { name: string; options: PixelmatchKernelOptions | undefined }[] = [
