@@ -1,7 +1,7 @@
-import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import { toPixelmatchOptions } from '../adapters/toPixelmatchOptions';
 import { ComparisonError } from '../errors';
+import { pixelmatch } from '../vendor/pixelmatch';
 import type { ComparisonResult, NormalizedImages, ResolvedOptions } from './types';
 
 // SECU-10: the normalized-canvas `maxPixels` guard is now enforced inside

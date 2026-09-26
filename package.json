@@ -81,7 +81,6 @@
         "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit"
     },
     "dependencies": {
-        "pixelmatch": "~7.2.0",
         "pngjs": "~7.0.0"
     },
     "devDependencies": {
@@ -91,6 +90,7 @@
         "@typescript/native": "npm:typescript@~7.0.2",
         "@vitest/coverage-v8": "~5.0.1",
         "eslint": "~10.10.0",
+        "pixelmatch": "~7.2.0",
         "prettier": "~3.9.8",
         "rimraf": "~6.1.3",
         "typescript": "npm:@typescript/typescript6@~6.0.2",

@@ -1,4 +1,4 @@
-import pixelmatch from 'pixelmatch';
+import type { pixelmatch } from '../vendor/pixelmatch';
 import type { PixelmatchOptions } from '../types';
 
 export type PixelmatchRawOptions = Parameters<typeof pixelmatch>[5];
