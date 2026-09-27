@@ -12,7 +12,7 @@ const TYPESCRIPT = requireFromProject.resolve('typescript');
 const JEST_MATCHER = resolve('src/jest.ts');
 
 type JestReport = {
-    snapshot: { added: number; unchecked: number; unmatched: number; updated: number };
+    snapshot: { added: number; matched: number; unchecked: number; unmatched: number; updated: number };
     testResults: { assertionResults: { status: string }[] }[];
 };
 
@@ -36,7 +36,7 @@ function seedSnapshots(snapshots: Record<string, Buffer>): void {
     writeFileSync(snapshotPath, `// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing\n${assignments.join('\n')}\n`);
 }
 
-function runJest(body: string, update: boolean): { exitCode: number | null; output: string; report: JestReport } {
+function runJest(body: string, update: boolean, ci = true): { exitCode: number | null; output: string; report: JestReport } {
     const transformer = join(workDir, 'typescript-transformer.cjs');
     writeFileSync(
         transformer,
@@ -68,7 +68,7 @@ ${body}\n`,
                 transform: { '\\.ts$': transformer },
                 modulePaths: [resolve('node_modules')],
             }),
-            update ? '--updateSnapshot' : '--ci',
+            update ? '--updateSnapshot' : `--ci=${ci}`,
             '--json',
             '--outputFile',
             reportPath,
@@ -126,6 +126,43 @@ describe('toMatchPngSnapshot in a real Jest run', () => {
         expect(result.exitCode, result.output).toBe(0);
         expect(result.report.testResults[0].assertionResults[0].status).toBe('passed');
         expect(result.report.snapshot).toMatchObject({ added: 0, unmatched: 0, updated: 0 });
+        expect(readFileSync(snapshotPath, 'utf8')).toBe(original);
+    });
+
+    // A retried attempt must resolve the same key as the first: Jest 30.5+ undoes only what
+    // it recorded against the test, so a key bumped behind its back reads `renders 2` next time.
+    test.each([
+        {
+            name: 'fails a PNG that mismatches on every attempt instead of recording it on the retry',
+            stored: RED,
+            body: "jest.retryTimes(1);\ntest('renders', () => expect(received).toMatchPngSnapshot());",
+            exitCode: 1,
+            status: 'failed',
+            snapshot: { added: 0, matched: 0, unmatched: 1, unchecked: 0 },
+        },
+        {
+            name: 'matches the same baseline when the retry follows an unrelated failure',
+            stored: BLUE,
+            body: `jest.retryTimes(1);
+let attempt = 0;
+test('renders', () => {
+    attempt += 1;
+    expect(received).toMatchPngSnapshot();
+    if (attempt === 1) throw new Error('flaky');
+});`,
+            exitCode: 0,
+            status: 'passed',
+            snapshot: { added: 0, matched: 1, unmatched: 0, unchecked: 0 },
+        },
+    ])('$name', ({ stored, body, exitCode, status, snapshot }) => {
+        seedSnapshots({ 'renders 1': stored });
+        const original = readFileSync(snapshotPath, 'utf8');
+
+        const result = runJest(body, false, false);
+
+        expect(result.exitCode, result.output).toBe(exitCode);
+        expect(result.report.testResults[0].assertionResults[0].status).toBe(status);
+        expect(result.report.snapshot).toMatchObject(snapshot);
         expect(readFileSync(snapshotPath, 'utf8')).toBe(original);
     });
 

@@ -30,6 +30,10 @@ export class InvalidInputError extends Error {
  * - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set)
  * - Symlink loops or invalid symlink usage
  * - Empty, whitespace-only, or null-byte-containing paths
+ * - A FIFO or device inside a base directory, on reads and diff writes, refused instead of
+ *   blocking the call
+ * - A diff file under `diffOutputBaseDir` that has more than one hard link, refused before
+ *   it is truncated or written
  *
  * This error is always re-thrown for security-boundary failures such as traversal checks,
  * symlink issues, and constrained-base-directory validation. Simpler local path-shape

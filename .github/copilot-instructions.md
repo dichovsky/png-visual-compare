@@ -94,7 +94,7 @@ src/
   playwright.ts                   # side-effect-free entry: exports expect extended with toMatchPngSnapshot, plus pngMatchers
   defaults.ts                     # default option values and limits
   errors.ts                       # named error classes and ERR_* codes
-  getPngData.ts                   # reads file path or Buffer → LoadedPng
+  getPngData.ts                   # reads file path or Buffer → LoadedPng; IHDR-only limit check for Playwright baselines
   readValidatedFile.ts            # opens a file before validating it; enforces maxFileBytes
   extendImage.ts                  # pads a PNG canvas to a larger size
   fillImageSizeDifference.ts      # colours the padded region green (0,255,0)
@@ -105,7 +105,7 @@ src/
   validatePath.ts                 # assertPathSyntax / validatePathWithReal / validatePath: containment, symlink checks
   validatePixelmatchOptions.ts    # PixelmatchOptions validation
   adapters/                       # public-to-external library boundaries (toPixelmatchOptions)
-  internal/                       # assertSameFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
+  internal/                       # assertSameFile, assertPlainFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
   matchers/                       # framework-agnostic snapshot matcher core shared by vitest.mts/jest.ts/playwright.ts
   pipeline/                       # resolveOptions, loadSources, normalizeImages, runComparison, persistDiff
   ports/                          # sync/async filesystem adapters and test seams
@@ -170,6 +170,8 @@ comparePng / comparePngAsync
 - invalid source or undecodable bytes:
     - `throwError=true` → throws an input/decode error
     - `throwError=false` → `{ kind: 'invalid', reason: 'type' | 'decode' }`
+
+The same module exports `assertPngHeaderLimits(buffer, maxDimension, maxPixels)` for internal use: the same `ResourceLimitError` checks from the IHDR alone, without decoding (`InvalidInputError` for a missing, truncated, repeated or zero-dimension header). The Playwright adapter uses it before writing a baseline.
 
 ### Pixel address formula
 

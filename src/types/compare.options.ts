@@ -70,7 +70,11 @@ export type ComparePngOptions = {
      * created singly with symlinks refused, the parent chain is then resolved and the
      * file is opened *inside* that canonical directory, so no symlink is traversed at
      * open time at all. Truncation is deferred until the opened handle has been proven
-     * to sit inside the boundary, so an escaped target is never emptied.
+     * to sit inside the boundary, so an escaped target is never emptied. An existing
+     * target with more than one hard link is refused before truncation too (SECU-13):
+     * the other name may be a file outside the boundary, and it is the same inode. So
+     * is a FIFO or device (SECU-14); the open does not block, so a FIFO
+     * planted at the target cannot hang the write.
      *
      * **File mode contract (SECU-12):**
      * After the file is opened the writer issues an explicit `fchmod` to mode
@@ -93,7 +97,9 @@ export type ComparePngOptions = {
      * output at the verified destination.
      *
      * @default undefined (no diff file written)
-     * @throws {PathValidationError} if a symlink exists at the target path at write-time.
+     * @throws {PathValidationError} if a symlink exists at the target path at write-time,
+     *   or, with `diffOutputBaseDir`, if the target has more than one hard link or is
+     *   not a regular file.
      */
     diffFilePath?: string;
     /**
@@ -187,7 +193,9 @@ export type ComparePngOptions = {
      * itself) is closed via `O_NOFOLLOW` — see {@link ComparePngOptions.diffFilePath}
      * and SECU-03. The **parent-directory** race is closed by SECU-09: parents are
      * created one component at a time with symlinks refused, and the file is opened
-     * inside the resolved parent directory so no symlink is traversed.
+     * inside the resolved parent directory so no symlink is traversed. A target with
+     * more than one hard link is refused before it is truncated (SECU-13), and a FIFO
+     * or device at the target is refused without blocking (SECU-14).
      *
      * Node exposes no `openat`, so the underlying race is detected rather than made
      * impossible; the guarantee is that no bytes are written outside the boundary. For
@@ -217,7 +225,9 @@ export type ComparePngOptions = {
      * file is opened first, pinning one inode, and the handle's device/inode pair is
      * then compared against the canonical path containment approved. A path swapped
      * between validation and read is refused with a `PathValidationError`, so bytes
-     * are never returned from an inode that failed the check.
+     * are never returned from an inode that failed the check. A FIFO or device
+     * inside the boundary is refused too, and the open does not block, so a
+     * FIFO planted there cannot hang the call (SECU-14).
      *
      * Node exposes no `openat`, so the race is detected rather than prevented, and the
      * check needs a filesystem that reports file identity — on a mount that reports

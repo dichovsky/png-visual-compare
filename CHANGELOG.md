@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Diff writes refuse a hard-linked target** — with `diffOutputBaseDir` set, a diff file
+  that has more than one hard link is refused with `PathValidationError` before it is
+  truncated or written. A hard link is the same inode as the file it links to, so the
+  containment and identity checks passed for a link planted inside the boundary to a
+  file elsewhere on the same filesystem, and the write overwrote that file. A new diff
+  file, and one that only ever had one name, are unaffected. A diff output you hard-link
+  on purpose now fails to write under `diffOutputBaseDir`; remove the extra link first.
+  Without `diffOutputBaseDir` nothing changes. Reads are not checked — see README →
+  Security Model → What is not covered. Closes SECU-13.
+- **A FIFO or device inside a boundary is refused instead of blocking** — with
+  `inputBaseDir` or `diffOutputBaseDir` set, a FIFO or device at an input path or at
+  `diffFilePath` is refused with `PathValidationError`. Previously the open waited for
+  something to open the other end, which blocked `comparePng`'s whole thread, and a
+  diff written to a FIFO that already had a reader went into the pipe. Under a boundary
+  both opens now use `O_NONBLOCK`, which makes no difference for a regular file, and
+  the opened handle must be a regular file once containment is proven. Without a base
+  directory the open still blocks, so a pipe passed on purpose keeps working.
+  Closes SECU-14.
+
+### Fixed
+
+- **A retried Jest test no longer passes on a PNG mismatch** — on Jest 30.5 and later,
+  `jest.retryTimes` undoes only the snapshot changes a test made through Jest's per-test
+  attempt record, and the matcher numbered its keys outside it. Outside `--ci`, a retry
+  therefore looked up `<name> 2`, recorded the mismatching image as a new baseline, and
+  passed; a first attempt that failed for another reason left a stray `<name> 2` baseline
+  too. The matcher now numbers keys, writes baselines and counts results through that
+  record, so every attempt compares against the same baseline. Jest 29 and 30.0–30.4,
+  which reset all snapshot counters before a retry, keep the previous behaviour (RELI-12).
+- **`toMatchPngSnapshot(undefined, options)` is accepted** — it matches the declared
+  `(name?, options?)` form but failed with "accepts ComparePngOptions as the first argument
+  unless a snapshot hint string is provided". In Jest, Vitest and Playwright it now
+  behaves like `toMatchPngSnapshot(options)` (API-06).
+
+### Changed
+
+- **Playwright's `toMatchPngSnapshot` type declares the same two call forms as Jest and
+  Vitest**: `(options?)` and `(name?, options?)`. Passing options in both positions, which
+  always failed at runtime, is now also a type error (API-06).
+- **Playwright baseline writes no longer decode the image** — the image limits are
+  checked from the PNG signature and header alone, with the same `ResourceLimitError`
+  messages, so recording a large screenshot no longer decodes it in full. Malformed or
+  truncated headers still throw `InvalidInputError`, but a PNG with a valid header and
+  corrupt image data is now written, and fails its next comparison (PERF-08).
+
 ## [7.1.0] - 2026-09-26
 
 ### Deprecated
