@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docs** — `.github/copilot-instructions.md` no longer says `PixelmatchOptions` is forwarded
   verbatim to pixelmatch. Since TYPE-03 it is validated and then translated key by key into the
   vendored pixelmatch's options by `src/adapters/toPixelmatchOptions.ts`.
+- **CI** — a new `lint-workflows.yml` workflow runs actionlint over `.github/workflows` on every
+  push (except `release/*` branches) and pull request. It downloads actionlint 1.7.12 and checks
+  the tarball against the sha256 published in that release's checksums file before running it.
+  The runner's shellcheck lints each `run:` script too.
 
 ## [7.2.0] - 2026-09-27
 
