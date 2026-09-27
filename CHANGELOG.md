@@ -25,6 +25,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   other undecodable input. That includes a failed Adler-32 checksum, which pngjs
   accepted. Interlaced PNGs were not affected. A non-interlaced image is now inflated
   twice, which adds about 25–45% to its decode time (about 6 ms for the 1500×600 fixture).
+- **Interlaced PNG decompression is bounded by the declared image size** — pngjs 7.0.0
+  inflates an interlaced (Adam7) PNG's image data with no output limit, so `maxDimension`,
+  `maxPixels` and `maxFileBytes` did not bound decompression. A 521,889-byte 1×1
+  interlaced PNG inflated 512 MiB, growing the process by about 520 MiB, before it was
+  rejected, and a file at the default `maxFileBytes` could inflate to about 130 GiB.
+  Interlaced image data now gets the same check as non-interlaced data, before pngjs
+  inflates it: the library inflates it with `node:zlib`, stops one byte past the size the
+  header declares (the scanlines of the seven Adam7 passes), and rejects anything but
+  exactly that size as an `InvalidInputError`, recoverable with
+  `throwErrorOnInvalidInputData: false`. The same PNG is now rejected in under a
+  millisecond without growing the process. With the default `maxPixels`, no inflate
+  exceeds about 128 MiB. A valid interlaced image decodes as before but is inflated twice,
+  which adds about 35% to its decode time.
 
 ## [7.2.0] - 2026-09-27
 

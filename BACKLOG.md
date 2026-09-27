@@ -16,6 +16,7 @@
 - [ ] 🟡 ♻️ PERF [PERF-03]: Reduce normalize memory peak (BLOCKED on human spike)
 - [ ] 🟡 ♻️ PERF [PERF-04]: Skip eager clone when no mutation follows
 - [ ] 🟡 ♻️ PERF [PERF-05]: PNG snapshot serialization → base64
+- [ ] 🟡 ♻️ PERF [PERF-09]: Decode with a single inflate — `assertCompleteImageData` inflates the image data and pngjs inflates it again (+28–44% decode time on the largest fixtures, ~35% interlaced); hand pngjs the checked output or replace its inflate
 - [ ] 🟢 ♻️ PERF [PERF-06]: `extendImage` padding double-write
 - [ ] 🟢 ♻️ PERF [PERF-07]: `validateArea` allocation-free
 

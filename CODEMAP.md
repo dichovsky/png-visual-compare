@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.2.0"
     },
-    "sourceHash": "0c963a675b23967e6b166f3146cf4001fa8724d04019e9d32dc387a8d9604266",
+    "sourceHash": "74ab3a6a2b0309af5f350a6557ac5dd0fd6ef5bba05ca308fa5d58c743abdf33",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -666,18 +666,36 @@ Schema: `codemap.v2`
                     "jsdoc": "Samples per pixel by IHDR colour type, as pngjs maps them; pngjs rejects any other type."
                 },
                 {
+                    "name": "ADAM7_PASSES",
+                    "kind": "const",
+                    "line": 81,
+                    "exported": false,
+                    "signature": "const ADAM7_PASSES",
+                    "members": null,
+                    "jsdoc": "Adam7 passes as [x0, y0, dx, dy]: a pass holds the pixels at (x0 + i * dx, y0 + j * dy)."
+                },
+                {
+                    "name": "declaredImageDataLength",
+                    "kind": "function",
+                    "line": 95,
+                    "exported": false,
+                    "signature": "function declaredImageDataLength(width: number, height: number, bitsPerPixel: number, interlaced: boolean): number",
+                    "members": null,
+                    "jsdoc": "The inflated IDAT size pngjs requires: scanlines of a filter byte plus packed samples, for the whole image or, when interlaced, for each Adam7 pass that has pixels (an empty pass has none)."
+                },
+                {
                     "name": "assertCompleteImageData",
                     "kind": "function",
-                    "line": 88,
+                    "line": 116,
                     "exported": false,
                     "signature": "function assertCompleteImageData(buffer: Buffer): void",
                     "members": null,
-                    "jsdoc": "pngjs 7's sync inflate ignores zlib errors and misreads zlib's progress counters, so when a non-interlaced IDAT stream is corrupt or short it returns its whole `Buffer.allocUnsafe` output buffer, and recycled heap memory decodes as pixels. Inflate the stream here first and require exactly the byte count the header declares. The output limit bounds the work to the size pngjs would allocate anyway. Interlaced data is left to pngjs, which inflates it with `node:zlib` and so throws on a bad stream."
+                    "jsdoc": "pngjs 7's sync inflate ignores zlib errors and misreads zlib's progress counters, so when a non-interlaced IDAT stream is corrupt or short it returns its whole `Buffer.allocUnsafe` output buffer, and recycled heap memory decodes as pixels. For interlaced data it calls `zlib.inflateSync` with no output limit, so a tiny image can inflate gigabytes. Inflate the stream here first, capped at the byte count the header declares plus one, and require exactly that count. Other interlace methods are left to pngjs, which rejects them before inflating."
                 },
                 {
                     "name": "assertPngHeaderLimits",
                     "kind": "function",
-                    "line": 115,
+                    "line": 144,
                     "exported": true,
                     "signature": "export function assertPngHeaderLimits(buffer: Buffer, maxDimension: number, maxPixels: number): void",
                     "members": null,
@@ -686,7 +704,7 @@ Schema: `codemap.v2`
                 {
                     "name": "finalizeDecodedPng",
                     "kind": "function",
-                    "line": 135,
+                    "line": 164,
                     "exported": false,
                     "signature": "function finalizeDecodedPng(decoded: LoadedPng, throwErrorOnInvalidInputData: boolean): LoadedPng",
                     "members": null,
@@ -695,7 +713,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getPngData",
                     "kind": "function",
-                    "line": 146,
+                    "line": 175,
                     "exported": true,
                     "signature": "export function getPngData( pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean, maxDimension?: number, maxPixels?: number, inputBaseDir?: string, maxFileBytes?: number, ): LoadedPng",
                     "members": null,

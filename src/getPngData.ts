@@ -77,20 +77,49 @@ const IDAT_CHUNK_TYPE = 0x49444154; // "IDAT"
 /** Samples per pixel by IHDR colour type, as pngjs maps them; pngjs rejects any other type. */
 const CHANNELS_BY_COLOR_TYPE: Partial<Record<number, number>> = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 };
 
+/** Adam7 passes as [x0, y0, dx, dy]: a pass holds the pixels at (x0 + i * dx, y0 + j * dy). */
+const ADAM7_PASSES = [
+    [0, 0, 8, 8],
+    [4, 0, 8, 8],
+    [0, 4, 4, 8],
+    [2, 0, 4, 4],
+    [0, 2, 2, 4],
+    [1, 0, 2, 2],
+    [0, 1, 1, 2],
+] as const;
+
+/**
+ * The inflated IDAT size pngjs requires: scanlines of a filter byte plus packed samples, for the
+ * whole image or, when interlaced, for each Adam7 pass that has pixels (an empty pass has none).
+ */
+function declaredImageDataLength(width: number, height: number, bitsPerPixel: number, interlaced: boolean): number {
+    const scanlines = (w: number, h: number) => h * (Math.ceil((w * bitsPerPixel) / 8) + 1);
+    if (!interlaced) return scanlines(width, height);
+
+    let length = 0;
+    for (const [x0, y0, dx, dy] of ADAM7_PASSES) {
+        const passWidth = Math.ceil((width - x0) / dx);
+        const passHeight = Math.ceil((height - y0) / dy);
+        if (passWidth > 0 && passHeight > 0) length += scanlines(passWidth, passHeight);
+    }
+    return length;
+}
+
 /**
  * pngjs 7's sync inflate ignores zlib errors and misreads zlib's progress counters, so when a
  * non-interlaced IDAT stream is corrupt or short it returns its whole `Buffer.allocUnsafe`
- * output buffer, and recycled heap memory decodes as pixels. Inflate the stream here first and
- * require exactly the byte count the header declares. The output limit bounds the work to the
- * size pngjs would allocate anyway. Interlaced data is left to pngjs, which inflates it with
- * `node:zlib` and so throws on a bad stream.
+ * output buffer, and recycled heap memory decodes as pixels. For interlaced data it calls
+ * `zlib.inflateSync` with no output limit, so a tiny image can inflate gigabytes. Inflate the
+ * stream here first, capped at the byte count the header declares plus one, and require exactly
+ * that count. Other interlace methods are left to pngjs, which rejects them before inflating.
  */
 function assertCompleteImageData(buffer: Buffer): void {
     const channels = CHANNELS_BY_COLOR_TYPE[buffer[25]];
-    if (channels === undefined || buffer[28] !== 0) return;
+    const interlace = buffer[28];
+    if (channels === undefined || (interlace !== 0 && interlace !== 1)) return;
 
-    const bitsPerRow = buffer.readUInt32BE(16) * channels * buffer[24];
-    const expectedLength = buffer.readUInt32BE(20) * (Math.ceil(bitsPerRow / 8) + 1);
+    const bitsPerPixel = channels * buffer[24];
+    const expectedLength = declaredImageDataLength(buffer.readUInt32BE(16), buffer.readUInt32BE(20), bitsPerPixel, interlace === 1);
     const imageData: Buffer[] = [];
     for (let offset = PNG_SIGNATURE.length; offset + 8 <= buffer.length; offset += buffer.readUInt32BE(offset) + 12) {
         if (buffer.readUInt32BE(offset + 4) === IDAT_CHUNK_TYPE) {
