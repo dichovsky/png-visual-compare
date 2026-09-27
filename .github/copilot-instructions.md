@@ -270,11 +270,11 @@ Current coverage is 100% across all source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches) and on every pull request
 
-| Job           | OS            | Node                                               | Gates merges                     |
-| ------------- | ------------- | -------------------------------------------------- | -------------------------------- |
-| ubuntu        | ubuntu-latest | from `.nvmrc` (Node `24`)                          | yes                              |
-| macos         | macos-latest  | from `.nvmrc` (Node `24`)                          | no — `continue-on-error`         |
-| engines-floor | ubuntu-latest | `.nvmrc` to build, then `22.12.0` (`engines.node`) | no — not a required status check |
+| Job           | OS            | Node                                               | Gates merges             |
+| ------------- | ------------- | -------------------------------------------------- | ------------------------ |
+| ubuntu        | ubuntu-latest | from `.nvmrc` (Node `24`)                          | yes                      |
+| macos         | macos-latest  | from `.nvmrc` (Node `24`)                          | no — `continue-on-error` |
+| engines-floor | ubuntu-latest | `.nvmrc` to build, then `22.12.0` (`engines.node`) | yes                      |
 
 `ubuntu` and `macos` run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`;
 macOS omits that flag, which installs Linux system packages and does not apply there.

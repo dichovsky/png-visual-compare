@@ -81,5 +81,5 @@ This builds the Docker image and runs both unit and e2e tests inside a container
 
 The `main` branch requires:
 
-- The `ubuntu` CI status check to pass before merging (the `macos` job also runs but is `continue-on-error` until TEST-08 is fixed)
+- The `ubuntu` and `engines-floor` CI status checks to pass before merging (the `macos` job also runs but is `continue-on-error` until TEST-08 is fixed)
 - No force pushes
