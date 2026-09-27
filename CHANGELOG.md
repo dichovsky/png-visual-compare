@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A retried Jest test no longer passes on a PNG mismatch** — on Jest 30.5 and later,
+  `jest.retryTimes` undoes only the snapshot changes a test made through Jest's per-test
+  attempt record, and the matcher numbered its keys outside it. Outside `--ci`, a retry
+  therefore looked up `<name> 2`, recorded the mismatching image as a new baseline, and
+  passed; a first attempt that failed for another reason left a stray `<name> 2` baseline
+  too. The matcher now numbers keys, writes baselines and counts results through that
+  record, so every attempt compares against the same baseline. Jest 29 and 30.0–30.4,
+  which reset all snapshot counters before a retry, keep the previous behaviour (RELI-12).
+- **`toMatchPngSnapshot(undefined, options)` is accepted** — it matches the declared
+  `(name?, options?)` form but failed with "accepts ComparePngOptions as the first argument
+  unless a snapshot hint string is provided". In Jest, Vitest and Playwright it now
+  behaves like `toMatchPngSnapshot(options)` (API-06).
+
+### Changed
+
+- **Playwright's `toMatchPngSnapshot` type declares the same two call forms as Jest and
+  Vitest**: `(options?)` and `(name?, options?)`. Passing options in both positions, which
+  always failed at runtime, is now also a type error (API-06).
+- **Playwright baseline writes no longer decode the image** — the image limits are
+  checked from the PNG signature and header alone, with the same `ResourceLimitError`
+  messages, so recording a large screenshot no longer decodes it in full. Malformed or
+  truncated headers still throw `InvalidInputError`, but a PNG with a valid header and
+  corrupt image data is now written, and fails its next comparison (PERF-08).
+
 ## [7.1.0] - 2026-09-26
 
 ### Deprecated

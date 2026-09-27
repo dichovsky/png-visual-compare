@@ -82,6 +82,7 @@ beforeEach(() => {
 afterEach(() => {
     rmSync(workDir, { recursive: true, force: true });
     playwrightMock.testInfo = undefined;
+    vi.restoreAllMocks();
 });
 
 describe('playwright entrypoint exports', () => {
@@ -209,6 +210,16 @@ describe('baseline naming', () => {
 
         expect(match(RED).pass).toBe(true);
         expect(match(BLUE, { excludedAreas: [] }).pass).toBe(true);
+    });
+
+    test.each([
+        { name: 'options', matcherArgs: [{ excludedAreas: [{ x1: 0, y1: 0, x2: 0, y2: 0 }] }] },
+        { name: 'an undefined name and options', matcherArgs: [undefined, { excludedAreas: [{ x1: 0, y1: 0, x2: 0, y2: 0 }] }] },
+    ])('compares the unnamed baseline with ComparePngOptions given $name', ({ matcherArgs }) => {
+        useTestInfo('none');
+        seedBaseline('header renders png 1.png', RED);
+
+        expect(match(BLUE, ...matcherArgs).pass).toBe(true);
     });
 
     test('sanitises the test title into artifact names for unnamed assertions', () => {
@@ -402,6 +413,24 @@ describe('image limits', () => {
 
         expect(() => match(OVER_DEFAULT_MAX_DIMENSION, 'header')).toThrow(ResourceLimitError);
         expect(existsSync(join(workDir, 'snapshots', 'header.png'))).toBe(false);
+    });
+
+    test.each([
+        { mode: 'missing', existing: false },
+        { mode: 'all', existing: false },
+        { mode: 'changed', existing: false },
+        { mode: 'all', existing: true },
+    ] as const)('checks the limits without decoding the image it writes: %j', ({ mode, existing }) => {
+        useTestInfo(mode);
+        if (existing) {
+            seedBaseline('header.png', RED);
+        }
+        const read = vi.spyOn(PNG.sync, 'read');
+
+        match(BLUE, 'header');
+
+        expect(read).not.toHaveBeenCalled();
+        expect(readFileSync(join(workDir, 'snapshots', 'header.png'))).toEqual(BLUE);
     });
 
     test.each(['all', 'changed'] as const)('refuses to overwrite a baseline with an image over maxPixels in %s mode', (mode) => {

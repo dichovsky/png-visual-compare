@@ -80,7 +80,7 @@ src/
   adapters/                   # public-to-external library boundaries
   internal/                   # assertSameFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
   vendor/                     # pixelmatch 7.2.0 as a TypeScript port (RELI-11); parity-tested against upstream
-  getPngData.ts               # decodes image sources into LoadedPng
+  getPngData.ts               # decodes image sources into LoadedPng; IHDR-only limit check for Playwright baselines
   readValidatedFile.ts        # opens a file before validating it, so bytes come from the approved inode
   validate*.ts                # path, area, color, and pixelmatch option validation
   types/                      # one type per file; collected in types/index.ts

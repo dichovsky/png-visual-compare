@@ -20,6 +20,8 @@ type ExpectLike = {
     extend: (matchers: { toMatchPngSnapshot: typeof toMatchPngSnapshot }) => void;
 };
 
+type SnapshotCount = 'added' | 'matched' | 'unmatched' | 'updated';
+
 type SnapshotStateLike = {
     added?: number;
     expand?: boolean;
@@ -29,8 +31,19 @@ type SnapshotStateLike = {
     [key: string]: unknown;
 };
 
+// Jest 30.5 records what each test attempt changed so `clear(testIdentity)` can undo it
+// before a `jest.retryTimes` retry. It only undoes changes made through these methods,
+// which were added together in 30.5.0; older versions reset every counter on retry.
+type AttemptTrackingSnapshotState = SnapshotStateLike & {
+    _addSnapshot: (key: string, serialized: string, options: { isInline: false; testIdentity: unknown }) => void;
+    _bumpCounter: (testName: string, testIdentity: unknown) => number;
+    _incrementSnapshotCount: (status: SnapshotCount, testIdentity: unknown) => void;
+    _markKeyChecked: (key: string, testIdentity: unknown) => void;
+};
+
 type JestMatcherContext = {
     currentConcurrentTestName?: () => string | undefined;
+    currentTestIdentity?: () => unknown;
     currentTestName?: string;
     error?: Error;
     isNot?: boolean;
@@ -86,13 +99,23 @@ function setSnapshotDirty(snapshotState: SnapshotStateLike): void {
     snapshotState._dirty = true;
 }
 
+function tracksAttempts(snapshotState: SnapshotStateLike): snapshotState is AttemptTrackingSnapshotState {
+    return typeof snapshotState._bumpCounter === 'function';
+}
+
 function incrementSnapshotCounter(
     snapshotState: SnapshotStateLike,
-    field: 'added' | 'matched' | 'unmatched' | 'updated',
+    field: SnapshotCount,
     testFailing: boolean | undefined,
+    testIdentity: unknown,
 ): void {
     // Expected failures compare without contributing to Jest's snapshot failure totals.
     if (testFailing === true) {
+        return;
+    }
+
+    if (tracksAttempts(snapshotState)) {
+        snapshotState._incrementSnapshotCount(field, testIdentity);
         return;
     }
 
@@ -100,14 +123,20 @@ function incrementSnapshotCounter(
     snapshotState[field] = typeof currentValue === 'number' ? currentValue + 1 : 1;
 }
 
-function resolveSnapshotKey(snapshotState: SnapshotStateLike, testName: string): { count: number; key: string } {
+// Numbers the key and marks it checked, so it is not reported obsolete.
+function resolveSnapshotKey(snapshotState: SnapshotStateLike, testName: string, testIdentity: unknown): string {
+    if (tracksAttempts(snapshotState)) {
+        const key = `${testName} ${snapshotState._bumpCounter(testName, testIdentity)}`;
+        snapshotState._markKeyChecked(key, testIdentity);
+        return key;
+    }
+
     const counters = getSnapshotCounters(snapshotState);
     const count = (counters.get(testName) ?? 0) + 1;
     counters.set(testName, count);
-    return {
-        count,
-        key: `${testName} ${count}`,
-    };
+    const key = `${testName} ${count}`;
+    getUncheckedKeys(snapshotState).delete(key);
+    return key;
 }
 
 function createJestMismatchMessage(testName: string, mismatchedPixels: number): string {
@@ -129,7 +158,12 @@ function createJestMissingSnapshotMessage(testName: string): string {
         : `New PNG snapshot was not written for "${testName}". Run Jest with -u to create it.`;
 }
 
-function persistJestSnapshot(snapshotState: SnapshotStateLike, key: string, serializedSnapshot: string): void {
+function persistJestSnapshot(snapshotState: SnapshotStateLike, key: string, serializedSnapshot: string, testIdentity: unknown): void {
+    if (tracksAttempts(snapshotState)) {
+        snapshotState._addSnapshot(key, addOuterLineBreaks(serializedSnapshot), { isInline: false, testIdentity });
+        return;
+    }
+
     getSnapshotData(snapshotState)[key] = addOuterLineBreaks(serializedSnapshot);
     setSnapshotDirty(snapshotState);
 }
@@ -143,8 +177,8 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
 
     const testName = buildSnapshotTestName(context.currentConcurrentTestName?.() ?? context.currentTestName, args.hint, ': ');
     const snapshotState = context.snapshotState;
-    const { key } = resolveSnapshotKey(snapshotState, testName);
-    getUncheckedKeys(snapshotState).delete(key);
+    const testIdentity = context.currentTestIdentity?.();
+    const key = resolveSnapshotKey(snapshotState, testName, testIdentity);
     const snapshotData = getSnapshotData(snapshotState);
     const storedSnapshot = snapshotData[key];
     const updateSnapshot = getUpdateSnapshotMode(snapshotState);
@@ -166,7 +200,7 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
             };
         }
 
-        incrementSnapshotCounter(snapshotState, 'unmatched', context.testFailing);
+        incrementSnapshotCounter(snapshotState, 'unmatched', context.testFailing, testIdentity);
         return {
             pass: true,
             actual: comparison.actualSerialized,
@@ -179,7 +213,7 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
         const comparison = compareAgainstSerializedPngSnapshot(received, storedSnapshot, args.options);
 
         if (comparison.pass) {
-            incrementSnapshotCounter(snapshotState, 'matched', context.testFailing);
+            incrementSnapshotCounter(snapshotState, 'matched', context.testFailing, testIdentity);
             return {
                 pass: true,
                 message: () => '',
@@ -188,15 +222,15 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
 
         if (updateSnapshot === 'all' && context.testFailing !== true) {
             validatePngSnapshot(received, args.options);
-            persistJestSnapshot(snapshotState, key, comparison.actualSerialized);
-            incrementSnapshotCounter(snapshotState, 'updated', context.testFailing);
+            persistJestSnapshot(snapshotState, key, comparison.actualSerialized, testIdentity);
+            incrementSnapshotCounter(snapshotState, 'updated', context.testFailing, testIdentity);
             return {
                 pass: true,
                 message: () => '',
             };
         }
 
-        incrementSnapshotCounter(snapshotState, 'unmatched', context.testFailing);
+        incrementSnapshotCounter(snapshotState, 'unmatched', context.testFailing, testIdentity);
         return {
             pass: false,
             actual: comparison.actualSerialized,
@@ -207,15 +241,15 @@ const toMatchPngSnapshot = createPngSnapshotMatcher((matcherContext, received, a
 
     if ((updateSnapshot === 'new' || updateSnapshot === 'all') && context.testFailing !== true) {
         validatePngSnapshot(received, args.options);
-        persistJestSnapshot(snapshotState, key, serializePngSnapshot(received));
-        incrementSnapshotCounter(snapshotState, 'added', context.testFailing);
+        persistJestSnapshot(snapshotState, key, serializePngSnapshot(received), testIdentity);
+        incrementSnapshotCounter(snapshotState, 'added', context.testFailing, testIdentity);
         return {
             pass: true,
             message: () => '',
         };
     }
 
-    incrementSnapshotCounter(snapshotState, 'unmatched', context.testFailing);
+    incrementSnapshotCounter(snapshotState, 'unmatched', context.testFailing, testIdentity);
     return {
         pass: false,
         actual: serializePngSnapshot(received),

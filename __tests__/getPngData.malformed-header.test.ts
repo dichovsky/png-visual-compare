@@ -5,7 +5,7 @@ import { crc32 } from 'node:zlib';
 import { PNG } from 'pngjs';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { comparePng, comparePngAsync, InvalidInputError, ResourceLimitError } from '../src';
-import { getPngData } from '../src/getPngData';
+import { assertPngHeaderLimits, getPngData } from '../src/getPngData';
 
 function createPng(width: number): Buffer {
     const png = new PNG({ width, height: 1 });
@@ -116,5 +116,63 @@ describe('PNG header chunk framing', () => {
     ])('keeps $name as an ordinary decode failure', ({ data }) => {
         expect(getPngData(data, false, 1, 1)).toEqual({ kind: 'invalid', reason: 'decode' });
         expect(() => getPngData(data, true, 1, 1)).toThrow('Invalid PNG input: the data could not be parsed');
+    });
+});
+
+describe('assertPngHeaderLimits', () => {
+    const zeroWidthHeader = Buffer.from(small.subarray(16, 29));
+    zeroWidthHeader.writeUInt32BE(0, 0);
+    const zeroWidth = Buffer.concat([signature, createChunk('IHDR', zeroWidthHeader), small.subarray(33)]);
+
+    it.each([
+        { name: 'an empty buffer', data: Buffer.alloc(0) },
+        { name: 'non-PNG bytes', data: Buffer.from('not a png, but long enough to hold a header') },
+        { name: 'signature only', data: signature },
+        { name: 'partial chunk header', data: Buffer.concat([signature, Buffer.alloc(7)]) },
+        { name: 'dimensions cut short', data: small.subarray(0, 20) },
+        { name: 'IHDR cut short', data: small.subarray(0, 32) },
+        { name: 'first chunk not IHDR', data: Buffer.concat([signature, createChunk('tEXt', Buffer.alloc(13)), small.subarray(8)]) },
+        {
+            name: 'IHDR of the wrong length',
+            data: Buffer.concat([signature, createChunk('IHDR', Buffer.alloc(14, 1)), small.subarray(33)]),
+        },
+        ...duplicateHeaders,
+    ])('rejects $name as InvalidInputError, never RangeError', ({ data }) => {
+        const check = () => assertPngHeaderLimits(data, Infinity, Infinity);
+
+        expect(check).toThrow(InvalidInputError);
+        expect(check).toThrow('Invalid PNG input: the data could not be parsed');
+    });
+
+    it('rejects a zero dimension as getPngData does', () => {
+        const check = () => assertPngHeaderLimits(zeroWidth, Infinity, Infinity);
+
+        expect(check).toThrow(InvalidInputError);
+        expect(check).toThrow('Invalid PNG input: image has zero dimensions');
+    });
+
+    it.each([
+        { name: 'maxDimension', maxDimension: 19, maxPixels: Infinity },
+        { name: 'maxPixels', maxDimension: Infinity, maxPixels: 19 },
+    ])('throws the same ResourceLimitError as a full decode over $name', ({ maxDimension, maxPixels }) => {
+        let decodeError: unknown;
+        try {
+            getPngData(large, true, maxDimension, maxPixels);
+        } catch (error) {
+            decodeError = error;
+        }
+
+        const check = () => assertPngHeaderLimits(large, maxDimension, maxPixels);
+
+        expect(decodeError).toBeInstanceOf(ResourceLimitError);
+        expect(check).toThrow(ResourceLimitError);
+        expect(check).toThrow((decodeError as ResourceLimitError).message);
+    });
+
+    it('accepts a PNG within the limits without decoding it', () => {
+        const read = vi.spyOn(PNG.sync, 'read');
+
+        expect(() => assertPngHeaderLimits(large, 20, 20)).not.toThrow();
+        expect(read).not.toHaveBeenCalled();
     });
 });
