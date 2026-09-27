@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.2.1"
     },
-    "sourceHash": "74ab3a6a2b0309af5f350a6557ac5dd0fd6ef5bba05ca308fa5d58c743abdf33",
+    "sourceHash": "fc5b2ca588115c1ba03ab48df0fee8779172f9d4057e64410d7f00cb0b8c8bfc",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -666,9 +666,18 @@ Schema: `codemap.v2`
                     "jsdoc": "Samples per pixel by IHDR colour type, as pngjs maps them; pngjs rejects any other type."
                 },
                 {
+                    "name": "PNG_BIT_DEPTHS",
+                    "kind": "const",
+                    "line": 79,
+                    "exported": false,
+                    "signature": "const PNG_BIT_DEPTHS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "ADAM7_PASSES",
                     "kind": "const",
-                    "line": 81,
+                    "line": 82,
                     "exported": false,
                     "signature": "const ADAM7_PASSES",
                     "members": null,
@@ -677,7 +686,7 @@ Schema: `codemap.v2`
                 {
                     "name": "declaredImageDataLength",
                     "kind": "function",
-                    "line": 95,
+                    "line": 96,
                     "exported": false,
                     "signature": "function declaredImageDataLength(width: number, height: number, bitsPerPixel: number, interlaced: boolean): number",
                     "members": null,
@@ -686,7 +695,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertCompleteImageData",
                     "kind": "function",
-                    "line": 116,
+                    "line": 121,
                     "exported": false,
                     "signature": "function assertCompleteImageData(buffer: Buffer): void",
                     "members": null,
@@ -695,7 +704,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertPngHeaderLimits",
                     "kind": "function",
-                    "line": 144,
+                    "line": 159,
                     "exported": true,
                     "signature": "export function assertPngHeaderLimits(buffer: Buffer, maxDimension: number, maxPixels: number): void",
                     "members": null,
@@ -704,7 +713,7 @@ Schema: `codemap.v2`
                 {
                     "name": "finalizeDecodedPng",
                     "kind": "function",
-                    "line": 164,
+                    "line": 179,
                     "exported": false,
                     "signature": "function finalizeDecodedPng(decoded: LoadedPng, throwErrorOnInvalidInputData: boolean): LoadedPng",
                     "members": null,
@@ -713,7 +722,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getPngData",
                     "kind": "function",
-                    "line": 175,
+                    "line": 190,
                     "exported": true,
                     "signature": "export function getPngData( pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean, maxDimension?: number, maxPixels?: number, inputBaseDir?: string, maxFileBytes?: number, ): LoadedPng",
                     "members": null,

@@ -265,3 +265,35 @@ describe('interlaced (Adam7) image data', () => {
         }
     });
 });
+
+describe('headers pngjs rejects before inflating', () => {
+    // 2048x2048 RGBA is within the default limits, so only the header check can keep this
+    // 16 MiB stream from being inflated. pngjs rejects each of these headers without inflating.
+    const bombData = deflateSync(Buffer.alloc(16 * 1024 * 1024));
+    const bomb = createPng(bombData, { width: 2048, height: 2048 });
+    // A tEXt chunk carrying IHDR-shaped data, so the fixed IHDR offsets read a plausible header.
+    const firstChunkNotIhdr = Buffer.concat([PNG_SIGNATURE, createChunk('tEXt', bomb.subarray(16, 29)), bomb.subarray(8)]);
+    const ihdrLengthNot13 = Buffer.from(bomb);
+    ihdrLengthNot13.writeUInt32BE(14, 8);
+
+    const headers = [
+        { name: 'no PNG signature', data: Buffer.concat([Buffer.alloc(8), bomb.subarray(8)]) },
+        { name: 'a first chunk that is not IHDR', data: firstChunkNotIhdr },
+        { name: 'an IHDR that is not 13 bytes', data: ihdrLengthNot13 },
+        { name: 'an invalid bit depth', data: createPng(bombData, { width: 2048, height: 2048, depth: 255 }) },
+        { name: 'a truncated header', data: bomb.subarray(0, 30) },
+    ];
+
+    it.each(headers)('rejects $name without inflating the image data', ({ data }) => {
+        const inflate = vi.spyOn(zlib, 'inflateSync');
+        syncBuiltinESMExports();
+        try {
+            expect(() => getPngData(data, true)).toThrow(new InvalidInputError('Invalid PNG input: the data could not be parsed'));
+            expect(getPngData(data, false)).toEqual({ kind: 'invalid', reason: 'decode' });
+            expect(inflate).not.toHaveBeenCalled();
+        } finally {
+            vi.restoreAllMocks();
+            syncBuiltinESMExports();
+        }
+    });
+});
