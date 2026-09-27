@@ -94,7 +94,7 @@ src/
   playwright.ts                   # side-effect-free entry: exports expect extended with toMatchPngSnapshot, plus pngMatchers
   defaults.ts                     # default option values and limits
   errors.ts                       # named error classes and ERR_* codes
-  getPngData.ts                   # reads file path or Buffer → LoadedPng
+  getPngData.ts                   # reads file path or Buffer → LoadedPng; IHDR-only limit check for Playwright baselines
   readValidatedFile.ts            # opens a file before validating it; enforces maxFileBytes
   extendImage.ts                  # pads a PNG canvas to a larger size
   fillImageSizeDifference.ts      # colours the padded region green (0,255,0)
@@ -105,7 +105,7 @@ src/
   validatePath.ts                 # assertPathSyntax / validatePathWithReal / validatePath: containment, symlink checks
   validatePixelmatchOptions.ts    # PixelmatchOptions validation
   adapters/                       # public-to-external library boundaries (toPixelmatchOptions)
-  internal/                       # assertSameFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
+  internal/                       # assertSameFile, assertPlainFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
   matchers/                       # framework-agnostic snapshot matcher core shared by vitest.mts/jest.ts/playwright.ts
   pipeline/                       # resolveOptions, loadSources, normalizeImages, runComparison, persistDiff
   ports/                          # sync/async filesystem adapters and test seams
@@ -114,6 +114,7 @@ src/
     index.ts                      # re-exports all types
     area.ts                       # Area (x1,y1,x2,y2 rectangle)
     color.ts                      # Color (r,g,b)
+    compare.input.ts              # ComparePngInput (string | Buffer; internal — not exported from src/index.ts)
     compare.options.ts            # ComparePngOptions, PixelmatchOptions
     png.data.ts                   # LoadedPng discriminated union
     validated-path.ts             # ValidatedPath branded type (internal — not re-exported from types/index.ts)
@@ -171,6 +172,8 @@ comparePng / comparePngAsync
     - `throwError=true` → throws an input/decode error
     - `throwError=false` → `{ kind: 'invalid', reason: 'type' | 'decode' }`
 
+The same module exports `assertPngHeaderLimits(buffer, maxDimension, maxPixels)` for internal use: the same `ResourceLimitError` checks from the IHDR alone, without decoding (`InvalidInputError` for a missing, truncated, repeated or zero-dimension header). The Playwright adapter uses it before writing a baseline.
+
 ### Pixel address formula
 
 All pixel operations use the same address formula:
@@ -189,6 +192,7 @@ All types live in `src/types/`, one file per type, collected in `src/types/index
 | Type                | Exported publicly | Purpose                                                              |
 | ------------------- | ----------------- | -------------------------------------------------------------------- |
 | `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left)     |
+| `ComparePngInput`   | no                | `string \| Buffer` input of `comparePng` / `comparePngAsync`         |
 | `ComparePngOptions` | yes               | Options bag for `comparePng`                                         |
 | `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                     |
 | `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                         |
@@ -251,7 +255,7 @@ Current coverage is 100% across all source files.
 - **No shared test helper modules** — each test file is self-contained; common PNG fixtures live in `test-data/actual/` and `test-data/expected/`.
 - **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense`. Enforced by `npm run test:license` (runs as part of `npm run test`).
 - **`throwErrorOnInvalidInputData` defaults to `true`**. Set to `false` only when intentionally comparing against a missing/invalid file (treated as a zero-size PNG). An error is **always** thrown when **both** inputs are invalid, regardless of this flag.
-- **Diff file is never written when `pixelmatchResult === 0`**, even if `diffFilePath` is provided — avoids creating empty/misleading diff artifacts.
+- **Diff file is never written when `mismatchedPixels === 0`** (`getPersistableDiff` in `src/pipeline/persistDiff.ts`), even if `diffFilePath` is provided — avoids creating empty/misleading diff artifacts.
 - **Excluded areas are painted on both images** before comparison — they will always match. Default is blue `{ r: 0, g: 0, b: 255 }`, override via `excludedAreaColor`. Coordinates are clamped to image bounds inside `addColoredAreasToImage`.
 - **Size difference region is painted on the extended canvas**. Default is green `{ r: 0, g: 255, b: 0 }`, override via `extendedAreaColor`. The padded area intentionally always counts as a difference.
 - **TypeScript config split**: `tsconfig.json` is the dev-wide no-emit config; `tsconfig.prod.json` is the emitted package-build config.
