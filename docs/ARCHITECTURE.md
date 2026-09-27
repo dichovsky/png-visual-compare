@@ -176,6 +176,7 @@ Key behavior:
 - string paths are read through `readValidatedFileSync` / `readValidatedFile` (see below), never with a bare `readFile`
 - file-backed PNGs are capped by `maxFileBytes` before any bytes are read, then pre-screened with IHDR dimension peeking before decode
 - all PNG sources are scanned for duplicate IHDR chunks before decode, so a later header cannot override the dimensions checked by the resource limits
+- non-interlaced image data is inflated with `node:zlib` before decode and must be exactly the size the IHDR declares: pngjs 7's sync inflate misses zlib errors and returns its uninitialised output buffer for a short stream
 - zero-dimension decoded PNGs are explicitly rejected
 - `assertPngHeaderLimits` (internal, not in `src/index.ts`) applies the same limits, with the same `ResourceLimitError` messages, from the signature and IHDR alone; it throws `InvalidInputError` for a missing, truncated, repeated or zero-dimension header. The Playwright adapter calls it before writing a baseline instead of decoding the image
 - malformed `Buffer`s are handled separately from malformed file paths

@@ -430,6 +430,10 @@ The default is 135,266,304 bytes (129 MiB): the raw size of a 16-bit RGBA image 
 
 When `inputBaseDir` is set, containment is checked before the byte cap. The cap's error names an exact size and is not recoverable, so checking it first would disclose the size and existence of a file outside the boundary. A path outside the boundary always fails as a `PathValidationError`, before the file is even opened.
 
+### Corrupt image data
+
+`pngjs` 7 does not notice when a non-interlaced PNG's compressed image data is truncated, invalid or too short. It returns its output buffer, which Node allocates without zeroing, so the decoded pixels would hold leftover process memory. Before decoding, the library inflates that data itself and requires exactly the number of bytes the header declares. Anything else, including a failed Adler-32 checksum, is an `InvalidInputError`, recoverable with `throwErrorOnInvalidInputData: false` like any other undecodable input. The cost is a second inflate of each non-interlaced image.
+
 ### Path containment
 
 `inputBaseDir` and `diffOutputBaseDir` confine reads and writes to a directory, enforced after symlink resolution. Both are unset by default, in which case no boundary exists and none of the checks below run.

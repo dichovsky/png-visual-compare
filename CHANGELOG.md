@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **Corrupt PNG image data no longer decodes to leftover process memory** — pngjs 7.0.0's
+  synchronous decoder misses zlib errors and misreads zlib's progress counters. For a
+  non-interlaced PNG whose image data (IDAT) is a truncated, invalid or short zlib stream,
+  it returned its whole output buffer, which Node allocates without zeroing, so the
+  decoded pixels held whatever that memory held before. The same file compared
+  differently from run to run: a mismatch count of 0, some other number, or
+  `InvalidInputError`. In a heap-canary test on Node 22.12, bytes from freed buffers
+  reached the mismatch count and, blended into the grey background, the diff PNG written
+  to `diffFilePath`. Jest and Vitest baselines store the received bytes, not decoded
+  pixels, so none contain that memory, but such a PNG could pass validation and be
+  stored as a baseline. The library now inflates the image data with `node:zlib` before
+  decoding and requires exactly the byte count the header declares. Anything else is an
+  `InvalidInputError`, recoverable with `throwErrorOnInvalidInputData: false` like any
+  other undecodable input. That includes a failed Adler-32 checksum, which pngjs
+  accepted. Interlaced PNGs were not affected. A non-interlaced image is now inflated
+  twice, which adds about 25–45% to its decode time (about 6 ms for the 1500×600 fixture).
+
 ## [7.2.0] - 2026-09-27
 
 ### Security

@@ -1,3 +1,4 @@
+import { inflateSync } from 'node:zlib';
 import { PNG } from 'pngjs';
 import { InvalidInputError, PathValidationError, ResourceLimitError } from './errors';
 import { readValidatedFileSync } from './readValidatedFile';
@@ -69,6 +70,36 @@ function assertSinglePngHeader(buffer: Buffer): void {
             if (hasHeader) throw new Error('Duplicate PNG IHDR chunk');
             hasHeader = true;
         }
+    }
+}
+
+const IDAT_CHUNK_TYPE = 0x49444154; // "IDAT"
+/** Samples per pixel by IHDR colour type, as pngjs maps them; pngjs rejects any other type. */
+const CHANNELS_BY_COLOR_TYPE: Partial<Record<number, number>> = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 };
+
+/**
+ * pngjs 7's sync inflate ignores zlib errors and misreads zlib's progress counters, so when a
+ * non-interlaced IDAT stream is corrupt or short it returns its whole `Buffer.allocUnsafe`
+ * output buffer, and recycled heap memory decodes as pixels. Inflate the stream here first and
+ * require exactly the byte count the header declares. The output limit bounds the work to the
+ * size pngjs would allocate anyway. Interlaced data is left to pngjs, which inflates it with
+ * `node:zlib` and so throws on a bad stream.
+ */
+function assertCompleteImageData(buffer: Buffer): void {
+    const channels = CHANNELS_BY_COLOR_TYPE[buffer[25]];
+    if (channels === undefined || buffer[28] !== 0) return;
+
+    const bitsPerRow = buffer.readUInt32BE(16) * channels * buffer[24];
+    const expectedLength = buffer.readUInt32BE(20) * (Math.ceil(bitsPerRow / 8) + 1);
+    const imageData: Buffer[] = [];
+    for (let offset = PNG_SIGNATURE.length; offset + 8 <= buffer.length; offset += buffer.readUInt32BE(offset) + 12) {
+        if (buffer.readUInt32BE(offset + 4) === IDAT_CHUNK_TYPE) {
+            imageData.push(buffer.subarray(offset + 8, offset + 8 + buffer.readUInt32BE(offset)));
+        }
+    }
+
+    if (inflateSync(Buffer.concat(imageData), { maxOutputLength: expectedLength + 1 }).length !== expectedLength) {
+        throw new Error('PNG image data does not match the declared size');
     }
 }
 
@@ -147,6 +178,7 @@ export function getPngData(
 
         try {
             assertSinglePngHeader(fileBuffer);
+            assertCompleteImageData(fileBuffer);
             return finalizeDecodedPng({ kind: 'valid', png: PNG.sync.read(fileBuffer) }, throwErrorOnInvalidInputData);
         } catch (error) {
             if (throwErrorOnInvalidInputData) {
@@ -167,6 +199,7 @@ export function getPngData(
 
         try {
             assertSinglePngHeader(pngSource);
+            assertCompleteImageData(pngSource);
             return finalizeDecodedPng({ kind: 'valid', png: PNG.sync.read(pngSource) }, throwErrorOnInvalidInputData);
         } catch (error) {
             if (throwErrorOnInvalidInputData) {
