@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   correctly but dropped npm's error text from their failure messages; that text is back. CI
   runs the checks without `-s`, so no release was affected.
 
+### Changed
+
+- **Docs** — the README's Security Model no longer says every path outside `inputBaseDir`
+  fails before the file is opened. That holds for a path lexically outside the boundary. One
+  that escapes only through a symlink is opened first and refused with `PathValidationError`
+  once its real path resolves outside, before the byte cap and before any byte is read. The
+  behaviour is unchanged.
+
 ## [7.2.0] - 2026-09-27
 
 ### Security
