@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
@@ -146,6 +147,36 @@ describe('readValidatedFile', () => {
         test('reads the file validation approved asynchronously', async () => {
             expect((await readValidatedFile(viaLink(), baseDir)).toString()).toBe('lexical target');
             expect((await readValidatedFile(viaLink())).toString()).toBe('lexical target');
+        });
+    });
+
+    describe('a FIFO planted inside the base directory (SECU-14)', () => {
+        // A blocking open of a FIFO waits for a writer that never comes. The short
+        // timeouts make a regression show up as a timeout rather than a hung run.
+        const fifo = path.join(baseDir, 'pipe.png');
+
+        beforeEach(() => {
+            execFileSync('mkfifo', [fifo]);
+        });
+
+        test('is refused instead of blocking the read', { timeout: 2000 }, () => {
+            expect(() => readValidatedFileSync(fifo, baseDir)).toThrow(PathValidationError);
+            expect(() => readValidatedFileSync(fifo, baseDir)).toThrow(/not a regular file/);
+        });
+
+        test('is refused asynchronously instead of blocking the read', { timeout: 2000 }, async () => {
+            await expect(readValidatedFile(fifo, baseDir)).rejects.toThrow(PathValidationError);
+            await expect(readValidatedFile(fifo, baseDir)).rejects.toThrow(/not a regular file/);
+        });
+
+        test('reports containment, not the file kind, for a symlink to a FIFO outside the boundary', { timeout: 2000 }, async () => {
+            const outsideFifo = path.join(rootDir, 'outside-pipe.png');
+            execFileSync('mkfifo', [outsideFifo]);
+            const linkPath = path.join(baseDir, 'escape.png');
+            symlinkSync(outsideFifo, linkPath);
+
+            expect(() => readValidatedFileSync(linkPath, baseDir)).toThrow(/Path traversal detected/);
+            await expect(readValidatedFile(linkPath, baseDir)).rejects.toThrow(/Path traversal detected/);
         });
     });
 });

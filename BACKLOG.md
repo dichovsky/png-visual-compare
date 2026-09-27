@@ -8,8 +8,6 @@
 
 ## 🔒 Security
 
-- [ ] 🟡 🐛 SECU [SECU-13]: Hard link inside a base dir defeats containment — it is the same inode, so the identity checks pass and a diff write overwrites the linked file; consider refusing `nlink > 1` on overwrite (documented in README → What is not covered; 7.0.0 audit)
-- [ ] 🟡 🐛 SECU [SECU-14]: FIFO/special file inside a boundary blocks the open — reads and diff writes open without `O_NONBLOCK`; add it and refuse a non-regular `fstat` when a base dir is set (7.0.0 audit)
 - [ ] 🟢 🐛 SECU [SECU-08]: Cap path length in `validatePath` (4096)
 
 ## ⚡ Performance

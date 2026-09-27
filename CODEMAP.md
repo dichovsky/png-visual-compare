@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.1.0"
     },
-    "sourceHash": "39e7e282becef87305c4dee6ce7e097fa735fedcd39253f584a92482426bb2e2",
+    "sourceHash": "6047fbaaf1ffa883aec12a3b1a09f62f39940b3e3a9c324927d7ced502addfdf",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -57,7 +57,7 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 121,
+            "line": 125,
             "signature": "export class ComparisonError extends Error",
             "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
             "typeOnly": false
@@ -137,9 +137,9 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 54,
+            "line": 58,
             "signature": "export class PathValidationError extends Error",
-            "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…",
+            "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths - A FIFO or device inside a base directory, on reads and diff writes, refused instead of blocking the call - A diff file under `diffOutputBaseDir` that has more than one hard link, refused before it is truncated or written @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…",
             "typeOnly": false
         },
         {
@@ -157,7 +157,7 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 88,
+            "line": 92,
             "signature": "export class ResourceLimitError extends Error",
             "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…",
             "typeOnly": false
@@ -494,39 +494,39 @@ Schema: `codemap.v2`
                 {
                     "name": "PathValidationError",
                     "kind": "class",
-                    "line": 54,
+                    "line": 58,
                     "exported": true,
                     "signature": "export class PathValidationError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 55
+                            "line": 59
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 57
+                            "line": 61
                         }
                     ],
-                    "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…"
+                    "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths - A FIFO or device inside a base directory, on reads and diff writes, refused instead of blocking the call - A diff file under `diffOutputBaseDir` that has more than one hard link, refused before it is truncated or written @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…"
                 },
                 {
                     "name": "ResourceLimitError",
                     "kind": "class",
-                    "line": 88,
+                    "line": 92,
                     "exported": true,
                     "signature": "export class ResourceLimitError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 89
+                            "line": 93
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 91
+                            "line": 95
                         }
                     ],
                     "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…"
@@ -534,19 +534,19 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonError",
                     "kind": "class",
-                    "line": 121,
+                    "line": 125,
                     "exported": true,
                     "signature": "export class ComparisonError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 122
+                            "line": 126
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 124
+                            "line": 128
                         }
                     ],
                     "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
@@ -750,6 +750,42 @@ Schema: `codemap.v2`
                     "typeOnly": true
                 }
             ]
+        },
+        {
+            "path": "src/internal/assertPlainFile.ts",
+            "symbols": [
+                {
+                    "name": "notRegularFileError",
+                    "kind": "function",
+                    "line": 10,
+                    "exported": true,
+                    "signature": "export function notRegularFileError(subject: string): PathValidationError",
+                    "members": null,
+                    "jsdoc": "The refusal for a special file inside a boundary (SECU-14), shared by the post-open and by writers whose non-blocking open of a FIFO with no reader fails with `ENXIO` before there is a handle to check."
+                },
+                {
+                    "name": "assertRegularFile",
+                    "kind": "function",
+                    "line": 26,
+                    "exported": true,
+                    "signature": "export function assertRegularFile(opened: { isFile(): boolean }, subject: string): void",
+                    "members": null,
+                    "jsdoc": "Asserts that an opened handle refers to a regular file (SECU-14)."
+                },
+                {
+                    "name": "assertSingleLink",
+                    "kind": "function",
+                    "line": 45,
+                    "exported": true,
+                    "signature": "export function assertSingleLink(opened: { readonly nlink: bigint }, subject: string): void",
+                    "members": null,
+                    "jsdoc": "Asserts that an opened file has no other name than the one being written (SECU-13)."
+                }
+            ],
+            "imports": [
+                "../errors"
+            ],
+            "reExports": []
         },
         {
             "path": "src/internal/assertSameFile.ts",
@@ -1837,34 +1873,43 @@ Schema: `codemap.v2`
                 {
                     "name": "OPEN_FLAGS",
                     "kind": "const",
-                    "line": 13,
+                    "line": 14,
                     "exported": false,
                     "signature": "const OPEN_FLAGS",
                     "members": null,
                     "jsdoc": null
                 },
                 {
+                    "name": "BOUNDED_OPEN_FLAGS",
+                    "kind": "const",
+                    "line": 20,
+                    "exported": false,
+                    "signature": "const BOUNDED_OPEN_FLAGS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 24,
+                    "line": 31,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
                     "jsdoc": null
                 },
                 {
-                    "name": "asSymlinkRefusal",
+                    "name": "asOpenRefusal",
                     "kind": "function",
-                    "line": 26,
+                    "line": 33,
                     "exported": false,
-                    "signature": "function asSymlinkRefusal(error: unknown): unknown",
+                    "signature": "function asOpenRefusal(error: unknown, baseDir: string | undefined): unknown",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "fsAsyncDiffWriter",
                     "kind": "const",
-                    "line": 33,
+                    "line": 44,
                     "exported": true,
                     "signature": "export const fsAsyncDiffWriter: AsyncDiffWriterPort = { async write(path, data, baseDir) { const directory = dirname(path); await secureMkdir(directory, baseDir); const target = baseDir === undefined …",
                     "members": null,
@@ -1873,6 +1918,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../errors",
+                "../internal/assertPlainFile",
                 "../internal/assertSameFile",
                 "../internal/realDiffDirectory",
                 "../internal/secureMkdir",
@@ -1911,34 +1957,43 @@ Schema: `codemap.v2`
                 {
                     "name": "OPEN_FLAGS",
                     "kind": "const",
-                    "line": 12,
+                    "line": 13,
                     "exported": false,
                     "signature": "const OPEN_FLAGS",
                     "members": null,
                     "jsdoc": null
                 },
                 {
+                    "name": "BOUNDED_OPEN_FLAGS",
+                    "kind": "const",
+                    "line": 19,
+                    "exported": false,
+                    "signature": "const BOUNDED_OPEN_FLAGS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "DIFF_FILE_MODE",
                     "kind": "const",
-                    "line": 23,
+                    "line": 30,
                     "exported": false,
                     "signature": "const DIFF_FILE_MODE = 0o600",
                     "members": null,
                     "jsdoc": null
                 },
                 {
-                    "name": "asSymlinkRefusal",
+                    "name": "asOpenRefusal",
                     "kind": "function",
-                    "line": 25,
+                    "line": 32,
                     "exported": false,
-                    "signature": "function asSymlinkRefusal(error: unknown): unknown",
+                    "signature": "function asOpenRefusal(error: unknown, baseDir: string | undefined): unknown",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "fsDiffWriter",
                     "kind": "const",
-                    "line": 32,
+                    "line": 43,
                     "exported": true,
                     "signature": "export const fsDiffWriter: DiffWriterPort = { write(path, data, baseDir) { const directory = dirname(path); secureMkdirSync(directory, baseDir); const target = baseDir === undefined ? path : resolve(r…",
                     "members": null,
@@ -1947,6 +2002,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "../errors",
+                "../internal/assertPlainFile",
                 "../internal/assertSameFile",
                 "../internal/realDiffDirectory",
                 "../internal/secureMkdir",
@@ -2056,16 +2112,25 @@ Schema: `codemap.v2`
                 {
                     "name": "READ_CHUNK_BYTES",
                     "kind": "const",
-                    "line": 11,
+                    "line": 12,
                     "exported": false,
                     "signature": "const READ_CHUNK_BYTES",
                     "members": null,
                     "jsdoc": "Read size once the stat size hint is used up (a growing file, a FIFO, a device)."
                 },
                 {
+                    "name": "openFlags",
+                    "kind": "function",
+                    "line": 21,
+                    "exported": false,
+                    "signature": "function openFlags(inputBaseDir: string | undefined): number",
+                    "members": null,
+                    "jsdoc": "With a boundary set, the open must not block: a read-open of a FIFO waits for a writer, which a FIFO planted inside the boundary never gets (SECU-14). `O_NONBLOCK` returns at once and refuses the handle; it changes nothing for a regular file. Without a boundary the blocking open is kept, so a caller can still pass a pipe on purpose."
+                },
+                {
                     "name": "hasByteCap",
                     "kind": "function",
-                    "line": 13,
+                    "line": 25,
                     "exported": false,
                     "signature": "function hasByteCap(maxFileBytes: number | undefined): maxFileBytes is number",
                     "members": null,
@@ -2074,7 +2139,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertWithinByteCap",
                     "kind": "function",
-                    "line": 17,
+                    "line": 29,
                     "exported": false,
                     "signature": "function assertWithinByteCap(size: bigint, maxFileBytes: number | undefined): void",
                     "members": null,
@@ -2083,7 +2148,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readCappedSync",
                     "kind": "function",
-                    "line": 37,
+                    "line": 49,
                     "exported": false,
                     "signature": "function readCappedSync(fd: number, sizeHint: bigint, maxFileBytes: number): Buffer",
                     "members": null,
@@ -2092,7 +2157,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readCapped",
                     "kind": "function",
-                    "line": 55,
+                    "line": 67,
                     "exported": false,
                     "signature": "async function readCapped(handle: FileHandle, sizeHint: bigint, maxFileBytes: number): Promise<Buffer>",
                     "members": null,
@@ -2101,7 +2166,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readValidatedFileSync",
                     "kind": "function",
-                    "line": 110,
+                    "line": 126,
                     "exported": true,
                     "signature": "export function readValidatedFileSync(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Buffer",
                     "members": null,
@@ -2110,7 +2175,7 @@ Schema: `codemap.v2`
                 {
                     "name": "readValidatedFile",
                     "kind": "function",
-                    "line": 144,
+                    "line": 161,
                     "exported": true,
                     "signature": "export async function readValidatedFile(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Promise<Buffer>",
                     "members": null,
@@ -2119,6 +2184,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "./errors",
+                "./internal/assertPlainFile",
                 "./internal/assertSameFile",
                 "./validatePath",
                 "node:buffer",
