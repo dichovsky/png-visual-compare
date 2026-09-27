@@ -13,6 +13,7 @@ npm run test:unit      # unit-test gate: clean → codemap:check → lint → fo
 npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder and the png-visual-compare/playwright matcher
 npm run test           # full test suite: repo-wide unit coverage gate plus Playwright e2e tests
 npm run test:license   # check all production dependency licenses are in the approved list
+npm run test:consumer-types  # build, pack, and type-check every entry point from a fresh consumer (skipLibCheck: false, no @types/pngjs); CI job, not in npm test
 npm run codemap        # regenerate CODEMAP.md via scripts/generate-codemap.mjs
 npm run codemap:check  # fail if CODEMAP.md is stale (runs inside pretest:unit)
 npm run format         # format files with Prettier

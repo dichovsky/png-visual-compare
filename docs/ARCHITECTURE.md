@@ -46,7 +46,6 @@ comparePng / comparePngAsync
 - `Color`
 - `ComparePngOptions`
 - `PixelmatchOptions`
-- `LoadedPng` — deprecated alias of the internal type in `src/pipeline/types.ts`; removed in 8.0.0 (TYPE-06)
 
 ### Subpath exports
 
@@ -325,6 +324,7 @@ The ports isolate file I/O from orchestration so tests can validate decision log
 - `npm run build` emits the published package via `tsconfig.prod.json`
 - package export surface is `"."` plus the `"./vitest"`, `"./jest"`, and `"./playwright"` matcher subpaths (`sideEffects` lists `./out/vitest.mjs` and `./out/jest.js`; the Playwright entry has none)
 - only `out/` is published to npm
+- the entry points' declarations must not reach `pngjs` types (a consumer without `@types/pngjs` would get TS7016 under `skipLibCheck: false`); `npm run test:consumer-types` builds, packs, installs the tarball into a fresh project without `@types/pngjs`, and type-checks every entry point (`strict`, `skipLibCheck: false`) under `moduleResolution` `node16` and `bundler`. CI runs it as the `consumer-types` job, not as part of `npm test`
 - `npm run codemap` regenerates `CODEMAP.md` from the current source tree and package metadata
 
 ## Agent-relevant invariants

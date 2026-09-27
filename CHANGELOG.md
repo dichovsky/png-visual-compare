@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- **BREAKING: `LoadedPng` type export** — deprecated in 7.1.0 because no public API returns
+  or accepts one. With it gone, no entry point's declarations reach `pngjs` types, so
+  type-checking with `skipLibCheck: false` and no `@types/pngjs` no longer reports
+  `TS7016`. Migration: delete any `import type { LoadedPng } from 'png-visual-compare'`
+  (TYPE-06).
+
+### Changed
+
+- **CI** — a new `consumer-types` job in `test.yml` runs `npm run test:consumer-types`:
+  it installs the packed tarball into a fresh project without `@types/pngjs` and
+  type-checks every entry point (`strict`, `skipLibCheck: false`) under
+  `moduleResolution` `node16` and `bundler`, so declarations that reach `pngjs` again
+  fail CI (TYPE-06).
+
 ## [7.2.0] - 2026-09-27
 
 ### Security

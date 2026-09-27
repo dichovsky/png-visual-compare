@@ -24,6 +24,7 @@ Development and local tooling are supported on macOS and Linux only. Windows is 
 | `npm run format:check`                | Check formatting without writing changes                                                                     |
 | `npm run build`                       | Compile TypeScript to `./out` using `tsconfig.prod.json`                                                     |
 | `npm run typecheck`                   | Typecheck the full repository with the dev `tsconfig.json`                                                   |
+| `npm run test:consumer-types`         | Type-check the packed tarball from a fresh consumer without `@types/pngjs` (CI `consumer-types` job)         |
 | `npm run codemap`                     | Regenerate `CODEMAP.md` for coding agents                                                                    |
 | `npm run tool:excluded-areas-builder` | Open the Excluded Areas Builder tool in the browser                                                          |
 
