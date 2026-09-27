@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`npm run -s release:check:pre` no longer fails a version that is not yet published** —
+  `-s` passes `npm_config_loglevel=silent` on to the script, so the `npm view` it spawns
+  printed no error, `version-not-published` found no `E404`, and the check failed with
+  "Could not verify npm publish status … unknown error". The release scripts now pass
+  `--loglevel=error` to every npm command they run, which outranks an inherited or `.npmrc`
+  loglevel. Under `-s`, `release:check:post` and `scripts/install-smoke.mjs` passed and failed
+  correctly but dropped npm's error text from their failure messages; that text is back. CI
+  runs the checks without `-s`, so no release was affected.
+
 ## [7.2.0] - 2026-09-27
 
 ### Security
