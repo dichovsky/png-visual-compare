@@ -80,11 +80,12 @@ jobs:
                   node-version: ${{ needs.verify.outputs.node-version }}
                   registry-url: 'https://registry.npmjs.org'
             # Only upgrade when the runner's npm is below the Trusted Publishing
-            # floor. Installing npm@latest unconditionally couples this job to
-            # whatever Node range the newest npm demands: npm@12 requires Node
-            # ^22.22.2 || ^24.15.0 || >=26.0.0 and hard-fails EBADENGINE against
-            # the Node pinned in .nvmrc, even though the preinstalled npm
-            # already satisfies 11.5.1.
+            # floor, and then only within 11.x. This job needs npm >= 11.5.1 and
+            # nothing newer. `npm install -g npm@latest` refuses with EBADENGINE
+            # when the running Node is outside the new npm's engines range, so
+            # tracking @latest would let a future npm major that drops the Node
+            # resolved from .nvmrc break publishing. The .nvmrc Node satisfies
+            # today's npm@latest; the floor is about the next one.
             - name: Ensure npm supports Trusted Publishing (>= 11.5.1)
               run: |
                   current="$(npm --version)"
