@@ -36,8 +36,11 @@ function record(ok, checkName, detail) {
     results.push({ ok, name: checkName, detail });
 }
 
+// The checks read npm's error text from stderr. `npm run -s` (or a loglevel in
+// .npmrc) exports npm_config_loglevel=silent to this process, which would blank
+// that stderr; a CLI flag outranks every other config source.
 function npm(args) {
-    return spawnSync('npm', args, { encoding: 'utf8' });
+    return spawnSync('npm', [...args, '--loglevel=error'], { encoding: 'utf8' });
 }
 
 // 1. Version must not already be published on npm.

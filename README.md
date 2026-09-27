@@ -428,7 +428,7 @@ The default is 135,266,304 bytes (129 MiB): the raw size of a 16-bit RGBA image 
 
 `maxFileBytes` applies only to path inputs. A `Buffer` you pass in is already in memory, and `maxPixels` still bounds its decode.
 
-When `inputBaseDir` is set, containment is checked before the byte cap. The cap's error names an exact size and is not recoverable, so checking it first would disclose the size and existence of a file outside the boundary. A path outside the boundary always fails as a `PathValidationError`, before the file is even opened.
+When `inputBaseDir` is set, containment is checked before the byte cap. The cap's error names an exact size and is not recoverable, so checking it first would disclose the size and existence of a file outside the boundary. A path that is lexically outside the boundary fails as a `PathValidationError` before the file is opened. A path inside it that escapes only through a symlink is opened first, to pin the file that containment then checks, and fails as a `PathValidationError` once its real path resolves outside — still before the byte cap, and before a single byte is read. If that symlink's target cannot be opened at all, the call fails the way an unreadable file inside the boundary does.
 
 ### Path containment
 

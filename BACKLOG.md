@@ -9,6 +9,7 @@
 ## 🔒 Security
 
 - [ ] 🟢 🐛 SECU [SECU-08]: Cap path length in `validatePath` (4096)
+- [ ] 🟢 🐛 SECU [SECU-15]: A symlink planted inside `inputBaseDir` reveals whether its outside target exists — `readValidatedFile` opens before the realpath check, so an escaping link to an existing file fails with `PathValidationError` but a dangling one with the generic `InvalidInputError`; check realpath containment before opening a symlink, or map open errors on escaping paths to `PathValidationError` (needs write access inside the boundary; found post-7.2.0)
 
 ## ⚡ Performance
 

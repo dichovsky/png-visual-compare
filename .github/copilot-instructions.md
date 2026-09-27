@@ -194,11 +194,15 @@ All types live in `src/types/`, one file per type, collected in `src/types/index
 | `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left)     |
 | `ComparePngInput`   | no                | `string \| Buffer` input of `comparePng` / `comparePngAsync`         |
 | `ComparePngOptions` | yes               | Options bag for `comparePng`                                         |
-| `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                     |
+| `PixelmatchOptions` | yes               | Translated by `toPixelmatchOptions` to the vendored pixelmatch shape |
 | `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                         |
 | `LoadedPng`         | yes               | Discriminated decoded-image result union used by loaders and helpers |
 
 `Color` and `LoadedPng` are part of the public type surface via `src/index.ts`.
+
+`PixelmatchOptions` is not passed through as-is: `resolveOptions` validates it, then
+`src/adapters/toPixelmatchOptions.ts` copies each known key into the options shape of the
+vendored `src/vendor/pixelmatch.ts`, so an unknown key never reaches pixelmatch (TYPE-03).
 
 ---
 
@@ -266,11 +270,11 @@ Current coverage is 100% across all source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches) and on every pull request
 
-| Job           | OS            | Node                                               | Gates merges                     |
-| ------------- | ------------- | -------------------------------------------------- | -------------------------------- |
-| ubuntu        | ubuntu-latest | from `.nvmrc` (Node `24`)                          | yes                              |
-| macos         | macos-latest  | from `.nvmrc` (Node `24`)                          | no — `continue-on-error`         |
-| engines-floor | ubuntu-latest | `.nvmrc` to build, then `22.12.0` (`engines.node`) | no — not a required status check |
+| Job           | OS            | Node                                               | Gates merges             |
+| ------------- | ------------- | -------------------------------------------------- | ------------------------ |
+| ubuntu        | ubuntu-latest | from `.nvmrc` (Node `24`)                          | yes                      |
+| macos         | macos-latest  | from `.nvmrc` (Node `24`)                          | no — `continue-on-error` |
+| engines-floor | ubuntu-latest | `.nvmrc` to build, then `22.12.0` (`engines.node`) | yes                      |
 
 `ubuntu` and `macos` run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`;
 macOS omits that flag, which installs Linux system packages and does not apply there.
@@ -328,10 +332,18 @@ requests `id-token: write` and the trusted publisher must be configured on npmjs
 Trusted Publishing) for org `dichovsky`, repo `png-visual-compare`, workflow `publish.yml`, no
 environment.
 
-Both workflows pin every action (`actions/checkout`, `actions/setup-node`, and in `publish.yml`
-`actions/upload-artifact` / `actions/download-artifact`) by commit SHA with a `# vX.Y.Z` comment,
-and take their Node version from `.nvmrc`; the `publish` job reuses the exact Node version
+Every workflow pins every action it uses (`actions/checkout`, `actions/setup-node`, and in `publish.yml`
+`actions/upload-artifact` / `actions/download-artifact`) by commit SHA with a `# vX.Y.Z` comment.
+`test.yml` and `publish.yml` take their Node version from `.nvmrc`; the `publish` job reuses the exact Node version
 `verify` resolved, and `engines-floor` switches to `22.12.0` after packing.
+
+### `lint-workflows.yml` — same triggers as `test.yml`
+
+One `workflow-lint` job: it downloads the actionlint release pinned in `ACTIONLINT_VERSION`,
+checks the linux_amd64 tarball against `ACTIONLINT_SHA256` (that file's line in the release's
+`actionlint_<version>_checksums.txt`), and runs actionlint over `.github/workflows`. The runner's
+preinstalled shellcheck lints every `run:` script; a local actionlint run without shellcheck on
+`PATH` skips that rule silently. Change the version and the hash together.
 
 ---
 

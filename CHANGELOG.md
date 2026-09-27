@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`npm run -s release:check:pre` no longer fails a version that is not yet published** —
+  `-s` passes `npm_config_loglevel=silent` on to the script, so the `npm view` it spawns
+  printed no error, `version-not-published` found no `E404`, and the check failed with
+  "Could not verify npm publish status … unknown error". The release scripts now pass
+  `--loglevel=error` to every npm command they run, which outranks an inherited or `.npmrc`
+  loglevel. Under `-s`, `release:check:post` and `scripts/install-smoke.mjs` passed and failed
+  correctly but dropped npm's error text from their failure messages; that text is back. CI
+  runs the checks without `-s`, so no release was affected.
+
+### Changed
+
+- **Docs** — the README's Security Model no longer says every path outside `inputBaseDir`
+  fails before the file is opened. That holds for a path lexically outside the boundary. One
+  that escapes only through a symlink is opened first and refused with `PathValidationError`
+  once its real path resolves outside, before the byte cap and before any byte is read. The
+  behaviour is unchanged.
+- **Docs** — `.github/copilot-instructions.md` no longer says `PixelmatchOptions` is forwarded
+  verbatim to pixelmatch. Since TYPE-03 it is validated and then translated key by key into the
+  vendored pixelmatch's options by `src/adapters/toPixelmatchOptions.ts`.
+- **CI** — a new `lint-workflows.yml` workflow runs actionlint over `.github/workflows` on every
+  push (except `release/*` branches) and pull request. It downloads actionlint 1.7.12 and checks
+  the tarball against the sha256 published in that release's checksums file before running it.
+  The runner's shellcheck lints each `run:` script too.
+
 ## [7.2.0] - 2026-09-27
 
 ### Security

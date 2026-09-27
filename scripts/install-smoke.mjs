@@ -54,7 +54,9 @@ const dir = mkdtempSync(path.join(tmpdir(), 'pvc-smoke-'));
 let status = 1;
 try {
     writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'pvc-smoke', version: '0.0.0', private: true }));
-    const install = spawnSync('npm', ['install', '--no-audit', '--no-fund', '--engine-strict', installSpec], {
+    // --loglevel=error: the failure message below quotes npm's stderr, which an inherited
+    // npm_config_loglevel=silent (`npm run -s release:check:post`) would otherwise blank.
+    const install = spawnSync('npm', ['install', '--no-audit', '--no-fund', '--engine-strict', '--loglevel=error', installSpec], {
         cwd: dir,
         encoding: 'utf8',
     });
