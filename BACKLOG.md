@@ -18,11 +18,9 @@
 - [ ] 🟡 ♻️ PERF [PERF-05]: PNG snapshot serialization → base64
 - [ ] 🟢 ♻️ PERF [PERF-06]: `extendImage` padding double-write
 - [ ] 🟢 ♻️ PERF [PERF-07]: `validateArea` allocation-free
-- [ ] 🟢 ♻️ PERF [PERF-08]: Playwright baseline writes fully decode the PNG to check limits — export an IHDR-only `assertImageLimits` from `getPngData`
 
 ## 🏛️ Architecture · Types · API · Reliability
 
-- [ ] 🔴 🐛 RELI [RELI-12]: Jest 30.5+ `retryTimes` false green — the matcher bumps `snapshotState._counters` directly, which `clear(testIdentity)` does not roll back, so the retry resolves `<name> 2`, writes it and passes; route through `_bumpCounter` / `_markKeyChecked` / `_addSnapshot` / `_incrementSnapshotCount` with the test identity
 - [ ] 🟡 ♻️ ARCH [ARCH-02]: Split `getPngData` → `decodePngBuffer` + `loadPngFromPath`
 - [ ] 🟡 ♻️ ARCH [ARCH-03]: `comparePngAsyncWithPorts` for injection symmetry
 - [ ] 🟡 ♻️ ARCH [ARCH-09]: Unify image-loading module — fuse `getPngData` + `validateImageSourceLoad` + `fs(Async)ImageSource` policy; seam at read primitive only (supersedes ARCH-02 + ARCH-06)
@@ -47,8 +45,6 @@
 - [ ] 🟢 📦 API [API-03]: In-memory diff buffer (no disk round-trip)
 - [ ] 🟢 📦 API [API-04]: Accept `string|URL` for path options
 - [ ] 🟢 📦 API [API-05]: `comparePngWithResult` verbose return shape
-- [ ] 🟢 🐛 API [API-06]: `toMatchPngSnapshot(undefined, options)` is rejected despite matching the declared overload
-- [ ] 🟢 🐛 RELI [RELI-13]: Jest 30 `test.failing` + `-u` overwrites the baseline with the known-bad image (`context.testFailing` is never read)
 
 ## 🧪 Tests & QA
 

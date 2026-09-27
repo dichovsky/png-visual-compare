@@ -8,8 +8,10 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { expect as baseExpect, test, type TestInfo } from '@playwright/test';
 import { comparePng } from './comparePng';
+import { assertPngHeaderLimits } from './getPngData';
 import { createPngSnapshotMatcher } from './matchers/createPngSnapshotMatcher';
-import { NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE, validatePngSnapshot, type PngSnapshotMatcherArgs } from './matchers/pngSnapshot';
+import { NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE, type PngSnapshotMatcherArgs } from './matchers/pngSnapshot';
+import { resolveOptions } from './pipeline/resolveOptions';
 import type { ComparePngOptions } from './types';
 
 const PNG_EXTENSION = /\.png$/i;
@@ -90,8 +92,11 @@ function attachActual(testInfo: TestInfo, artifactBase: string, received: Buffer
     attach(testInfo, `${artifactBase}-actual.png`, actualPath);
 }
 
+// A baseline is a PNG file no later run can compare against if it exceeds the limits, but
+// checking them needs only the header: decoding a large screenshot here would be wasted.
 function writeBaseline(baselinePath: string, received: Buffer, options: ComparePngOptions | undefined): void {
-    validatePngSnapshot(received, options);
+    const { maxDimension, maxPixels } = resolveOptions(options);
+    assertPngHeaderLimits(received, maxDimension, maxPixels);
     mkdirSync(dirname(baselinePath), { recursive: true });
     writeFileSync(baselinePath, received);
 }

@@ -12,6 +12,11 @@ const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0
  */
 const IHDR_PEEK_LENGTH = 24;
 
+const IHDR_CHUNK_TYPE = 0x49484452; // "IHDR"
+const IHDR_DATA_LENGTH = 13;
+/** Signature + a complete IHDR chunk: length, type, 13 data bytes and CRC. */
+const IHDR_END = 33;
+
 /**
  * Reads the declared width and height from a PNG's IHDR chunk without fully
  * decoding the image. Returns `null` if the buffer is too short or does not
@@ -60,10 +65,39 @@ function assertSinglePngHeader(buffer: Buffer): void {
 
     let hasHeader = false;
     for (let offset = PNG_SIGNATURE.length; offset + 8 <= buffer.length; offset += buffer.readUInt32BE(offset) + 12) {
-        if (buffer.readUInt32BE(offset + 4) === 0x49484452 /* IHDR */) {
+        if (buffer.readUInt32BE(offset + 4) === IHDR_CHUNK_TYPE) {
             if (hasHeader) throw new Error('Duplicate PNG IHDR chunk');
             hasHeader = true;
         }
+    }
+}
+
+/**
+ * Enforces `maxDimension` / `maxPixels` from the PNG signature and IHDR header alone,
+ * without decoding the image, for bytes that are stored rather than compared (a
+ * Playwright baseline). Internal: not exported from the package entry.
+ *
+ * Throws `ResourceLimitError` exactly as {@link getPngData} does, and `InvalidInputError`
+ * when the buffer does not start with one complete IHDR chunk or declares a zero dimension.
+ * Image data and CRCs are not checked.
+ */
+export function assertPngHeaderLimits(buffer: Buffer, maxDimension: number, maxPixels: number): void {
+    const dims = buffer.length < IHDR_END ? null : peekPngDimensions(buffer);
+    if (dims === null || buffer.readUInt32BE(8) !== IHDR_DATA_LENGTH || buffer.readUInt32BE(12) !== IHDR_CHUNK_TYPE) {
+        throw new InvalidInputError('Invalid PNG input: the data could not be parsed');
+    }
+
+    // Limits first, as in getPngData, so an oversized first header is a ResourceLimitError.
+    assertImageLimits(buffer, maxDimension, maxPixels);
+
+    try {
+        assertSinglePngHeader(buffer);
+    } catch {
+        throw new InvalidInputError('Invalid PNG input: the data could not be parsed');
+    }
+
+    if (dims.width === 0 || dims.height === 0) {
+        throw new InvalidInputError('Invalid PNG input: image has zero dimensions');
     }
 }
 
