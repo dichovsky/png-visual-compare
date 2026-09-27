@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.1.0"
     },
-    "sourceHash": "6047fbaaf1ffa883aec12a3b1a09f62f39940b3e3a9c324927d7ced502addfdf",
+    "sourceHash": "9350e27c80bbe7dfade05cfad0a67ddbdf7b9766f943f54b4f12b7a173e35234",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -167,7 +167,7 @@ Schema: `codemap.v2`
             "kind": "function",
             "entrypoint": "src/index.ts",
             "file": "src/comparePng.ts",
-            "line": 17,
+            "line": 12,
             "signature": "export function comparePng(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): number",
             "jsdoc": "Compare two PNG inputs and return the mismatched pixel count.",
             "typeOnly": false
@@ -177,8 +177,8 @@ Schema: `codemap.v2`
             "kind": "function",
             "entrypoint": "src/index.ts",
             "file": "src/comparePngAsync.ts",
-            "line": 28,
-            "signature": "export async function comparePngAsync(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): Promise<number>",
+            "line": 27,
+            "signature": "export async function comparePngAsync(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): Promise<number>",
             "jsdoc": null,
             "typeOnly": false
         },
@@ -286,18 +286,9 @@ Schema: `codemap.v2`
             "path": "src/comparePng.ts",
             "symbols": [
                 {
-                    "name": "ComparePngInput",
-                    "kind": "type",
-                    "line": 14,
-                    "exported": false,
-                    "signature": "type ComparePngInput = string | Buffer;",
-                    "members": null,
-                    "jsdoc": null
-                },
-                {
                     "name": "comparePng",
                     "kind": "function",
-                    "line": 17,
+                    "line": 12,
                     "exported": true,
                     "signature": "export function comparePng(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): number",
                     "members": null,
@@ -306,8 +297,7 @@ Schema: `codemap.v2`
             ],
             "imports": [
                 "./comparePngWithPorts",
-                "./types",
-                "node:buffer"
+                "./types"
             ],
             "reExports": [
                 {
@@ -329,18 +319,18 @@ Schema: `codemap.v2`
                 {
                     "name": "loadSourcesAsync",
                     "kind": "function",
-                    "line": 14,
+                    "line": 13,
                     "exported": false,
-                    "signature": "async function loadSourcesAsync( png1: string | Buffer, png2: string | Buffer, opts: ReturnType<typeof resolveOptions>, ): Promise<LoadedSources>",
+                    "signature": "async function loadSourcesAsync( png1: ComparePngInput, png2: ComparePngInput, opts: ReturnType<typeof resolveOptions>, ): Promise<LoadedSources>",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "comparePngAsync",
                     "kind": "function",
-                    "line": 28,
+                    "line": 27,
                     "exported": true,
-                    "signature": "export async function comparePngAsync(png1: string | Buffer, png2: string | Buffer, opts?: ComparePngOptions): Promise<number>",
+                    "signature": "export async function comparePngAsync(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): Promise<number>",
                     "members": null,
                     "jsdoc": null
                 }
@@ -356,7 +346,6 @@ Schema: `codemap.v2`
                 "./ports/fsAsyncDiffWriter",
                 "./ports/fsAsyncImageSource",
                 "./types",
-                "node:buffer",
                 "pngjs"
             ],
             "reExports": []
@@ -365,18 +354,9 @@ Schema: `codemap.v2`
             "path": "src/comparePngWithPorts.ts",
             "symbols": [
                 {
-                    "name": "ComparePngInput",
-                    "kind": "type",
-                    "line": 10,
-                    "exported": false,
-                    "signature": "type ComparePngInput = string | Buffer;",
-                    "members": null,
-                    "jsdoc": null
-                },
-                {
                     "name": "comparePngWithPorts",
                     "kind": "function",
-                    "line": 20,
+                    "line": 17,
                     "exported": true,
                     "signature": "export function comparePngWithPorts( png1: ComparePngInput, png2: ComparePngInput, opts: ComparePngOptions | undefined, ports?: ComparisonPorts, ): number",
                     "members": null,
@@ -390,8 +370,7 @@ Schema: `codemap.v2`
                 "./pipeline/resolveOptions",
                 "./pipeline/runComparison",
                 "./ports/types",
-                "./types",
-                "node:buffer"
+                "./types"
             ],
             "reExports": []
         },
@@ -2227,6 +2206,24 @@ Schema: `codemap.v2`
             "reExports": []
         },
         {
+            "path": "src/types/compare.input.ts",
+            "symbols": [
+                {
+                    "name": "ComparePngInput",
+                    "kind": "type",
+                    "line": 10,
+                    "exported": true,
+                    "signature": "export type ComparePngInput = string | Buffer;",
+                    "members": null,
+                    "jsdoc": "A PNG input to `comparePng` / `comparePngAsync`: a file path or the PNG bytes."
+                }
+            ],
+            "imports": [
+                "node:buffer"
+            ],
+            "reExports": []
+        },
+        {
             "path": "src/types/compare.options.ts",
             "symbols": [
                 {
@@ -2270,6 +2267,13 @@ Schema: `codemap.v2`
                     "source": "./color",
                     "names": [
                         "Color"
+                    ],
+                    "typeOnly": true
+                },
+                {
+                    "source": "./compare.input",
+                    "names": [
+                        "ComparePngInput"
                     ],
                     "typeOnly": true
                 },
