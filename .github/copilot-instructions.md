@@ -19,7 +19,7 @@ npm run codemap:check  # fail if CODEMAP.md is stale (runs inside pretest:unit)
 npm run format         # format files with Prettier
 npm run format:check   # validate formatting with Prettier
 npm run release:check:pre   # pre-publish gate: version unpublished, CHANGELOG/CODEMAP/lockfile agree, tarball ships only ./out
-npm run release:check:post  # post-publish check: version live, `latest` dist-tag, provenance attestation, fresh install imports
+npm run release:check:post  # post-publish check: version live, `latest` dist-tag, provenance attestation, fresh install smoke (scripts/install-smoke.mjs)
 npm run tool:excluded-areas-builder  # open tools/excluded-areas-builder.html (macOS/Linux only)
 ```
 
@@ -95,7 +95,7 @@ src/
   playwright.ts                   # side-effect-free entry: exports expect extended with toMatchPngSnapshot, plus pngMatchers
   defaults.ts                     # default option values and limits
   errors.ts                       # named error classes and ERR_* codes
-  getPngData.ts                   # reads file path or Buffer → LoadedPng
+  getPngData.ts                   # reads file path or Buffer → LoadedPng; IHDR-only limit check for Playwright baselines
   readValidatedFile.ts            # opens a file before validating it; enforces maxFileBytes
   extendImage.ts                  # pads a PNG canvas to a larger size
   fillImageSizeDifference.ts      # colours the padded region green (0,255,0)
@@ -106,7 +106,7 @@ src/
   validatePath.ts                 # assertPathSyntax / validatePathWithReal / validatePath: containment, symlink checks
   validatePixelmatchOptions.ts    # PixelmatchOptions validation
   adapters/                       # public-to-external library boundaries (toPixelmatchOptions)
-  internal/                       # assertSameFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
+  internal/                       # assertSameFile, assertPlainFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
   matchers/                       # framework-agnostic snapshot matcher core shared by vitest.mts/jest.ts/playwright.ts
   pipeline/                       # resolveOptions, loadSources, normalizeImages, runComparison, persistDiff
   ports/                          # sync/async filesystem adapters and test seams
@@ -115,6 +115,7 @@ src/
     index.ts                      # re-exports all types
     area.ts                       # Area (x1,y1,x2,y2 rectangle)
     color.ts                      # Color (r,g,b)
+    compare.input.ts              # ComparePngInput (string | Buffer; internal — not exported from src/index.ts)
     compare.options.ts            # ComparePngOptions, PixelmatchOptions
     validated-path.ts             # ValidatedPath branded type (internal — not re-exported from types/index.ts)
 
@@ -133,6 +134,7 @@ scripts/
   check-consumer-types.mjs        # type-checks the packed tarball from a fresh consumer (TYPE-06)
   prerelease-check.mjs            # pre-publish gate
   postrelease-check.mjs           # post-publish registry verification
+  install-smoke.mjs               # installs a tarball or name@version into a temp project and runs comparePng/comparePngAsync
 
 test-data/
   actual/                         # "actual" PNG fixtures (budweiser640x862.png used in diff-size test)
@@ -171,6 +173,8 @@ comparePng / comparePngAsync
     - `throwError=true` → throws an input/decode error
     - `throwError=false` → `{ kind: 'invalid', reason: 'type' | 'decode' }`
 
+The same module exports `assertPngHeaderLimits(buffer, maxDimension, maxPixels)` for internal use: the same `ResourceLimitError` checks from the IHDR alone, without decoding (`InvalidInputError` for a missing, truncated, repeated or zero-dimension header). The Playwright adapter uses it before writing a baseline.
+
 ### Pixel address formula
 
 All pixel operations use the same address formula:
@@ -189,6 +193,7 @@ All types live in `src/types/`, one file per type, collected in `src/types/index
 | Type                | Exported publicly | Purpose                                                          |
 | ------------------- | ----------------- | ---------------------------------------------------------------- |
 | `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left) |
+| `ComparePngInput`   | no                | `string \| Buffer` input of `comparePng` / `comparePngAsync`     |
 | `ComparePngOptions` | yes               | Options bag for `comparePng`                                     |
 | `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                 |
 | `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                     |
@@ -250,7 +255,7 @@ Current coverage is 100% across all source files.
 - **No shared test helper modules** — each test file is self-contained; common PNG fixtures live in `test-data/actual/` and `test-data/expected/`.
 - **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense`. Enforced by `npm run test:license` (runs as part of `npm run test`).
 - **`throwErrorOnInvalidInputData` defaults to `true`**. Set to `false` only when intentionally comparing against a missing/invalid file (treated as a zero-size PNG). An error is **always** thrown when **both** inputs are invalid, regardless of this flag.
-- **Diff file is never written when `pixelmatchResult === 0`**, even if `diffFilePath` is provided — avoids creating empty/misleading diff artifacts.
+- **Diff file is never written when `mismatchedPixels === 0`** (`getPersistableDiff` in `src/pipeline/persistDiff.ts`), even if `diffFilePath` is provided — avoids creating empty/misleading diff artifacts.
 - **Excluded areas are painted on both images** before comparison — they will always match. Default is blue `{ r: 0, g: 0, b: 255 }`, override via `excludedAreaColor`. Coordinates are clamped to image bounds inside `addColoredAreasToImage`.
 - **Size difference region is painted on the extended canvas**. Default is green `{ r: 0, g: 255, b: 0 }`, override via `extendedAreaColor`. The padded area intentionally always counts as a difference.
 - **TypeScript config split**: `tsconfig.json` is the dev-wide no-emit config; `tsconfig.prod.json` is the emitted package-build config.
@@ -261,14 +266,22 @@ Current coverage is 100% across all source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches) and on every pull request
 
-| Job            | OS            | Node                      | Gates merges              |
-| -------------- | ------------- | ------------------------- | ------------------------- |
-| ubuntu         | ubuntu-latest | from `.nvmrc` (Node `24`) | yes                       |
-| macos          | macos-latest  | from `.nvmrc` (Node `24`) | no — `continue-on-error`  |
-| consumer-types | ubuntu-latest | from `.nvmrc` (Node `24`) | no — not a required check |
+| Job            | OS            | Node                                               | Gates merges              |
+| -------------- | ------------- | -------------------------------------------------- | ------------------------- |
+| ubuntu         | ubuntu-latest | from `.nvmrc` (Node `24`)                          | yes                       |
+| macos          | macos-latest  | from `.nvmrc` (Node `24`)                          | no — `continue-on-error`  |
+| engines-floor  | ubuntu-latest | `.nvmrc` to build, then `22.12.0` (`engines.node`) | yes                       |
+| consumer-types | ubuntu-latest | from `.nvmrc` (Node `24`)                          | no — not a required check |
 
-`ubuntu` and `macos` run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`; macOS omits
-that flag, which installs Linux system packages and does not apply there.
+`ubuntu` and `macos` run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`;
+macOS omits that flag, which installs Linux system packages and does not apply there.
+
+`engines-floor` builds and packs with the `.nvmrc` Node (the dev tooling needs newer than the
+floor), switches to Node 22.12.0 and runs `node ./scripts/install-smoke.mjs <tarball>`: an
+`--engine-strict` install into a fresh project, then `require()` and ESM `import` of the root
+entry and real `comparePng` / `comparePngAsync` calls checked against a known mismatch count.
+`release:check:post` runs the same script against the version it just published. Keep the job's
+`node-version` in sync with `engines.node`.
 
 `consumer-types` runs `npm run test:consumer-types`: it type-checks the packed tarball from a fresh
 consumer without `@types/pngjs` (`skipLibCheck: false`), so public declarations that reach `pngjs`
@@ -283,28 +296,47 @@ TEST-08; it reproduces on `main`. Windows is **not** supported — dropped as a 
 
 ### `publish.yml` — runs on GitHub release `published` (skipped for prereleases)
 
+Three jobs, in order:
+
 ```
-ensure npm >= 11.5.1   ← Trusted Publishing floor; upgrades within 11.x only if below it
-npm ci
-npx playwright install --with-deps chromium
-npm audit --audit-level=high
-npm run build            ← clean + fresh tsc using tsconfig.prod.json
-npm run release:check:pre  ← RELEASE_TAG from the GitHub release tag
-npm publish --provenance   ← publishes only ./out (per "files" in package.json)
-npm run release:check:post
+verify         (contents: read)
+  npm ci
+  npx playwright install --with-deps chromium
+  npm audit --audit-level=high
+  npm test                   ← full unit + e2e suite (what prepublishOnly ran before the split)
+  npm run build              ← clean + fresh tsc using tsconfig.prod.json
+  npm run release:check:pre  ← RELEASE_TAG from the GitHub release tag
+  npm pack                   ← tarball uploaded as an artifact; its sha256 is a job output
+
+publish        (contents: read, id-token: write) — no checkout, no npm ci, no build
+  ensure npm >= 11.5.1       ← Trusted Publishing floor; upgrades within 11.x only if below it
+  download the tarball, check its sha256
+  npm publish ./<tarball> --provenance --access public --ignore-scripts
+
+post-release   (contents: read) — checkout, no npm ci
+  npm run release:check:post
 ```
+
+The tarball ships only `./out` (per `"files"` in package.json). `id-token: write` is job-scoped
+on purpose: `verify` runs every devDependency's code, and any of it could mint the npm publish
+token if that job could request an OIDC token. A tarball publish runs no lifecycle scripts, so
+`prepublishOnly` does not run there; `--ignore-scripts` keeps it that way. Provenance is built
+from the runner's `GITHUB_*` environment and the tarball digest, which is why `publish` needs no
+checkout.
 
 `release:check:post` retries its registry checks because npm's CDN can serve a stale packument
 for a few minutes after publish. The first check, `version-live`, backs off for about 5 minutes
 (5 s doubling to 160 s, 7 attempts); the others make 6 attempts, 10 s apart.
 
-Publishing uses **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN` secret. The job requests
-`id-token: write` and the trusted publisher must be configured on npmjs.com (Package → Settings →
+Publishing uses **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN` secret. The `publish` job
+requests `id-token: write` and the trusted publisher must be configured on npmjs.com (Package → Settings →
 Trusted Publishing) for org `dichovsky`, repo `png-visual-compare`, workflow `publish.yml`, no
 environment.
 
-Both workflows pin `actions/checkout` and `actions/setup-node` by commit SHA with a `# vX.Y.Z`
-comment, and take their Node version from `.nvmrc`.
+Both workflows pin every action (`actions/checkout`, `actions/setup-node`, and in `publish.yml`
+`actions/upload-artifact` / `actions/download-artifact`) by commit SHA with a `# vX.Y.Z` comment,
+and take their Node version from `.nvmrc`; the `publish` job reuses the exact Node version
+`verify` resolved, and `engines-floor` switches to `22.12.0` after packing.
 
 ---
 

@@ -8,7 +8,7 @@ cd png-visual-compare
 npm install
 ```
 
-Node.js 22.12.0 or higher is required to use the package (`engines.node`). Development needs Node.js 22.13.0+ on the 22 line (ESLint 10 requires `^20.19.0 || ^22.13.0 || >=24`; Vitest 5 requires `^22.12.0 || ^24.0.0 || >=26.0.0`); `.nvmrc` pins Node 24, which CI and the Docker image use.
+Node.js 22.12.0 or higher is required to use the package (`engines.node`). Development needs Node.js 22.13.0+ on the 22 line (ESLint 10 requires `^20.19.0 || ^22.13.0 || >=24`; Vitest 5 requires `^22.12.0 || ^24.0.0 || >=26.0.0`); `.nvmrc` pins Node 24, which CI and the Docker image use. The `engines-floor` CI job also installs the packed tarball on Node 22.12.0 and runs `scripts/install-smoke.mjs` against it; to reproduce it locally, run `npm run build && npm pack`, switch to Node 22.12.0, then run `node ./scripts/install-smoke.mjs png-visual-compare-<version>.tgz`.
 
 Development and local tooling are supported on macOS and Linux only. Windows is not supported.
 

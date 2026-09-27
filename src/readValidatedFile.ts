@@ -4,11 +4,23 @@ import { open, stat } from 'node:fs/promises';
 import type { FileHandle } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { ResourceLimitError } from './errors';
+import { assertRegularFile } from './internal/assertPlainFile';
 import { assertSameFile } from './internal/assertSameFile';
 import { assertLexicalContainment, assertPathSyntax, validatePathWithReal } from './validatePath';
 
 /** Read size once the stat size hint is used up (a growing file, a FIFO, a device). */
 const READ_CHUNK_BYTES = 64 * 1024;
+
+/**
+ * With a boundary set, the open must not block: a read-open of a FIFO waits for a
+ * writer, which a FIFO planted inside the boundary never gets (SECU-14). `O_NONBLOCK`
+ * returns at once and {@link assertRegularFile} refuses the handle; it changes nothing
+ * for a regular file. Without a boundary the blocking open is kept, so a caller can
+ * still pass a pipe on purpose.
+ */
+function openFlags(inputBaseDir: string | undefined): number {
+    return inputBaseDir === undefined ? fsConstants.O_RDONLY : fsConstants.O_RDONLY | fsConstants.O_NONBLOCK;
+}
 
 function hasByteCap(maxFileBytes: number | undefined): maxFileBytes is number {
     return maxFileBytes !== undefined && maxFileBytes !== Infinity;
@@ -83,7 +95,8 @@ async function readCapped(handle: FileHandle, sizeHint: bigint, maxFileBytes: nu
  *    file 6.3.0 read via `validatePath`. The raw string could name a different file
  *    when `..` follows a symlinked directory, because the kernel resolves `..` after
  *    the link. The open pins one inode for the rest of the call — every later step
- *    describes *that* file, not whatever the path happens to point at now.
+ *    describes *that* file, not whatever the path happens to point at now. With a
+ *    boundary, the open is non-blocking, so a FIFO inside it cannot hang the call.
  * 3. `fstat` on the handle, for the size and identity used below.
  * 4. `validatePathWithReal` for the symlink-resolved containment check.
  * 5. When a boundary was requested, compare the handle's identity against the
@@ -91,7 +104,9 @@ async function readCapped(handle: FileHandle, sizeHint: bigint, maxFileBytes: nu
  *    `inputBaseDir`, because `validatePath` consults no filesystem in that case
  *    and there is no boundary a swap could cross — running it anyway would buy
  *    nothing while exposing every default caller to a false positive from a
- *    benign atomic-rename baseline update.
+ *    benign atomic-rename baseline update. Then refuse a handle that is not a
+ *    regular file (SECU-14) — after containment, so the kind of a file outside the
+ *    boundary is never reported.
  * 6. Only now, the `maxFileBytes` cap against the stat size — still before a single
  *    byte is read, which is the point of SECU-04, but deliberately *after*
  *    containment. The cap's error names an exact byte count and escapes even in
@@ -105,7 +120,8 @@ async function readCapped(handle: FileHandle, sizeHint: bigint, maxFileBytes: nu
  * @param maxFileBytes - Optional byte cap; `Infinity` or `undefined` disables it.
  * @returns The file contents.
  * @throws {ResourceLimitError} If the file exceeds `maxFileBytes`.
- * @throws {PathValidationError} If validation fails, or the path changed mid-flight.
+ * @throws {PathValidationError} If validation fails, the path changed mid-flight, or,
+ *   with `inputBaseDir`, the file is not a regular file.
  */
 export function readValidatedFileSync(filePath: string, inputBaseDir?: string, maxFileBytes?: number): Buffer {
     // Filesystem-free checks run before the open: a malformed path fails as a
@@ -116,13 +132,14 @@ export function readValidatedFileSync(filePath: string, inputBaseDir?: string, m
         assertLexicalContainment(filePath, inputBaseDir);
     }
 
-    const fd = openSync(resolve(filePath), fsConstants.O_RDONLY);
+    const fd = openSync(resolve(filePath), openFlags(inputBaseDir));
     try {
         const opened = fstatSync(fd, { bigint: true });
 
         const { real } = validatePathWithReal(filePath, inputBaseDir, 'input');
         if (inputBaseDir !== undefined && real !== undefined) {
             assertSameFile(opened, statSync(real, { bigint: true }), 'input image');
+            assertRegularFile(opened, 'input image');
         }
 
         assertWithinByteCap(opened.size, maxFileBytes);
@@ -147,13 +164,14 @@ export async function readValidatedFile(filePath: string, inputBaseDir?: string,
         assertLexicalContainment(filePath, inputBaseDir);
     }
 
-    const handle = await open(resolve(filePath), fsConstants.O_RDONLY);
+    const handle = await open(resolve(filePath), openFlags(inputBaseDir));
     try {
         const opened = await handle.stat({ bigint: true });
 
         const { real } = validatePathWithReal(filePath, inputBaseDir, 'input');
         if (inputBaseDir !== undefined && real !== undefined) {
             assertSameFile(opened, await stat(real, { bigint: true }), 'input image');
+            assertRegularFile(opened, 'input image');
         }
 
         assertWithinByteCap(opened.size, maxFileBytes);

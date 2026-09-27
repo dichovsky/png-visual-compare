@@ -7,14 +7,14 @@
  *   1. the version resolves on the registry,
  *   2. the `latest` dist-tag points at it,
  *   3. it carries a provenance attestation (Trusted Publishing / --provenance),
- *   4. a freshly-installed copy imports and exposes the public API.
+ *   4. a freshly-installed copy loads via require() and import and compares PNGs
+ *      correctly (scripts/install-smoke.mjs).
  *
  * Each registry check retries to absorb CDN propagation lag right after publish.
  */
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const repoRoot = process.cwd();
@@ -123,39 +123,25 @@ async function checkProvenance() {
     record(ok, 'provenance', ok ? `Provenance attestation present (${detail}).` : `No provenance attestation after retries (${detail}).`);
 }
 
-// 4. Install + import smoke test against the published artifact.
+// 4. Install + smoke test against the published artifact (scripts/install-smoke.mjs,
+// shared with the engines-floor CI job). The whole run is retried, since the install
+// can hit the same propagation lag as the checks above.
 async function checkInstallSmoke() {
-    const dir = mkdtempSync(path.join(tmpdir(), 'pvc-smoke-'));
-    try {
-        writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'pvc-smoke', version: '0.0.0', private: true }));
-        const installed = await withRetry('install', () => {
-            const install = npm(['install', '--no-audit', '--no-fund', `${name}@${version}`], { cwd: dir });
-            return install.status === 0;
+    let detail = '';
+    const ok = await withRetry('install-smoke', () => {
+        const smoke = spawnSync(process.execPath, [path.join(repoRoot, 'scripts', 'install-smoke.mjs'), `${name}@${version}`], {
+            encoding: 'utf8',
         });
-        if (!installed) {
-            record(false, 'install-smoke', `Could not install ${name}@${version} into a temp project after ${MAX_ATTEMPTS} attempts.`);
-            return;
-        }
-        const smokeSource = [
-            `import(${JSON.stringify(name)}).then((mod) => {`,
-            `  const compare = mod.comparePng ?? mod.default?.comparePng;`,
-            `  const compareAsync = mod.comparePngAsync ?? mod.default?.comparePngAsync;`,
-            `  if (typeof compare !== 'function' || typeof compareAsync !== 'function') {`,
-            `    console.error('public API missing: comparePng/comparePngAsync');`,
-            `    process.exit(2);`,
-            `  }`,
-            `  console.log('import ok');`,
-            `}).catch((error) => { console.error(error); process.exit(3); });`,
-        ].join('\n');
-        const smoke = spawnSync(process.execPath, ['--input-type=module', '-e', smokeSource], { cwd: dir, encoding: 'utf8' });
-        if (smoke.status === 0) {
-            record(true, 'install-smoke', `Installed ${name}@${version} imports and exposes comparePng/comparePngAsync.`);
-        } else {
-            record(false, 'install-smoke', `Imported package failed smoke test (exit ${smoke.status}): ${(smoke.stderr ?? '').trim()}`);
-        }
-    } finally {
-        rmSync(dir, { recursive: true, force: true });
-    }
+        detail = (smoke.stderr ?? '').trim();
+        return smoke.status === 0;
+    });
+    record(
+        ok,
+        'install-smoke',
+        ok
+            ? `Installed ${name}@${version} loads via require() and import; comparePng/comparePngAsync return the expected mismatch count.`
+            : `Install smoke for ${name}@${version} failed after ${MAX_ATTEMPTS} attempts: ${detail}`,
+    );
 }
 
 await checkVersionLive();

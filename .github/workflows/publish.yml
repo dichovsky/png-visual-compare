@@ -3,29 +3,81 @@ on:
     release:
         types: [published]
 
-# id-token: write is required for npm Trusted Publishing (OIDC) and provenance.
-# No NPM_TOKEN is used: the trusted publisher must be configured on npmjs.com
-# (Package → Settings → Trusted Publishing) for org "dichovsky", repo
-# "png-visual-compare", workflow "publish.yml", no environment.
+# No NPM_TOKEN is used: publishing goes through npm Trusted Publishing (OIDC).
+# The trusted publisher must be configured on npmjs.com (Package → Settings →
+# Trusted Publishing) for org "dichovsky", repo "png-visual-compare", workflow
+# "publish.yml", no environment.
+#
+# id-token: write is granted to the publish job only. The verify job runs npm ci
+# and the full test suite, i.e. every devDependency's code; if it could request an
+# OIDC token, any of that code could mint the npm publish token. The publish job
+# runs no npm install, no build and no repository code: it publishes the tarball
+# verify packed, after checking its sha256.
 permissions:
     contents: read
-    id-token: write
 
 concurrency:
     group: publish-${{ github.event.release.tag_name }}
     cancel-in-progress: false
 
 jobs:
-    publish:
+    verify:
         if: ${{ !github.event.release.prerelease }}
         runs-on: ubuntu-24.04
         timeout-minutes: 30
+        outputs:
+            node-version: ${{ steps.node.outputs.node-version }}
+            tarball: ${{ steps.pack.outputs.tarball }}
+            sha256: ${{ steps.pack.outputs.sha256 }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+            - id: node
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
                   node-version-file: .nvmrc
                   cache: 'npm'
+            - run: npm ci
+            - run: npx playwright install --with-deps chromium
+            - run: npm audit --audit-level=high
+            # What prepublishOnly ran before the split; the publish job skips scripts.
+            - run: npm test
+            - run: npm run build
+            - name: Pre-release checks
+              run: npm run release:check:pre
+              env:
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+            - name: Pack the release tarball
+              id: pack
+              run: |
+                  mkdir "$RUNNER_TEMP/pack"
+                  npm pack --pack-destination "$RUNNER_TEMP/pack"
+                  cd "$RUNNER_TEMP/pack"
+                  tarball="$(ls -- *.tgz)"
+                  echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+                  echo "sha256=$(sha256sum -- "$tarball" | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: package-tarball
+                  path: ${{ runner.temp }}/pack/${{ steps.pack.outputs.tarball }}
+                  if-no-files-found: error
+                  # Artifact names are unique per run, so "Re-run all jobs" would
+                  # otherwise fail here; publish checks the sha256 from this attempt.
+                  overwrite: true
+
+    publish:
+        needs: verify
+        if: ${{ !github.event.release.prerelease }}
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            # No checkout: provenance is built from the runner's GITHUB_* environment
+            # and the tarball digest, not from the working tree.
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: ${{ needs.verify.outputs.node-version }}
                   registry-url: 'https://registry.npmjs.org'
             # Only upgrade when the runner's npm is below the Trusted Publishing
             # floor. Installing npm@latest unconditionally couples this job to
@@ -42,15 +94,32 @@ jobs:
                       echo "npm $current is below 11.5.1; upgrading within the 11.x line"
                       npm install -g 'npm@^11.5.1'
                   fi
-            - run: npm ci
-            - run: npx playwright install --with-deps chromium
-            - run: npm audit --audit-level=high
-            - run: npm run build
-            - name: Pre-release checks
-              run: npm run release:check:pre
+            - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: package-tarball
+            - name: Verify the tarball checksum
               env:
-                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+                  TARBALL: ${{ needs.verify.outputs.tarball }}
+                  SHA256: ${{ needs.verify.outputs.sha256 }}
+              run: echo "$SHA256  $TARBALL" | sha256sum --check --strict -
+            # A tarball publish runs no lifecycle scripts (npm only runs them for a
+            # directory spec); --ignore-scripts keeps it that way if the spec changes.
             - name: Publish to npm (Trusted Publishing / OIDC)
-              run: npm publish --provenance
+              env:
+                  TARBALL: ${{ needs.verify.outputs.tarball }}
+              run: npm publish "./$TARBALL" --provenance --access public --ignore-scripts
+
+    post-release:
+        needs: publish
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version-file: .nvmrc
+            # The check uses Node builtins and the npm CLI only, so no npm ci.
             - name: Post-release checks
               run: npm run release:check:post
