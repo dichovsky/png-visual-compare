@@ -76,6 +76,7 @@ function assertSinglePngHeader(buffer: Buffer): void {
 const IDAT_CHUNK_TYPE = 0x49444154; // "IDAT"
 /** Samples per pixel by IHDR colour type, as pngjs maps them; pngjs rejects any other type. */
 const CHANNELS_BY_COLOR_TYPE: Partial<Record<number, number>> = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 };
+const PNG_BIT_DEPTHS = new Set([1, 2, 4, 8, 16]);
 
 /** Adam7 passes as [x0, y0, dx, dy]: a pass holds the pixels at (x0 + i * dx, y0 + j * dy). */
 const ADAM7_PASSES = [
@@ -112,8 +113,22 @@ function declaredImageDataLength(width: number, height: number, bitsPerPixel: nu
  * `zlib.inflateSync` with no output limit, so a tiny image can inflate gigabytes. Inflate the
  * stream here first, capped at the byte count the header declares plus one, and require exactly
  * that count. Other interlace methods are left to pngjs, which rejects them before inflating.
+ *
+ * Only a well-formed header may size the inflate: the signature, a 13-byte IHDR as the first
+ * chunk, and a legal bit depth. That is the header `assertImageLimits` checked, and it caps a
+ * pixel at 64 bits. pngjs rejects any other header before inflating, so leave those to it.
  */
 function assertCompleteImageData(buffer: Buffer): void {
+    if (
+        buffer.length < IHDR_END ||
+        !buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE) ||
+        buffer.readUInt32BE(8) !== IHDR_DATA_LENGTH ||
+        buffer.readUInt32BE(12) !== IHDR_CHUNK_TYPE ||
+        !PNG_BIT_DEPTHS.has(buffer[24])
+    ) {
+        return;
+    }
+
     const channels = CHANNELS_BY_COLOR_TYPE[buffer[25]];
     const interlace = buffer[28];
     if (channels === undefined || (interlace !== 0 && interlace !== 1)) return;
