@@ -18,7 +18,7 @@ npm run codemap:check  # fail if CODEMAP.md is stale (runs inside pretest:unit)
 npm run format         # format files with Prettier
 npm run format:check   # validate formatting with Prettier
 npm run release:check:pre   # pre-publish gate: version unpublished, CHANGELOG/CODEMAP/lockfile agree, tarball ships only ./out
-npm run release:check:post  # post-publish check: version live, `latest` dist-tag, provenance attestation, fresh install imports
+npm run release:check:post  # post-publish check: version live, `latest` dist-tag, provenance attestation, fresh install smoke (scripts/install-smoke.mjs)
 npm run tool:excluded-areas-builder  # open tools/excluded-areas-builder.html (macOS/Linux only)
 ```
 
@@ -133,6 +133,7 @@ scripts/
   check-licenses.mjs              # production dependency license allowlist
   prerelease-check.mjs            # pre-publish gate
   postrelease-check.mjs           # post-publish registry verification
+  install-smoke.mjs               # installs a tarball or name@version into a temp project and runs comparePng/comparePngAsync
 
 test-data/
   actual/                         # "actual" PNG fixtures (budweiser640x862.png used in diff-size test)
@@ -265,13 +266,21 @@ Current coverage is 100% across all source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches) and on every pull request
 
-| Job    | OS            | Node                      | Gates merges             |
-| ------ | ------------- | ------------------------- | ------------------------ |
-| ubuntu | ubuntu-latest | from `.nvmrc` (Node `24`) | yes                      |
-| macos  | macos-latest  | from `.nvmrc` (Node `24`) | no — `continue-on-error` |
+| Job           | OS            | Node                                               | Gates merges                     |
+| ------------- | ------------- | -------------------------------------------------- | -------------------------------- |
+| ubuntu        | ubuntu-latest | from `.nvmrc` (Node `24`)                          | yes                              |
+| macos         | macos-latest  | from `.nvmrc` (Node `24`)                          | no — `continue-on-error`         |
+| engines-floor | ubuntu-latest | `.nvmrc` to build, then `22.12.0` (`engines.node`) | no — not a required status check |
 
-Both jobs run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`; macOS omits
-that flag, which installs Linux system packages and does not apply there.
+`ubuntu` and `macos` run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`;
+macOS omits that flag, which installs Linux system packages and does not apply there.
+
+`engines-floor` builds and packs with the `.nvmrc` Node (the dev tooling needs newer than the
+floor), switches to Node 22.12.0 and runs `node ./scripts/install-smoke.mjs <tarball>`: an
+`--engine-strict` install into a fresh project, then `require()` and ESM `import` of the root
+entry and real `comparePng` / `comparePngAsync` calls checked against a known mismatch count.
+`release:check:post` runs the same script against the version it just published. Keep the job's
+`node-version` in sync with `engines.node`.
 
 macOS is a **supported** platform (`"os": ["darwin","linux"]`) and is exercised again, but its job
 is `continue-on-error` for now: the suite hits a macOS-only Vitest fork crash
@@ -282,28 +291,47 @@ TEST-08; it reproduces on `main`. Windows is **not** supported — dropped as a 
 
 ### `publish.yml` — runs on GitHub release `published` (skipped for prereleases)
 
+Three jobs, in order:
+
 ```
-ensure npm >= 11.5.1   ← Trusted Publishing floor; upgrades within 11.x only if below it
-npm ci
-npx playwright install --with-deps chromium
-npm audit --audit-level=high
-npm run build            ← clean + fresh tsc using tsconfig.prod.json
-npm run release:check:pre  ← RELEASE_TAG from the GitHub release tag
-npm publish --provenance   ← publishes only ./out (per "files" in package.json)
-npm run release:check:post
+verify         (contents: read)
+  npm ci
+  npx playwright install --with-deps chromium
+  npm audit --audit-level=high
+  npm test                   ← full unit + e2e suite (what prepublishOnly ran before the split)
+  npm run build              ← clean + fresh tsc using tsconfig.prod.json
+  npm run release:check:pre  ← RELEASE_TAG from the GitHub release tag
+  npm pack                   ← tarball uploaded as an artifact; its sha256 is a job output
+
+publish        (contents: read, id-token: write) — no checkout, no npm ci, no build
+  ensure npm >= 11.5.1       ← Trusted Publishing floor; upgrades within 11.x only if below it
+  download the tarball, check its sha256
+  npm publish ./<tarball> --provenance --access public --ignore-scripts
+
+post-release   (contents: read) — checkout, no npm ci
+  npm run release:check:post
 ```
+
+The tarball ships only `./out` (per `"files"` in package.json). `id-token: write` is job-scoped
+on purpose: `verify` runs every devDependency's code, and any of it could mint the npm publish
+token if that job could request an OIDC token. A tarball publish runs no lifecycle scripts, so
+`prepublishOnly` does not run there; `--ignore-scripts` keeps it that way. Provenance is built
+from the runner's `GITHUB_*` environment and the tarball digest, which is why `publish` needs no
+checkout.
 
 `release:check:post` retries its registry checks because npm's CDN can serve a stale packument
 for a few minutes after publish. The first check, `version-live`, backs off for about 5 minutes
 (5 s doubling to 160 s, 7 attempts); the others make 6 attempts, 10 s apart.
 
-Publishing uses **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN` secret. The job requests
-`id-token: write` and the trusted publisher must be configured on npmjs.com (Package → Settings →
+Publishing uses **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN` secret. The `publish` job
+requests `id-token: write` and the trusted publisher must be configured on npmjs.com (Package → Settings →
 Trusted Publishing) for org `dichovsky`, repo `png-visual-compare`, workflow `publish.yml`, no
 environment.
 
-Both workflows pin `actions/checkout` and `actions/setup-node` by commit SHA with a `# vX.Y.Z`
-comment, and take their Node version from `.nvmrc`.
+Both workflows pin every action (`actions/checkout`, `actions/setup-node`, and in `publish.yml`
+`actions/upload-artifact` / `actions/download-artifact`) by commit SHA with a `# vX.Y.Z` comment,
+and take their Node version from `.nvmrc`; the `publish` job reuses the exact Node version
+`verify` resolved, and `engines-floor` switches to `22.12.0` after packing.
 
 ---
 
