@@ -1,13 +1,10 @@
-import { Buffer } from 'node:buffer';
-import type { ComparePngOptions } from './types';
+import type { ComparePngInput, ComparePngOptions } from './types';
 import { loadSources } from './pipeline/loadSources';
 import { normalizeImages } from './pipeline/normalizeImages';
 import { persistDiff } from './pipeline/persistDiff';
 import { resolveOptions } from './pipeline/resolveOptions';
 import { runComparison } from './pipeline/runComparison';
 import type { ComparisonPorts } from './ports/types';
-
-type ComparePngInput = string | Buffer;
 
 /**
  * Sync orchestration with injectable ports — the internal test seam behind `comparePng`.

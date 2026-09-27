@@ -8,8 +8,6 @@
 
 ## 🔒 Security
 
-- [ ] 🟡 🐛 SECU [SECU-13]: Hard link inside a base dir defeats containment — it is the same inode, so the identity checks pass and a diff write overwrites the linked file; consider refusing `nlink > 1` on overwrite (documented in README → What is not covered; 7.0.0 audit)
-- [ ] 🟡 🐛 SECU [SECU-14]: FIFO/special file inside a boundary blocks the open — reads and diff writes open without `O_NONBLOCK`; add it and refuse a non-regular `fstat` when a base dir is set (7.0.0 audit)
 - [ ] 🟢 🐛 SECU [SECU-08]: Cap path length in `validatePath` (4096)
 
 ## ⚡ Performance
@@ -20,11 +18,9 @@
 - [ ] 🟡 ♻️ PERF [PERF-05]: PNG snapshot serialization → base64
 - [ ] 🟢 ♻️ PERF [PERF-06]: `extendImage` padding double-write
 - [ ] 🟢 ♻️ PERF [PERF-07]: `validateArea` allocation-free
-- [ ] 🟢 ♻️ PERF [PERF-08]: Playwright baseline writes fully decode the PNG to check limits — export an IHDR-only `assertImageLimits` from `getPngData`
 
 ## 🏛️ Architecture · Types · API · Reliability
 
-- [ ] 🔴 🐛 RELI [RELI-12]: Jest 30.5+ `retryTimes` false green — the matcher bumps `snapshotState._counters` directly, which `clear(testIdentity)` does not roll back, so the retry resolves `<name> 2`, writes it and passes; route through `_bumpCounter` / `_markKeyChecked` / `_addSnapshot` / `_incrementSnapshotCount` with the test identity
 - [ ] 🟡 ♻️ ARCH [ARCH-02]: Split `getPngData` → `decodePngBuffer` + `loadPngFromPath`
 - [ ] 🟡 ♻️ ARCH [ARCH-03]: `comparePngAsyncWithPorts` for injection symmetry
 - [ ] 🟡 ♻️ ARCH [ARCH-09]: Unify image-loading module — fuse `getPngData` + `validateImageSourceLoad` + `fs(Async)ImageSource` policy; seam at read primitive only (supersedes ARCH-02 + ARCH-06)
@@ -40,7 +36,6 @@
 - [ ] 🟢 ♻️ ARCH [ARCH-11]: Snapshot framework adapter — extract `SnapshotStateAdapter` interface; dedupe Jest/Vitest snapshot-state plumbing (~350 LOC → ~150 core + thin adapters)
 - [ ] 🟢 ♻️ ARCH [ARCH-12]: Unify sync/async orchestrators — single 5-stage pipeline driver parameterized by port bundle (depends on ARCH-09 + ARCH-10)
 - [ ] 🟢 ♻️ TYPE [TYPE-06]: Remove the deprecated `LoadedPng` export in 8.0.0 — deprecated in 7.x because no public API returns it; delete `src/types/png.data.ts` and its `src/types/index.ts` / `src/index.ts` entries (the internal type lives in `src/pipeline/types.ts`). That also drops the last `pngjs` type reference from the public declarations (TS7016 under `skipLibCheck: false`), and README's v6 guide note can go. Add a consumer typecheck of the packed tarball (`skipLibCheck: false`, no `@types/pngjs`, every entry point) as the regression test
-- [ ] 🟢 ♻️ TYPE [TYPE-07]: Dedupe `ComparePngInput` (`string|Buffer`) type — put the shared alias in a module with no `pngjs` types (not `src/pipeline/types.ts`), or importing it into `comparePng.ts` leaks `pngjs` into the public declarations again
 - [ ] 🟢 ♻️ TYPE [TYPE-08]: Rename `isComparePngOptions` → `isPlainObject`
 - [ ] 🟢 ♻️ TYPE [TYPE-09]: `Partial<ComparisonPorts>` on overload
 - [ ] 🟢 🐛 RELI [RELI-05]: `Promise.allSettled` in `comparePngAsync`
@@ -49,8 +44,6 @@
 - [ ] 🟢 📦 API [API-03]: In-memory diff buffer (no disk round-trip)
 - [ ] 🟢 📦 API [API-04]: Accept `string|URL` for path options
 - [ ] 🟢 📦 API [API-05]: `comparePngWithResult` verbose return shape
-- [ ] 🟢 🐛 API [API-06]: `toMatchPngSnapshot(undefined, options)` is rejected despite matching the declared overload
-- [ ] 🟢 🐛 RELI [RELI-13]: Jest 30 `test.failing` + `-u` overwrites the baseline with the known-bad image (`context.testFailing` is never read)
 
 ## 🧪 Tests & QA
 
@@ -71,8 +64,6 @@
 
 ## 🛠️ Build · Deps · CI · DX
 
-- [ ] 🟡 ♻️ CI [CI-06]: Split `publish.yml` into test and publish jobs — `id-token: write` is job-scoped, so every devDependency script `prepublishOnly` runs (`npm test`) can mint the OIDC publish token; publish from a job that only builds and runs `npm publish --ignore-scripts`
-- [ ] 🟢 ♻️ CI [CI-07]: CI job at the engines floor (Node 22.12.0) — build and install-smoke the packed tarball
 - [ ] 🟢 ♻️ BUILD [BUILD-01]: `tsconfig.base.json` split
 - [ ] 🟢 ♻️ BUILD [BUILD-02]: `moduleResolution` → `nodenext`
 - [ ] 🟢 ♻️ BUILD [BUILD-03]: Explicit `import`/`require` in `exports`
