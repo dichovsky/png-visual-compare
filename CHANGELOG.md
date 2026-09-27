@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that escapes only through a symlink is opened first and refused with `PathValidationError`
   once its real path resolves outside, before the byte cap and before any byte is read. The
   behaviour is unchanged.
+- **Docs** — `.github/copilot-instructions.md` no longer says `PixelmatchOptions` is forwarded
+  verbatim to pixelmatch. Since TYPE-03 it is validated and then translated key by key into the
+  vendored pixelmatch's options by `src/adapters/toPixelmatchOptions.ts`.
 
 ## [7.2.0] - 2026-09-27
 

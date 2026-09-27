@@ -194,11 +194,15 @@ All types live in `src/types/`, one file per type, collected in `src/types/index
 | `Area`              | yes               | Rectangle `{ x1, y1, x2, y2 }` (inclusive, pixels from top-left)     |
 | `ComparePngInput`   | no                | `string \| Buffer` input of `comparePng` / `comparePngAsync`         |
 | `ComparePngOptions` | yes               | Options bag for `comparePng`                                         |
-| `PixelmatchOptions` | yes               | Forwarded verbatim to pixelmatch                                     |
+| `PixelmatchOptions` | yes               | Translated by `toPixelmatchOptions` to the vendored pixelmatch shape |
 | `Color`             | yes               | Public `{ r, g, b }` used for pixel painting                         |
 | `LoadedPng`         | yes               | Discriminated decoded-image result union used by loaders and helpers |
 
 `Color` and `LoadedPng` are part of the public type surface via `src/index.ts`.
+
+`PixelmatchOptions` is not passed through as-is: `resolveOptions` validates it, then
+`src/adapters/toPixelmatchOptions.ts` copies each known key into the options shape of the
+vendored `src/vendor/pixelmatch.ts`, so an unknown key never reaches pixelmatch (TYPE-03).
 
 ---
 
