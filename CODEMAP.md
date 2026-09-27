@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.2.0"
     },
-    "sourceHash": "9350e27c80bbe7dfade05cfad0a67ddbdf7b9766f943f54b4f12b7a173e35234",
+    "sourceHash": "74ab3a6a2b0309af5f350a6557ac5dd0fd6ef5bba05ca308fa5d58c743abdf33",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -578,7 +578,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_SIGNATURE",
                     "kind": "const",
-                    "line": 7,
+                    "line": 8,
                     "exported": false,
                     "signature": "const PNG_SIGNATURE",
                     "members": null,
@@ -587,7 +587,7 @@ Schema: `codemap.v2`
                 {
                     "name": "IHDR_PEEK_LENGTH",
                     "kind": "const",
-                    "line": 13,
+                    "line": 14,
                     "exported": false,
                     "signature": "const IHDR_PEEK_LENGTH = 24",
                     "members": null,
@@ -596,7 +596,7 @@ Schema: `codemap.v2`
                 {
                     "name": "IHDR_CHUNK_TYPE",
                     "kind": "const",
-                    "line": 15,
+                    "line": 16,
                     "exported": false,
                     "signature": "const IHDR_CHUNK_TYPE = 0x49484452",
                     "members": null,
@@ -605,7 +605,7 @@ Schema: `codemap.v2`
                 {
                     "name": "IHDR_DATA_LENGTH",
                     "kind": "const",
-                    "line": 16,
+                    "line": 17,
                     "exported": false,
                     "signature": "const IHDR_DATA_LENGTH = 13",
                     "members": null,
@@ -614,7 +614,7 @@ Schema: `codemap.v2`
                 {
                     "name": "IHDR_END",
                     "kind": "const",
-                    "line": 18,
+                    "line": 19,
                     "exported": false,
                     "signature": "const IHDR_END = 33",
                     "members": null,
@@ -623,7 +623,7 @@ Schema: `codemap.v2`
                 {
                     "name": "peekPngDimensions",
                     "kind": "function",
-                    "line": 25,
+                    "line": 26,
                     "exported": false,
                     "signature": "function peekPngDimensions(data: Buffer): { width: number; height: number } | null",
                     "members": null,
@@ -632,7 +632,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertImageLimits",
                     "kind": "function",
-                    "line": 37,
+                    "line": 38,
                     "exported": false,
                     "signature": "function assertImageLimits(buffer: Buffer, maxDimension: number | undefined, maxPixels: number | undefined): void",
                     "members": null,
@@ -641,16 +641,61 @@ Schema: `codemap.v2`
                 {
                     "name": "assertSinglePngHeader",
                     "kind": "function",
-                    "line": 63,
+                    "line": 64,
                     "exported": false,
                     "signature": "function assertSinglePngHeader(buffer: Buffer): void",
                     "members": null,
                     "jsdoc": "pngjs accepts repeated IHDR chunks and decodes using the last dimensions. Reject them before decoding so a later header cannot bypass the size guard. Leave other malformed framing and CRC checks to the decoder; advancing by chunk length also avoids mistaking IHDR bytes inside chunk data for a header."
                 },
                 {
+                    "name": "IDAT_CHUNK_TYPE",
+                    "kind": "const",
+                    "line": 76,
+                    "exported": false,
+                    "signature": "const IDAT_CHUNK_TYPE = 0x49444154",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "CHANNELS_BY_COLOR_TYPE",
+                    "kind": "const",
+                    "line": 78,
+                    "exported": false,
+                    "signature": "const CHANNELS_BY_COLOR_TYPE: Partial<Record<number, number>> = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }",
+                    "members": null,
+                    "jsdoc": "Samples per pixel by IHDR colour type, as pngjs maps them; pngjs rejects any other type."
+                },
+                {
+                    "name": "ADAM7_PASSES",
+                    "kind": "const",
+                    "line": 81,
+                    "exported": false,
+                    "signature": "const ADAM7_PASSES",
+                    "members": null,
+                    "jsdoc": "Adam7 passes as [x0, y0, dx, dy]: a pass holds the pixels at (x0 + i * dx, y0 + j * dy)."
+                },
+                {
+                    "name": "declaredImageDataLength",
+                    "kind": "function",
+                    "line": 95,
+                    "exported": false,
+                    "signature": "function declaredImageDataLength(width: number, height: number, bitsPerPixel: number, interlaced: boolean): number",
+                    "members": null,
+                    "jsdoc": "The inflated IDAT size pngjs requires: scanlines of a filter byte plus packed samples, for the whole image or, when interlaced, for each Adam7 pass that has pixels (an empty pass has none)."
+                },
+                {
+                    "name": "assertCompleteImageData",
+                    "kind": "function",
+                    "line": 116,
+                    "exported": false,
+                    "signature": "function assertCompleteImageData(buffer: Buffer): void",
+                    "members": null,
+                    "jsdoc": "pngjs 7's sync inflate ignores zlib errors and misreads zlib's progress counters, so when a non-interlaced IDAT stream is corrupt or short it returns its whole `Buffer.allocUnsafe` output buffer, and recycled heap memory decodes as pixels. For interlaced data it calls `zlib.inflateSync` with no output limit, so a tiny image can inflate gigabytes. Inflate the stream here first, capped at the byte count the header declares plus one, and require exactly that count. Other interlace methods are left to pngjs, which rejects them before inflating."
+                },
+                {
                     "name": "assertPngHeaderLimits",
                     "kind": "function",
-                    "line": 84,
+                    "line": 144,
                     "exported": true,
                     "signature": "export function assertPngHeaderLimits(buffer: Buffer, maxDimension: number, maxPixels: number): void",
                     "members": null,
@@ -659,7 +704,7 @@ Schema: `codemap.v2`
                 {
                     "name": "finalizeDecodedPng",
                     "kind": "function",
-                    "line": 104,
+                    "line": 164,
                     "exported": false,
                     "signature": "function finalizeDecodedPng(decoded: LoadedPng, throwErrorOnInvalidInputData: boolean): LoadedPng",
                     "members": null,
@@ -668,7 +713,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getPngData",
                     "kind": "function",
-                    "line": 115,
+                    "line": 175,
                     "exported": true,
                     "signature": "export function getPngData( pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean, maxDimension?: number, maxPixels?: number, inputBaseDir?: string, maxFileBytes?: number, ): LoadedPng",
                     "members": null,
@@ -679,6 +724,7 @@ Schema: `codemap.v2`
                 "./errors",
                 "./pipeline/types",
                 "./readValidatedFile",
+                "node:zlib",
                 "pngjs"
             ],
             "reExports": []

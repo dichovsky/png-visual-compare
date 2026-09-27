@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Corrupt PNG image data no longer decodes to leftover process memory** — pngjs 7.0.0's
+  synchronous decoder misses zlib errors and misreads zlib's progress counters. For a
+  non-interlaced PNG whose image data (IDAT) is a truncated, invalid or short zlib stream,
+  it returned its whole output buffer, which Node allocates without zeroing, so the
+  decoded pixels held whatever that memory held before. The same file compared
+  differently from run to run: a mismatch count of 0, some other number, or
+  `InvalidInputError`. In a heap-canary test on Node 22.12, bytes from freed buffers
+  reached the mismatch count and, blended into the grey background, the diff PNG written
+  to `diffFilePath`. Jest and Vitest baselines store the received bytes, not decoded
+  pixels, so none contain that memory, but such a PNG could pass validation and be
+  stored as a baseline. The library now inflates the image data with `node:zlib` before
+  decoding and requires exactly the byte count the header declares. Anything else is an
+  `InvalidInputError`, recoverable with `throwErrorOnInvalidInputData: false` like any
+  other undecodable input. That includes a failed Adler-32 checksum, which pngjs
+  accepted. Interlaced PNGs were not affected. A non-interlaced image is now inflated
+  twice, which adds about 25–45% to its decode time (about 6 ms for the 1500×600 fixture).
+- **Interlaced PNG decompression is bounded by the declared image size** — pngjs 7.0.0
+  inflates an interlaced (Adam7) PNG's image data with no output limit, so `maxDimension`,
+  `maxPixels` and `maxFileBytes` did not bound decompression. A 521,889-byte 1×1
+  interlaced PNG inflated 512 MiB, growing the process by about 520 MiB, before it was
+  rejected, and a file at the default `maxFileBytes` could inflate to about 130 GiB.
+  Interlaced image data now gets the same check as non-interlaced data, before pngjs
+  inflates it: the library inflates it with `node:zlib`, stops one byte past the size the
+  header declares (the scanlines of the seven Adam7 passes), and rejects anything but
+  exactly that size as an `InvalidInputError`, recoverable with
+  `throwErrorOnInvalidInputData: false`. The same PNG is now rejected in under a
+  millisecond without growing the process. With the default `maxPixels`, no inflate
+  exceeds about 128 MiB. A valid interlaced image decodes as before but is inflated twice,
+  which adds about 35% to its decode time.
+
 ### Fixed
 
 - **`npm run -s release:check:pre` no longer fails a version that is not yet published** —

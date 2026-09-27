@@ -422,6 +422,8 @@ The security options are opt-in and bound distinct things. Knowing what each one
 
 `maxDimension` and `maxPixels` read the width and height declared in the PNG's IHDR header. They bound the **decoded** image, which is what protects you from a small file that claims to be 60000 × 60000 pixels.
 
+They bound decompression the same way. Before `pngjs` decodes an image, the library inflates its image data and stops one byte past the size the header declares, at most about 128 MiB with the default `maxPixels`. A small file whose data inflates to far more, a decompression bomb, is rejected as soon as it passes that size instead of being inflated in full, which `pngjs` 7 alone would do for an interlaced image. See [Corrupt image data](#corrupt-image-data).
+
 They say nothing about how many bytes must be read to reach that header. Without a separate limit, a multi-gigabyte file is fully resident in memory before either check runs. `maxFileBytes` closes that gap by bounding the **compressed** bytes. It is checked from the file's size before a single byte is read, and again against the bytes actually read, so a file that grows mid-read, a FIFO, or a device cannot slip past it.
 
 The default is 135,266,304 bytes (129 MiB): the raw size of a 16-bit RGBA image — the widest PNG pixel format, 8 bytes per pixel — at `maxPixels`, plus 1 MiB for filter bytes, compression framing, and metadata chunks. No PNG that passes `maxPixels` reaches it, whatever its bit depth. Lower it if you compare untrusted uploads and want a tighter memory bound.
@@ -429,6 +431,10 @@ The default is 135,266,304 bytes (129 MiB): the raw size of a 16-bit RGBA image 
 `maxFileBytes` applies only to path inputs. A `Buffer` you pass in is already in memory, and `maxPixels` still bounds its decode.
 
 When `inputBaseDir` is set, containment is checked before the byte cap. The cap's error names an exact size and is not recoverable, so checking it first would disclose the size and existence of a file outside the boundary. A path that is lexically outside the boundary fails as a `PathValidationError` before the file is opened. A path inside it that escapes only through a symlink is opened first, to pin the file that containment then checks, and fails as a `PathValidationError` once its real path resolves outside — still before the byte cap, and before a single byte is read. If that symlink's target cannot be opened at all, the call fails the way an unreadable file inside the boundary does.
+
+### Corrupt image data
+
+`pngjs` 7 does not notice when a non-interlaced PNG's compressed image data is truncated, invalid or too short. It returns its output buffer, which Node allocates without zeroing, so the decoded pixels would hold leftover process memory. For an interlaced PNG it inflates the image data with no output limit at all. Before decoding, the library inflates that data itself, stopping one byte past the number of bytes the header declares (for an interlaced image, the scanlines of all seven Adam7 passes), and requires exactly that number. Anything else, including a failed Adler-32 checksum, is an `InvalidInputError`, recoverable with `throwErrorOnInvalidInputData: false` like any other undecodable input. The cost is a second inflate of each image.
 
 ### Path containment
 
@@ -445,7 +451,7 @@ Both checks need the filesystem to report file identity. On a mount that reports
 
 ### What is not covered
 
-- Decompression cost inside `pngjs` itself is bounded only indirectly, through the limits above.
+- Decompression is bounded by the image size the header declares, so `maxDimension` and `maxPixels` are what limit it. With both set to `Infinity`, a file of a few megabytes whose header claims a huge image can still make the library inflate gigabytes.
 - Without `inputBaseDir` or `diffOutputBaseDir` there is no containment boundary, and neither the swap-detection checks nor the hard-link and special-file refusals run. A FIFO passed as an input or as `diffFilePath` then blocks the call that opens it, as it always has, so you can still read from a pipe on purpose.
 - **Hard links, on reads.** A hard link inside `inputBaseDir` to a file elsewhere on the same filesystem _is_ that file — the same inode — so containment cannot tell them apart, and a read returns its bytes. Reads do not refuse linked files, because hard-linked baselines are legitimate (content-addressed caches, `cp -al` snapshots). Diff writes under `diffOutputBaseDir` do refuse them, so a link planted there is never overwritten. Keep the base directories writable only by trusted processes. On Linux, `fs.protected_hardlinks=1` (the default on most distributions) stops users hard-linking files they do not own.
 - **Sockets.** A Unix socket inside a boundary cannot be opened, so the call fails at once rather than hanging, but as an unreadable or unwritable file, not a `PathValidationError` — except a diff write on Linux, where the socket's `ENXIO` is refused like a FIFO's.
