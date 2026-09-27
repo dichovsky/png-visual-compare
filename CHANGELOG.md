@@ -19,8 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Without `diffOutputBaseDir` nothing changes. Reads are not checked — see README →
   Security Model → What is not covered. Closes SECU-13.
 - **A FIFO or device inside a boundary is refused instead of blocking** — with
-  `inputBaseDir` or `diffOutputBaseDir` set, a FIFO or device at an input path or at
-  `diffFilePath` is refused with `PathValidationError`. Previously the open waited for
+  `inputBaseDir` set, a FIFO or device at an input path, and with `diffOutputBaseDir` set,
+  one at `diffFilePath`, is refused with `PathValidationError`. Like the other boundary
+  refusals under `inputBaseDir`, it throws even with `throwErrorOnInvalidInputData: false`,
+  so a device such as `/dev/null` there no longer compares as an unreadable input. Each
+  base directory guards only its own paths. Previously the open waited for
   something to open the other end, which blocked `comparePng`'s whole thread, and a
   diff written to a FIFO that already had a reader went into the pipe. Under a boundary
   both opens now use `O_NONBLOCK`, which makes no difference for a regular file, and
@@ -47,7 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Playwright's `toMatchPngSnapshot` type declares the same two call forms as Jest and
   Vitest**: `(options?)` and `(name?, options?)`. Passing options in both positions, which
-  always failed at runtime, is now also a type error (API-06).
+  always failed at runtime, is now also a type error (API-06). The matcher type that
+  `registerJestPngSnapshotMatcher` hands to `expect.extend` carries the same two forms.
 - **Playwright baseline writes no longer decode the image** — the image limits are
   checked from the PNG signature and header alone, with the same `ResourceLimitError`
   messages, so recording a large screenshot no longer decodes it in full. Malformed or
