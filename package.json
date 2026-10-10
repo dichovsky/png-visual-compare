@@ -85,7 +85,7 @@
     },
     "devDependencies": {
         "@jest/globals": "~30.5.2",
-        "@playwright/test": "~1.63.0",
+        "@playwright/test": "~1.64.0",
         "@types/node": "~26.6.1",
         "@types/pngjs": "~6.0.5",
         "@typescript/native": "npm:typescript@~7.0.2",
