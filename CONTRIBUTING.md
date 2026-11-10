@@ -1,6 +1,6 @@
 # Contributing
 
-## Development setup
+## Development Setup
 
 ```sh
 git clone https://github.com/dichovsky/png-visual-compare.git
@@ -8,78 +8,78 @@ cd png-visual-compare
 npm install
 ```
 
-Node.js 22.12.0 or higher is required to use the package (`engines.node`). Development needs Node.js 22.13.0+ on the 22 line (ESLint 10 requires `^20.19.0 || ^22.13.0 || >=24`; Vitest 5 requires `^22.12.0 || ^24.0.0 || >=26.0.0`); `.nvmrc` pins Node 24, which CI and the Docker image use. The `engines-floor` CI job also installs the packed tarball on Node 22.12.0 and runs `scripts/install-smoke.mjs` against it; to reproduce it locally, run `npm run build && npm pack`, switch to Node 22.12.0, then run `node ./scripts/install-smoke.mjs png-visual-compare-<version>.tgz`.
+This package requires Node.js 26.0.0 or later (`engines.node`). `.nvmrc` sets Node.js 26 for local development, CI, and the Docker image. The `engines-floor` CI job installs the packed tarball on Node.js 26.0.0 and runs `scripts/install-smoke.mjs`. To run this check locally:
 
-Development and local tooling are supported on macOS and Linux only. Windows is not supported.
+1. Run `npm run build && npm pack`.
+2. Switch to Node.js 26.0.0.
+3. Run `node ./scripts/install-smoke.mjs png-visual-compare-<version>.tgz`.
 
-## Common commands
+This project supports macOS and Linux only. It does not support Windows.
 
-| Command                               | Description                                                                                                  |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `npm test`                            | Run the full test suite: unit tests with repo-wide 100% coverage plus Playwright e2e tests                   |
-| `npm run test:e2e`                    | Run Playwright e2e tests for the Excluded Areas Builder tool and the `png-visual-compare/playwright` matcher |
-| `npm run lint`                        | Run ESLint                                                                                                   |
-| `npm run lint:fix`                    | Run ESLint with auto-fix                                                                                     |
-| `npm run format`                      | Format all files with Prettier                                                                               |
-| `npm run format:check`                | Check formatting without writing changes                                                                     |
-| `npm run build`                       | Compile TypeScript to `./out` using `tsconfig.prod.json`                                                     |
-| `npm run typecheck`                   | Typecheck the full repository with the dev `tsconfig.json`                                                   |
-| `npm run codemap`                     | Regenerate `CODEMAP.md` for coding agents                                                                    |
-| `npm run tool:excluded-areas-builder` | Open the Excluded Areas Builder tool in the browser                                                          |
+## Common Commands
 
-### Running a single unit test file
+| Command                               | Description                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `npm test`                            | Run unit tests with 100% repo-wide coverage and Playwright e2e tests                                    |
+| `npm run test:e2e`                    | Run Playwright e2e tests for the Excluded Areas Builder and the `png-visual-compare/playwright` matcher |
+| `npm run lint`                        | Run ESLint                                                                                              |
+| `npm run lint:fix`                    | Run ESLint and fix problems automatically                                                               |
+| `npm run format`                      | Format all files with Prettier                                                                          |
+| `npm run format:check`                | Check file formatting with Prettier                                                                     |
+| `npm run build`                       | Compile TypeScript to `./out` with `tsconfig.prod.json`                                                 |
+| `npm run typecheck`                   | Type-check the repository with `tsconfig.json`                                                          |
+| `npm run codemap`                     | Generate `CODEMAP.md` for coding agents                                                                 |
+| `npm run tool:excluded-areas-builder` | Open the Excluded Areas Builder tool in the default browser                                             |
+
+### Run One Unit Test File
 
 ```sh
 npx vitest run __tests__/comparePng.test.ts
 ```
 
-Use `npm test` or `npm run test:unit` when you need the repo-wide 100% coverage gate. Direct `npx vitest run ... --coverage` commands only report coverage for the files exercised by that focused run.
+Run `npm test` or `npm run test:unit` to check 100% coverage across the repository. A focused `npx vitest run ... --coverage` command reports coverage only for the files in that run.
 
-> **Known flake on macOS.** Roughly 1 run in 5 under coverage, a Vitest fork exits with
-> `Error: Worker exited unexpectedly`. The affected file's results are lost, so the 100% threshold
-> then fails on code the run never executed — usually `jest.ts`, `vitest.mts`, and `src/matchers/*`.
-> It is unrelated to your change; re-run. Tracked as TEST-08 in `BACKLOG.md`, and the reason the
-> macOS CI job is currently `continue-on-error`. Linux is unaffected.
+> **Known failure on macOS.** In about 1 of 5 coverage runs, a Vitest worker stops with `Error: Worker exited unexpectedly`. Vitest loses the results for that file, and the 100% coverage gate fails on untested files. Run the command again. `BACKLOG.md` tracks this issue as TEST-08. Because of this issue, the macOS CI job uses `continue-on-error`. Linux is not affected.
 
-### Updating snapshots
+### Update Snapshots
 
 ```sh
 npx vitest run -u
 ```
 
-PNG snapshot matcher tests import `../src/vitest.mjs` and assert diff images with `toMatchPngSnapshot()`, which still uses the normal Vitest snapshot update flow and can take `ComparePngOptions` when a snapshot should be compared semantically instead of byte-for-byte.
+PNG snapshot matcher tests import `../src/vitest.mjs` and check diff images with `toMatchPngSnapshot()`. Pass `ComparePngOptions` when you want a semantic comparison instead of a byte-for-byte comparison.
 
-### Running e2e tests
+### Run E2E Tests
 
 ```sh
 npm run test:e2e
 ```
 
-Playwright downloads Chromium automatically on first run via the `pretest:e2e` hook. To run a specific e2e test by name:
+Playwright downloads Chromium automatically on the first run through the `pretest:e2e` hook. To run one e2e test by name, run:
 
 ```sh
 npx playwright test --reporter=list -g "drawing a rectangle"
 ```
 
-### Running tests in Docker
+### Run Tests in Docker
 
 ```sh
 npm run test:docker
 ```
 
-This builds the Docker image and runs both unit and e2e tests inside a container.
+This command builds the Docker image and runs the unit and e2e tests in a container.
 
-## Pull request guidelines
+## Pull Request Rules
 
-- All tests must pass (`npm test`)
-- Typechecking must pass (`npm run typecheck`)
-- New functionality must be covered by tests (unit coverage threshold: 100% for all metrics)
-- No ESLint errors or Prettier formatting violations
-- Keep commits focused; one logical change per PR
+- Make sure that all tests pass (`npm test`).
+- Make sure that type-checking passes (`npm run typecheck`).
+- Add tests for all new code (100% coverage is required for all metrics).
+- Fix all ESLint errors and Prettier formatting issues.
+- Keep commits small and include one logical change per pull request.
 
-## Branch protection
+## Branch Protection
 
-The `main` branch requires:
+The `main` branch enforces these rules:
 
-- The `ubuntu` and `engines-floor` CI status checks to pass before merging (the `macos` job also runs but is `continue-on-error` until TEST-08 is fixed)
-- No force pushes
+- The `ubuntu` and `engines-floor` CI checks must pass before merge.
+- Force pushes are not allowed.

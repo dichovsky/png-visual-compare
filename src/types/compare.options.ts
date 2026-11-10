@@ -44,6 +44,18 @@ export type PixelmatchOptions = {
      * @default true
      */
     checkerboard?: boolean;
+    /**
+     * If finite, return the maximum number of diff pixels found in any `N`×`N` sliding window
+     * instead of the total diff count.
+     * @default Infinity
+     */
+    windowSize?: number;
+    /**
+     * One byte per pixel (`width × height` of the normalized comparison canvas); pixels with a
+     * non-zero value are skipped from comparison and drawn as unchanged in the diff output.
+     * @default undefined
+     */
+    ignoreMask?: Uint8Array | Uint8ClampedArray;
 };
 
 export type ComparePngOptions = {

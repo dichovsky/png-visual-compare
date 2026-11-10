@@ -292,11 +292,11 @@ describe('png snapshot helpers', () => {
 
         const strictComparison = compareAgainstSerializedPngSnapshot(actual, serializedExpected);
         const thresholdComparison = compareAgainstSerializedPngSnapshot(actual, serializedExpected, {
-            pixelmatchOptions: { threshold: 0.97 },
+            excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }],
         });
 
         expect(strictComparison.pass).toBe(false);
-        expect(strictComparison.mismatchedPixels).toBe(480);
+        expect(strictComparison.mismatchedPixels).toBe(479);
         expect(thresholdComparison.pass).toBe(true);
         expect(thresholdComparison.mismatchedPixels).toBe(0);
     });
@@ -467,7 +467,7 @@ describe('vitest matcher entrypoint', () => {
                 } as never,
                 readFileSync(resolve('./test-data/actual/ILTQq copy.png')),
                 'thresholded diff',
-                { pixelmatchOptions: { threshold: 0.97 } },
+                { excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }] },
             ),
         );
 
@@ -477,8 +477,8 @@ describe('vitest matcher entrypoint', () => {
     });
 
     test.each([
-        { name: 'options', matcherArgs: [{ pixelmatchOptions: { threshold: 0.97 } }] },
-        { name: 'an undefined name and options', matcherArgs: [undefined, { pixelmatchOptions: { threshold: 0.97 } }] },
+        { name: 'options', matcherArgs: [{ excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }] }] },
+        { name: 'an undefined name and options', matcherArgs: [undefined, { excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }] }] },
     ])('compares the unnamed Vitest snapshot with ComparePngOptions given $name', async ({ matcherArgs }) => {
         vi.resetModules();
         clearMatcherRegistration();
@@ -902,7 +902,7 @@ describe('jest matcher entrypoint', () => {
         expect(result.message()).toContain(
             'Received PNG snapshot does not match the stored snapshot for "compares PNG diffs: light theme"',
         );
-        expect(result.message()).toContain('480 mismatched pixels');
+        expect(result.message()).toContain('479 mismatched pixels');
     });
 
     test('returns a generic failure result when no Jest test name is available', async () => {
@@ -930,7 +930,7 @@ describe('jest matcher entrypoint', () => {
         );
 
         expect(result.pass).toBe(false);
-        expect(result.message()).toBe('Received PNG snapshot does not match the stored snapshot (480 mismatched pixels).');
+        expect(result.message()).toBe('Received PNG snapshot does not match the stored snapshot (479 mismatched pixels).');
     });
 
     test('uses the singular mismatch label when exactly one pixel differs', async () => {
@@ -985,7 +985,7 @@ describe('jest matcher entrypoint', () => {
                 } as never,
                 readFileSync(resolve('./test-data/actual/ILTQq copy.png')),
                 {
-                    pixelmatchOptions: { threshold: 0.97 },
+                    excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }],
                 },
             ),
         );
@@ -1540,8 +1540,8 @@ describe('jest matcher entrypoint', () => {
     });
 
     test.each([
-        { name: 'options', matcherArgs: [{ pixelmatchOptions: { threshold: 0.97 } }] },
-        { name: 'an undefined name and options', matcherArgs: [undefined, { pixelmatchOptions: { threshold: 0.97 } }] },
+        { name: 'options', matcherArgs: [{ excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }] }] },
+        { name: 'an undefined name and options', matcherArgs: [undefined, { excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }] }] },
     ])('compares the unnamed Jest snapshot with ComparePngOptions given $name', async ({ matcherArgs }) => {
         const { registerJestPngSnapshotMatcher } = (await import('../src/jest.js')) as JestPluginModule;
         const extend = vi.fn();
