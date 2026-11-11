@@ -53,13 +53,15 @@ import {
     type ComparePngOptions,
     type PixelmatchOptions,
 } from 'png-visual-compare';
+// @ts-expect-error LoadedPng was removed in 8.0.0 (TYPE-06).
+import type { LoadedPng } from 'png-visual-compare';
 import { registerJestPngSnapshotMatcher } from 'png-visual-compare/jest';
 import 'png-visual-compare/vitest';
 import { expect as playwrightExpect, pngMatchers } from 'png-visual-compare/playwright';
 
 const area: Area = { x1: 0, y1: 0, x2: 1, y2: 1 };
 const color: Color = DEFAULT_EXCLUDED_AREA_COLOR;
-const pixelmatchOptions: PixelmatchOptions = { threshold: 0.1 };
+const pixelmatchOptions: PixelmatchOptions = { threshold: 0.1, windowSize: 8, ignoreMask: new Uint8Array(4) };
 const options: ComparePngOptions = {
     excludedAreas: [area],
     excludedAreaColor: color,
