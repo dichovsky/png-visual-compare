@@ -64,6 +64,6 @@ jobs:
             - name: Use the engines.node floor
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  node-version: 22.12.0 # keep in sync with engines.node in package.json
+                  node-version: 26.0.0 # keep in sync with engines.node in package.json
             - name: Install-smoke the packed tarball
               run: node ./scripts/install-smoke.mjs "$RUNNER_TEMP"/png-visual-compare-*.tgz

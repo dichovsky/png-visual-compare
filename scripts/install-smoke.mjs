@@ -9,7 +9,7 @@
  * known mismatch count for two PNGs from test-data/. Exits non-zero on failure.
  *
  * Runs in the `engines-floor` job of `.github/workflows/test.yml` (the packed
- * tarball on Node 22.12.0, the `engines.node` floor) and in the install-smoke
+ * tarball on Node 26.0.0, the `engines.node` floor) and in the install-smoke
  * check of `scripts/postrelease-check.mjs` (the version just published).
  */
 
@@ -24,7 +24,7 @@ const testData = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '
 const ACTUAL = path.join(testData, 'actual', 'ILTQq.png');
 const EXPECTED = path.join(testData, 'expected', 'youtube-play-button.png');
 // Same pair and count as __tests__/comparePng.test.ts and __tests__/comparePngAsync.test.ts.
-const EXPECTED_MISMATCH = 434926;
+const EXPECTED_MISMATCH = 429113;
 
 const spec = process.argv[2];
 if (!spec) {
