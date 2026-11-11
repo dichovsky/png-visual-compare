@@ -1,37 +1,37 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file gives instructions to Claude Code (claude.ai/code) for work in this repository.
 
 ## Commands
 
 ```sh
-npm run build          # compile TypeScript → ./out via tsconfig.prod.json (runs clean first via prebuild)
+npm run build          # compile TypeScript to ./out with tsconfig.prod.json (runs clean first)
 npm run clean          # delete ./out, ./coverage, ./test-results
-npm run lint           # ESLint with @typescript-eslint
-npm run typecheck      # typecheck the full repo via tsconfig.json (src, tests, e2e, configs)
-npm run test:unit      # unit-test gate: clean → codemap:check → lint → format:check → license check → typecheck → repo-wide vitest coverage
-npm run test:e2e       # Playwright e2e tests for the Excluded Areas Builder and the png-visual-compare/playwright matcher
-npm run test           # full test suite: repo-wide unit coverage gate plus Playwright e2e tests
-npm run test:license   # check all production dependency licenses are in the approved list
-npm run codemap        # regenerate CODEMAP.md via scripts/generate-codemap.mjs
-npm run codemap:check  # fail if CODEMAP.md is stale (runs inside pretest:unit)
+npm run lint           # run ESLint with @typescript-eslint
+npm run typecheck      # type-check the repository with tsconfig.json (src, tests, e2e, configs)
+npm run test:unit      # clean -> codemap:check -> lint -> format:check -> license check -> typecheck -> vitest coverage
+npm run test:e2e       # run Playwright e2e tests for Excluded Areas Builder and png-visual-compare/playwright
+npm run test           # run unit coverage gate and Playwright e2e tests
+npm run test:license   # check that all production dependency licenses are on the approved list
+npm run codemap        # generate CODEMAP.md with scripts/generate-codemap.mjs
+npm run codemap:check  # fail if CODEMAP.md is out of date (runs in pretest:unit)
 npm run format         # format files with Prettier
-npm run format:check   # validate formatting with Prettier
+npm run format:check   # check formatting with Prettier
 ```
 
-Run a single test file (skips pretest steps):
+Run one test file (skips pretest steps):
 
 ```sh
 npx vitest run __tests__/comparePng.test.ts
 ```
 
-Run tests matching a name pattern:
+Run tests that match a name pattern:
 
 ```sh
 npx vitest run --reporter=verbose -t "compare PNG with text"
 ```
 
-Watch mode during development:
+Run Vitest in watch mode during development:
 
 ```sh
 npx vitest --reporter=verbose
@@ -40,20 +40,20 @@ npx vitest --reporter=verbose
 Update snapshots:
 
 ```sh
-npx vitest run --update-snapshots
+npx vitest run -u
 ```
 
-> Use `npx vitest run` directly to skip the `pretest:unit` gate (clean → codemap:check → lint → format:check → license check → typecheck) when iterating quickly.
-> `npm run test:unit` enables the repo-wide 100% coverage gate; direct `npx vitest run ... --coverage` commands only report coverage for the files exercised by that focused run.
+> Run `npx vitest run` directly to skip the `pretest:unit` gate during fast iteration.
+> Run `npm run test:unit` to enable the repo-wide 100% coverage gate. A direct `npx vitest run ... --coverage` command reports coverage only for the files in that run.
 
 ## Architecture
 
-This repository now has two public runtime APIs:
+This repository exports two public runtime functions:
 
-- `comparePng(...)` — sync orchestration
-- `comparePngAsync(...)` — async filesystem-backed orchestration
+- `comparePng(...)` — synchronous orchestration
+- `comparePngAsync(...)` — asynchronous filesystem orchestration
 
-Both APIs share the same pipeline:
+Both functions use the same pipeline:
 
 1. `resolveOptions`
 2. `loadSources` / `loadSourcesAsync`
@@ -61,32 +61,32 @@ Both APIs share the same pipeline:
 4. `runComparison`
 5. `persistDiff`
 
-`comparePng.ts` should remain orchestration-only. Detailed architecture lives in `docs/ARCHITECTURE.md`.
+Keep `comparePng.ts` for orchestration only. Read `docs/ARCHITECTURE.md` for full architecture details.
 
-### Source layout
+### Source Layout
 
 ```
 src/
   index.ts                    # exports comparePng, comparePngAsync, errors, constants, and public types
-  comparePng.ts               # sync orchestrator
-  comparePngWithPorts.ts      # internal sync orchestration with injectable ports (test seam; not exported)
-  comparePngAsync.ts          # async orchestrator
-  vitest.mts                  # ./vitest subpath: registers toMatchPngSnapshot on Vitest's expect (ESM)
-  jest.ts                     # ./jest subpath: registers toMatchPngSnapshot on Jest's expect (CJS)
-  playwright.ts               # ./playwright subpath (no side effects): expect extended with toMatchPngSnapshot, plus pngMatchers
-  matchers/                   # framework-agnostic snapshot matcher core shared by the subpath entries
-  pipeline/                   # option resolution, loading, normalization, comparison, diff persistence
-  ports/                      # sync/async filesystem adapters and test seams
-  adapters/                   # public-to-external library boundaries
-  internal/                   # assertSameFile, assertPlainFile, secureMkdir, realDiffDirectory (filesystem-safety primitives)
-  vendor/                     # pixelmatch 7.2.0 as a TypeScript port (RELI-11); parity-tested against upstream
-  getPngData.ts               # decodes image sources into LoadedPng; IHDR-only limit check for Playwright baselines
-  readValidatedFile.ts        # opens a file before validating it, so bytes come from the approved inode
+  comparePng.ts               # synchronous orchestrator
+  comparePngWithPorts.ts      # internal synchronous orchestrator with injectable ports (test seam; not exported)
+  comparePngAsync.ts          # asynchronous orchestrator
+  vitest.mts                  # ./vitest subpath: registers toMatchPngSnapshot on Vitest expect (ESM)
+  jest.ts                     # ./jest subpath: registers toMatchPngSnapshot on Jest expect (CJS)
+  playwright.ts               # ./playwright subpath (no side effects): exports extended expect and pngMatchers
+  matchers/                   # shared snapshot matcher core for all framework subpaths
+  pipeline/                   # option resolution, source loading, normalization, comparison, diff persistence
+  ports/                      # synchronous and asynchronous filesystem adapters and test seams
+  adapters/                   # boundary adapters between public types and internal dependencies
+  internal/                   # assertSameFile, assertPlainFile, secureMkdir, realDiffDirectory
+  vendor/                     # pixelmatch 8.0.0 TypeScript port (RELI-11); tested for parity with upstream
+  getPngData.ts               # decodes image sources into LoadedPng; checks IHDR limits for Playwright baselines
+  readValidatedFile.ts        # opens a file before validation so bytes come from the checked inode
   validate*.ts                # path, area, color, and pixelmatch option validation
   types/                      # one type per file; collected in types/index.ts
 ```
 
-### Pixel address formula (used throughout)
+### Pixel Address Formula
 
 ```ts
 position = (image.width * y + x) * 4; // R=[pos], G=[pos+1], B=[pos+2], A=[pos+3]
@@ -94,19 +94,19 @@ position = (image.width * y + x) * 4; // R=[pos], G=[pos+1], B=[pos+2], A=[pos+3
 
 ## Key Conventions
 
-- **Tests import from `../src`**, not `../out` (compiled output)
-- **Data-driven test pattern**: the table-driven `comparePng.*` / `comparePngAsync.*` suites use a `testDataArray` loop — add new cases as array entries, not standalone `test()` calls
-- **Snapshot tests** in `comparePng.diffs.test.ts` and `comparePng.pixelmatch-options.test.ts` import `../src/vitest.mjs` and use `toMatchPngSnapshot()` on raw diff PNG buffers; snapshots are committed in `__tests__/__snapshots__/`
-- **One type per file** in `src/types/`; imports within `src/` use extensionless relative paths (exception: the ESM entry `src/vitest.mts` uses `.js` specifiers)
-- **No test helper modules** — each test file is self-contained
-- **Coverage thresholds**: 100% lines/functions/statements/branches; `src/types/**/*` is excluded
-- **All production dependencies must use an approved license**: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense` — enforced by `npm run test:license` (part of `npm test`)
-- **Only `./out` is published** to npm (controlled by `"files": ["./out"]`)
-- **TypeScript config split**: use `tsconfig.json` for dev-wide no-emit typechecking and `tsconfig.prod.json` for emitted package builds
+- Import from `../src` in tests. Do not import from `../out`.
+- Use the `testDataArray` loop in `comparePng.*` and `comparePngAsync.*` test files. Add new cases as array entries, not standalone `test()` calls.
+- Import `../src/vitest.mjs` and call `toMatchPngSnapshot()` on diff PNG buffers in `comparePng.diffs.test.ts` and `comparePng.pixelmatch-options.test.ts`. Commit snapshots in `__tests__/__snapshots__/`.
+- Put one type per file in `src/types/`. Use extensionless relative imports in `src/` (except `src/vitest.mts`, which uses `.js` specifiers).
+- Do not create shared test helper modules. Keep each test file self-contained.
+- Maintain 100% coverage for lines, functions, statements, and branches (`src/types/**/*` is excluded).
+- Use only approved licenses for production dependencies: `ISC`, `MIT`, `MIT OR X11`, `BSD`, `Apache-2.0`, `Unlicense`. `npm run test:license` checks this rule.
+- Publish only `./out` to npm (`"files": ["./out"]`).
+- Use `tsconfig.json` for repo-wide type-checking and `tsconfig.prod.json` for package builds.
 
 ## Mistake Logging
 
-Log one compact event per mistake (20-40 tokens, no filler):
+Log one short event per mistake (20 to 40 tokens):
 
 ```text
 Ctx:
@@ -116,4 +116,4 @@ Fix:
 Rule:
 ```
 
-Store project-specific mistakes in `.claude/memory/` (session files are gitignored — see `.claude/memory/README.md`); generalizable rules in global memory.
+Write project mistakes in `.claude/memory/` (git ignores session files; see `.claude/memory/README.md`). Write general rules in global memory.

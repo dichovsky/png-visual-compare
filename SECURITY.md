@@ -7,15 +7,15 @@
 | 7.x     | Yes       |
 | < 7.0   | No        |
 
-## Reporting a Vulnerability
+## Report a Vulnerability
 
-Please do not open a public issue for suspected security vulnerabilities.
+Do not open a public issue for a security vulnerability.
 
-Report vulnerabilities through GitHub's private vulnerability reporting or security advisory flow for this repository. Include:
+Report vulnerabilities through the GitHub private vulnerability reporting flow for this repository. Include this information:
 
 - Affected version
 - Impact and attack scenario
 - Reproduction steps or proof of concept
-- Any known mitigations
+- Known mitigations
 
-Security reports are triaged before public disclosure. Fixes may be released as patch versions when the supported release line is affected.
+Maintainers review security reports before public disclosure. Maintainers release fixes as patch versions for the supported release line.

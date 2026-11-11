@@ -1,84 +1,84 @@
 # Backlog
 
-> **Agent Rules:** Keep descriptions brief. When a task is completed, REMOVE it from here and APPEND it to BACKLOG-ARCHIVE.md.
+> **Agent Rules:** Keep task descriptions short. When you finish a task, delete it from this file and add it to `BACKLOG-ARCHIVE.md`.
 
-> Verbose original specs (problem / files / acceptance criteria / dependency table) are preserved in git history — see commits prior to the compact-backlog adoption. IDs in `[BRACKETS]` are stable cross-refs to git history, `CHANGELOG.md`, `BACKLOG-ARCHIVE.md`, and `docs/ARCHITECTURE.md`.
+> Git history contains full original specifications. IDs in `[BRACKETS]` link to git history, `CHANGELOG.md`, `BACKLOG-ARCHIVE.md`, and `docs/ARCHITECTURE.md`.
 
 > Legend — Priority: 🔴 high (P0/P1) · 🟡 medium (P2) · 🟢 low (P3). Type: 🐛 fix · 📦 feature · ♻️ refactor · 🧪 test · 📝 docs.
 
 ## 🔒 Security
 
-- [ ] 🟢 🐛 SECU [SECU-08]: Cap path length in `validatePath` (4096)
-- [ ] 🟢 🐛 SECU [SECU-15]: A symlink planted inside `inputBaseDir` reveals whether its outside target exists — `readValidatedFile` opens before the realpath check, so an escaping link to an existing file fails with `PathValidationError` but a dangling one with the generic `InvalidInputError`; check realpath containment before opening a symlink, or map open errors on escaping paths to `PathValidationError` (needs write access inside the boundary; found post-7.2.0)
+- [ ] 🟢 🐛 SECU [SECU-08]: Limit path length in `validatePath` to 4096 characters.
+- [ ] 🟢 🐛 SECU [SECU-15]: Fix symlink target existence leak in `inputBaseDir`. `readValidatedFile` opens the file before `realpath` validation, so an escaping symlink to an existing file throws `PathValidationError`, while a broken symlink throws `InvalidInputError`. Check `realpath` containment before opening a symlink, or map open errors on escaping paths to `PathValidationError`.
 
 ## ⚡ Performance
 
-- [ ] 🟡 ♻️ PERF [PERF-02]: Inline per-pixel writes in hot loop (a+b, BLOCKED on human spike)
-- [ ] 🟡 ♻️ PERF [PERF-03]: Reduce normalize memory peak (BLOCKED on human spike)
-- [ ] 🟡 ♻️ PERF [PERF-04]: Skip eager clone when no mutation follows
-- [ ] 🟡 ♻️ PERF [PERF-05]: PNG snapshot serialization → base64
-- [ ] 🟡 ♻️ PERF [PERF-09]: Decode with a single inflate — `assertCompleteImageData` inflates the image data and pngjs inflates it again (+28–44% decode time on the largest fixtures, ~35% interlaced); hand pngjs the checked output or replace its inflate
-- [ ] 🟢 ♻️ PERF [PERF-06]: `extendImage` padding double-write
-- [ ] 🟢 ♻️ PERF [PERF-07]: `validateArea` allocation-free
+- [ ] 🟡 ♻️ PERF [PERF-02]: Inline per-pixel writes in the hot loop (blocked on human review).
+- [ ] 🟡 ♻️ PERF [PERF-03]: Reduce peak memory in `normalizeImages` (blocked on human review).
+- [ ] 🟡 ♻️ PERF [PERF-04]: Skip image cloning when no pixel changes follow.
+- [ ] 🟡 ♻️ PERF [PERF-05]: Use Base64 encoding for PNG snapshot serialization.
+- [ ] 🟡 ♻️ PERF [PERF-09]: Decode PNGs with one inflate pass. `assertCompleteImageData` inflates the image data and `pngjs` inflates it a second time. Pass the verified output to `pngjs` or replace its inflate call.
+- [ ] 🟢 ♻️ PERF [PERF-06]: Remove duplicate pixel writes during `extendImage` padding.
+- [ ] 🟢 ♻️ PERF [PERF-07]: Remove object allocations in `validateArea`.
 
 ## 🏛️ Architecture · Types · API · Reliability
 
-- [ ] 🟡 ♻️ ARCH [ARCH-02]: Split `getPngData` → `decodePngBuffer` + `loadPngFromPath`
-- [ ] 🟡 ♻️ ARCH [ARCH-03]: `comparePngAsyncWithPorts` for injection symmetry
-- [ ] 🟡 ♻️ ARCH [ARCH-09]: Unify image-loading module — fuse `getPngData` + `validateImageSourceLoad` + `fs(Async)ImageSource` policy; seam at read primitive only (supersedes ARCH-02 + ARCH-06)
-- [ ] 🟡 ♻️ ARCH [ARCH-10]: Extract secure diff-write contract — share SECU-12 invariants between `fsDiffWriter` + `fsAsyncDiffWriter`; seam at I/O primitives, not at the diff writer
-- [ ] 🟡 ♻️ TYPE [TYPE-04]: `readonly` on public `Area`/`Color` fields
-- [ ] 🟡 ♻️ TYPE [TYPE-05]: Decide port interfaces public vs internal
-- [ ] 🟡 📦 API [API-02]: `AbortSignal` in `comparePngAsync`
-- [ ] 🟢 ♻️ ARCH [ARCH-04]: Remove dead `ComparisonContext` + `rawOptions`
-- [ ] 🟢 ♻️ ARCH [ARCH-05]: Split `RuntimePorts` from `ResolvedOptions`
-- [ ] 🟢 ♻️ ARCH [ARCH-06]: Move `validateImageSourceLoad.ts` → `internal/`
-- [ ] 🟢 ♻️ ARCH [ARCH-07]: Frozen `DEFAULT_COMPARE_PNG_OPTIONS`
-- [ ] 🟢 ♻️ ARCH [ARCH-08]: Collapse pixel-painting modules — fold `drawPixelOnBuff` + `fillImageSizeDifference` + `addColoredAreasToImage` + `extendImage` into one image-painting module
-- [ ] 🟢 ♻️ ARCH [ARCH-11]: Snapshot framework adapter — extract `SnapshotStateAdapter` interface; dedupe Jest/Vitest snapshot-state plumbing (~350 LOC → ~150 core + thin adapters)
-- [ ] 🟢 ♻️ ARCH [ARCH-12]: Unify sync/async orchestrators — single 5-stage pipeline driver parameterized by port bundle (depends on ARCH-09 + ARCH-10)
-- [ ] 🟢 ♻️ TYPE [TYPE-06]: Remove the deprecated `LoadedPng` export in 8.0.0 — deprecated in 7.x because no public API returns it; delete `src/types/png.data.ts` and its `src/types/index.ts` / `src/index.ts` entries (the internal type lives in `src/pipeline/types.ts`). That also drops the last `pngjs` type reference from the public declarations (TS7016 under `skipLibCheck: false`), and README's v6 guide note can go. Add a consumer typecheck of the packed tarball (`skipLibCheck: false`, no `@types/pngjs`, every entry point) as the regression test
-- [ ] 🟢 ♻️ TYPE [TYPE-08]: Rename `isComparePngOptions` → `isPlainObject`
-- [ ] 🟢 ♻️ TYPE [TYPE-09]: `Partial<ComparisonPorts>` on overload
-- [ ] 🟢 🐛 RELI [RELI-05]: `Promise.allSettled` in `comparePngAsync`
-- [ ] 🟢 🐛 RELI [RELI-08]: Validate-before-bind in `resolveOptions`
-- [ ] 🟢 🐛 RELI [RELI-09]: Wrap `realpathNative` errors in `PathValidationError`
-- [ ] 🟢 📦 API [API-03]: In-memory diff buffer (no disk round-trip)
-- [ ] 🟢 📦 API [API-04]: Accept `string|URL` for path options
-- [ ] 🟢 📦 API [API-05]: `comparePngWithResult` verbose return shape
+- [ ] 🟡 ♻️ ARCH [ARCH-02]: Split `getPngData` into `decodePngBuffer` and `loadPngFromPath`.
+- [ ] 🟡 ♻️ ARCH [ARCH-03]: Add `comparePngAsyncWithPorts` to match `comparePngWithPorts`.
+- [ ] 🟡 ♻️ ARCH [ARCH-09]: Combine `getPngData`, `validateImageSourceLoad`, and `fs(Async)ImageSource` into one image-loading module (replaces ARCH-02 and ARCH-06).
+- [ ] 🟡 ♻️ ARCH [ARCH-10]: Extract shared diff-write security logic from `fsDiffWriter` and `fsAsyncDiffWriter`.
+- [ ] 🟡 ♻️ TYPE [TYPE-04]: Add `readonly` to public `Area` and `Color` properties.
+- [ ] 🟡 ♻️ TYPE [TYPE-05]: Decide whether port interfaces are public or internal.
+- [ ] 🟡 📦 API [API-02]: Add `AbortSignal` support to `comparePngAsync`.
+- [ ] 🟢 ♻️ ARCH [ARCH-04]: Remove unused `ComparisonContext` and `rawOptions`.
+- [ ] 🟢 ♻️ ARCH [ARCH-05]: Separate `RuntimePorts` from `ResolvedOptions`.
+- [ ] 🟢 ♻️ ARCH [ARCH-06]: Move `validateImageSourceLoad.ts` to `src/internal/`.
+- [ ] 🟢 ♻️ ARCH [ARCH-07]: Freeze `DEFAULT_COMPARE_PNG_OPTIONS`.
+- [ ] 🟢 ♻️ ARCH [ARCH-08]: Combine `drawPixelOnBuff`, `fillImageSizeDifference`, `addColoredAreasToImage`, and `extendImage` into one module.
+- [ ] 🟢 ♻️ ARCH [ARCH-11]: Extract a `SnapshotStateAdapter` interface to share Jest and Vitest snapshot-state logic.
+- [ ] 🟢 ♻️ ARCH [ARCH-12]: Unify synchronous and asynchronous orchestrators into one pipeline runner (depends on ARCH-09 and ARCH-10).
+- [ ] 🟢 ♻️ TYPE [TYPE-06]: Remove deprecated `LoadedPng` in version 8.0.0. Delete `src/types/png.data.ts` and remove its exports from `src/types/index.ts` and `src/index.ts`. Add a consumer type-check test on the packed tarball with `skipLibCheck: false` and without `@types/pngjs`.
+- [ ] 🟢 ♻️ TYPE [TYPE-08]: Rename `isComparePngOptions` to `isPlainObject`.
+- [ ] 🟢 ♻️ TYPE [TYPE-09]: Use `Partial<ComparisonPorts>` on the port overload.
+- [ ] 🟢 🐛 RELI [RELI-05]: Use `Promise.allSettled` in `comparePngAsync`.
+- [ ] 🟢 🐛 RELI [RELI-08]: Validate options before binding in `resolveOptions`.
+- [ ] 🟢 🐛 RELI [RELI-09]: Wrap `realpathNative` errors in `PathValidationError`.
+- [ ] 🟢 📦 API [API-03]: Return an in-memory diff buffer without writing to disk.
+- [ ] 🟢 📦 API [API-04]: Accept `string | URL` for file path options.
+- [ ] 🟢 📦 API [API-05]: Add `comparePngWithResult` to return a detailed result object.
 
 ## 🧪 Tests & QA
 
-- [ ] 🟢 🧪 TEST [TEST-09]: Remove vestigial `win32` guards — `if (process.platform === 'win32') return;` appears in 6 test files, but Windows was dropped as a supported platform in 6.0.0 (`"os": ["darwin", "linux"]`), so the guards imply support that does not exist
-- [ ] 🔴 🧪 TEST [TEST-08]: Fix macOS Vitest fork crash so the macOS CI job can gate again — `Error: Worker exited unexpectedly` kills the worker running `pngSnapshotMatcher.test.ts`, dropping its coverage and failing the 100% gate. Measured ~1 in 7 without coverage, ~1 in 5 with. Localized: the file calls `vi.resetModules()` 32 times, each re-evaluating the matcher module graph. Ruled out — `pool: 'threads'` (breaks `process.umask` in the SECU-12 tests), `maxForks: 4` (1/20), `--max-old-space-size=4096` (0/20 plain, 3/15 under coverage). Likely fix: rework the file to call the exported `registerJestPngSnapshotMatcher` / an extracted auto-register seam instead of resetting the module registry. Reproduces on `main`; Linux unaffected
-- [ ] 🟡 🧪 TEST [TEST-02]: Bench suite (`vitest bench`) for PERF gating
-- [ ] 🟡 🧪 TEST [TEST-03]: Pack-test integration against built artifact
-- [ ] 🟢 🧪 TEST [TEST-04]: Mutation testing (Stryker)
-- [ ] 🟢 🧪 TEST [TEST-05]: Fuzz malformed PNG (`fast-check`)
-- [ ] 🟢 🧪 TEST [TEST-06]: Type-level regression tests (`expectTypeOf`)
-- [ ] 🟢 🧪 TEST [TEST-07]: Unit-test `excluded-areas-builder` JS
+- [ ] 🟢 🧪 TEST [TEST-09]: Remove unused `if (process.platform === 'win32') return;` checks from test files because Windows is not supported.
+- [ ] 🔴 🧪 TEST [TEST-08]: Fix the macOS Vitest worker crash (`Error: Worker exited unexpectedly`) in `pngSnapshotMatcher.test.ts`. Replace the 32 `vi.resetModules()` calls with direct calls to `registerJestPngSnapshotMatcher` or an extracted registration helper, then re-enable the `macos` CI gate.
+- [ ] 🟡 🧪 TEST [TEST-02]: Add a benchmark suite (`vitest bench`) for performance checks.
+- [ ] 🟡 🧪 TEST [TEST-03]: Add a packed-tarball integration test suite.
+- [ ] 🟢 🧪 TEST [TEST-04]: Add mutation testing with Stryker.
+- [ ] 🟢 🧪 TEST [TEST-05]: Add property-based fuzz tests for malformed PNGs with `fast-check`.
+- [ ] 🟢 🧪 TEST [TEST-06]: Add type-level regression tests with `expectTypeOf`.
+- [ ] 🟢 🧪 TEST [TEST-07]: Add unit tests for the `excluded-areas-builder` script.
 
 ## 📝 Docs
 
-- [ ] 🟢 📝 DOC [DOC-03]: Dedupe `CLAUDE.md` vs `.github/copilot-instructions.md`
-- [ ] 🟢 📝 DOC [DOC-04]: Expand public function JSDoc
-- [ ] 🟢 📝 DOC [DOC-05]: Cross-link `ARCHITECTURE.md` ↔ `BACKLOG.md`
+- [ ] 🟢 📝 DOC [DOC-03]: Deduplicate `CLAUDE.md` and `.github/copilot-instructions.md`.
+- [ ] 🟢 📝 DOC [DOC-04]: Expand JSDoc comments on public functions.
+- [ ] 🟢 📝 DOC [DOC-05]: Add cross-links between `docs/ARCHITECTURE.md` and `BACKLOG.md`.
 
 ## 🛠️ Build · Deps · CI · DX
 
-- [ ] 🟢 ♻️ BUILD [BUILD-01]: `tsconfig.base.json` split
-- [ ] 🟢 ♻️ BUILD [BUILD-02]: `moduleResolution` → `nodenext`
-- [ ] 🟢 ♻️ BUILD [BUILD-03]: Explicit `import`/`require` in `exports`
-- [ ] 🟢 ♻️ BUILD [BUILD-04]: Emit SBOM in `publish.yml`
-- [ ] 🟢 ♻️ BUILD [BUILD-05]: `stripInternal` in `tsconfig.prod.json`
-- [ ] 🟢 ♻️ BUILD [BUILD-06]: Remove/document `_version` field
-- [ ] 🟢 ♻️ DEPS [DEPS-01]: Bump `@types/pngjs` → 7.x
-- [ ] 🟢 ♻️ DEPS [DEPS-02]: Add `docker` to Dependabot
-- [ ] 🟢 ♻️ DEPS [DEPS-03]: Loosen `peerDependencies` upper bounds (or watch script)
-- [ ] 🟢 ♻️ DX [DX-01]: Extract `scripts/open-tool.mjs` (kill inline `node -e`)
-- [ ] 🟢 ♻️ DX [DX-02]: Add `npm run dev` (vitest watch)
-- [ ] 🟢 ♻️ DX [DX-04]: Add `.editorconfig`
-- [ ] 🟢 ♻️ DX [DX-05]: Pre-commit hook (`simple-git-hooks` + `lint-staged`)
-- [ ] 🟢 ♻️ CI [CI-02]: Add CodeQL workflow
-- [ ] 🟢 ♻️ CI [CI-03]: `dependency-review-action` on PRs
-- [ ] 🟢 ♻️ CI [CI-04]: Upload coverage to Codecov
+- [ ] 🟢 ♻️ BUILD [BUILD-01]: Split shared compiler settings into `tsconfig.base.json`.
+- [ ] 🟢 ♻️ BUILD [BUILD-02]: Update `moduleResolution` to `nodenext`.
+- [ ] 🟢 ♻️ BUILD [BUILD-03]: Add explicit `import` and `require` conditions to `exports`.
+- [ ] 🟢 ♻️ BUILD [BUILD-04]: Generate an SBOM in `publish.yml`.
+- [ ] 🟢 ♻️ BUILD [BUILD-05]: Enable `stripInternal` in `tsconfig.prod.json`.
+- [ ] 🟢 ♻️ BUILD [BUILD-06]: Remove or document the `_version` field.
+- [ ] 🟢 ♻️ DEPS [DEPS-01]: Upgrade `@types/pngjs` when version 7.x is available.
+- [ ] 🟢 ♻️ DEPS [DEPS-02]: Add `docker` ecosystem updates to Dependabot.
+- [ ] 🟢 ♻️ DEPS [DEPS-03]: Widen `peerDependencies` upper bounds or add a check script.
+- [ ] 🟢 ♻️ DX [DX-01]: Move inline `node -e` script to `scripts/open-tool.mjs`.
+- [ ] 🟢 ♻️ DX [DX-02]: Add `npm run dev` for Vitest watch mode.
+- [ ] 🟢 ♻️ DX [DX-04]: Add `.editorconfig`.
+- [ ] 🟢 ♻️ DX [DX-05]: Add pre-commit hooks with `simple-git-hooks` and `lint-staged`.
+- [ ] 🟢 ♻️ CI [CI-02]: Add a CodeQL security workflow.
+- [ ] 🟢 ♻️ CI [CI-03]: Add `dependency-review-action` on pull requests.
+- [ ] 🟢 ♻️ CI [CI-04]: Upload test coverage to Codecov.

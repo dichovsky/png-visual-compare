@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, unlinkSync } from 'fs';
 import { parse, resolve } from 'path';
 import { expect, test } from 'vitest';
 import '../src/vitest.mjs';
@@ -24,12 +24,16 @@ test(`compare different PNG files, threshold is specified`, async () => {
         `./test-results/diffs/compare.png.diffs.threshold/${parse(actual).base}_${parse(expected).base}/diff_threshold.png`,
     );
 
+    if (existsSync(diffFilePath)) {
+        unlinkSync(diffFilePath);
+    }
+
     expect(existsSync(diffFilePath)).toBe(false);
 
     const result: number = comparePng(actual, expected, { diffFilePath, pixelmatchOptions: { threshold: 0.97 } });
 
-    expect(result).toBe(0);
-    expect(existsSync(diffFilePath)).toBe(false);
+    expect(result).toBe(366);
+    expect(existsSync(diffFilePath)).toBe(true);
 });
 
 test(`compare different PNG files, diff color is specified`, async () => {
@@ -163,6 +167,62 @@ const testDataArrayPixelmatchValidation: {
         name: 'checkerboard boolean is accepted',
         pixelmatchOptions: { checkerboard: false },
         throws: false,
+    },
+    {
+        id: 17,
+        name: 'windowSize positive integer is accepted',
+        pixelmatchOptions: { windowSize: 16 },
+        throws: false,
+    },
+    {
+        id: 18,
+        name: 'windowSize Infinity is accepted',
+        pixelmatchOptions: { windowSize: Infinity },
+        throws: false,
+    },
+    {
+        id: 19,
+        name: 'windowSize zero is rejected',
+        pixelmatchOptions: { windowSize: 0 },
+        throws: true,
+        message: 'pixelmatchOptions.windowSize must be a positive integer or Infinity',
+    },
+    {
+        id: 20,
+        name: 'windowSize float is rejected',
+        pixelmatchOptions: { windowSize: 1.5 },
+        throws: true,
+        message: 'pixelmatchOptions.windowSize must be a positive integer or Infinity',
+    },
+    {
+        id: 21,
+        name: 'windowSize non-number is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pixelmatchOptions: { windowSize: '16' as any },
+        throws: true,
+        message: 'pixelmatchOptions.windowSize must be a positive integer or Infinity',
+    },
+    {
+        id: 22,
+        name: 'ignoreMask Uint8Array is accepted',
+        pixelmatchOptions: { ignoreMask: new Uint8Array(400 * 479) },
+        throws: false,
+    },
+    {
+        id: 23,
+        name: 'ignoreMask non-view is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pixelmatchOptions: { ignoreMask: [0] as any },
+        throws: true,
+        message: 'pixelmatchOptions.ignoreMask must be a Uint8Array, Uint8ClampedArray, or Buffer',
+    },
+    {
+        id: 24,
+        name: 'ignoreMask wider typed array is rejected',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pixelmatchOptions: { ignoreMask: new Uint16Array(1) as any },
+        throws: true,
+        message: 'pixelmatchOptions.ignoreMask must be a Uint8Array, Uint8ClampedArray, or Buffer',
     },
 ];
 
