@@ -24,6 +24,18 @@ function validateColorTuple(name: string, value: unknown): void {
     }
 }
 
+function validateWindowSize(name: string, value: unknown): void {
+    if (value !== undefined && (typeof value !== 'number' || (value !== Infinity && (!Number.isInteger(value) || value <= 0)))) {
+        throw new InvalidInputError(`${name} must be a positive integer or Infinity`);
+    }
+}
+
+function validateIgnoreMask(name: string, value: unknown): void {
+    if (value !== undefined && (!ArrayBuffer.isView(value) || (value as { BYTES_PER_ELEMENT?: number }).BYTES_PER_ELEMENT !== 1)) {
+        throw new InvalidInputError(`${name} must be a Uint8Array, Uint8ClampedArray, or Buffer`);
+    }
+}
+
 export function validatePixelmatchOptions(opts: PixelmatchOptions): void {
     if (typeof opts !== 'object' || opts === null || Array.isArray(opts)) {
         throw new InvalidInputError('pixelmatchOptions must be an object when provided');
@@ -33,6 +45,8 @@ export function validatePixelmatchOptions(opts: PixelmatchOptions): void {
     validateBoolean('pixelmatchOptions.includeAA', opts.includeAA);
     validateBoolean('pixelmatchOptions.diffMask', opts.diffMask);
     validateBoolean('pixelmatchOptions.checkerboard', opts.checkerboard);
+    validateWindowSize('pixelmatchOptions.windowSize', opts.windowSize);
+    validateIgnoreMask('pixelmatchOptions.ignoreMask', opts.ignoreMask);
 
     if (opts.aaColor !== undefined) validateColorTuple('pixelmatchOptions.aaColor', opts.aaColor);
     if (opts.diffColor !== undefined) validateColorTuple('pixelmatchOptions.diffColor', opts.diffColor);

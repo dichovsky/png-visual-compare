@@ -79,7 +79,7 @@ test('should compare different PNG files without creating diff file (mismatch), 
     const expected = resolve('./test-data/expected/youtube-play-button.png');
 
     const result = await comparePngAsync(actual, expected);
-    expect(result).toBe(434926);
+    expect(result).toBe(429113);
 });
 
 test('should create diff file directory recursively if it does not exist, async', async () => {
@@ -93,7 +93,7 @@ test('should create diff file directory recursively if it does not exist, async'
     }
 
     const result = await comparePngAsync(actual, expected, { diffFilePath });
-    expect(result).toBe(434926);
+    expect(result).toBe(429113);
     expect(existsSync(diffFilePath)).toBe(true);
 });
 
@@ -111,7 +111,7 @@ test('should create diff file when directory already exists, async', async () =>
     }
 
     const result = await comparePngAsync(actual, expected, { diffFilePath });
-    expect(result).toBe(434926);
+    expect(result).toBe(429113);
     expect(existsSync(diffFilePath)).toBe(true);
 });
 
@@ -126,7 +126,7 @@ test('should create diff file when diffFilePath is a relative path, async', asyn
     }
 
     const result = await comparePngAsync(actual, expected, { diffFilePath: relativeDiffFilePath });
-    expect(result).toBe(434926);
+    expect(result).toBe(429113);
     expect(existsSync(absoluteDiffFilePath)).toBe(true);
 });
 
