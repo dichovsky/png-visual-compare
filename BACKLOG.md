@@ -37,7 +37,6 @@
 - [ ] 🟢 ♻️ ARCH [ARCH-08]: Combine `drawPixelOnBuff`, `fillImageSizeDifference`, `addColoredAreasToImage`, and `extendImage` into one module.
 - [ ] 🟢 ♻️ ARCH [ARCH-11]: Extract a `SnapshotStateAdapter` interface to share Jest and Vitest snapshot-state logic.
 - [ ] 🟢 ♻️ ARCH [ARCH-12]: Unify synchronous and asynchronous orchestrators into one pipeline runner (depends on ARCH-09 and ARCH-10).
-- [ ] 🟢 ♻️ TYPE [TYPE-06]: Remove deprecated `LoadedPng` in version 8.0.0. Delete `src/types/png.data.ts` and remove its exports from `src/types/index.ts` and `src/index.ts`. Add a consumer type-check test on the packed tarball with `skipLibCheck: false` and without `@types/pngjs`.
 - [ ] 🟢 ♻️ TYPE [TYPE-08]: Rename `isComparePngOptions` to `isPlainObject`.
 - [ ] 🟢 ♻️ TYPE [TYPE-09]: Use `Partial<ComparisonPorts>` on the port overload.
 - [ ] 🟢 🐛 RELI [RELI-05]: Use `Promise.allSettled` in `comparePngAsync`.

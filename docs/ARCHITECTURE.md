@@ -46,7 +46,6 @@ comparePng / comparePngAsync
 - `Color`
 - `ComparePngOptions`
 - `PixelmatchOptions`
-- `LoadedPng` — deprecated alias of the internal type in `src/pipeline/types.ts`; scheduled for removal in 8.0.0 (TYPE-06)
 
 ### Subpath Exports
 
@@ -291,6 +290,7 @@ Public error classes:
 - `npm run build` compiles the package with `tsconfig.prod.json`.
 - `package.json` exposes `"."`, `"./vitest"`, `"./jest"`, and `"./playwright"`.
 - npm publishes only `out/`.
+- The declarations of the entry points must not refer to `pngjs` types. If they do, a consumer without `@types/pngjs` gets TS7016 when `skipLibCheck` is `false`. `npm run test:consumer-types` builds and packs the package, installs the tarball into a new project without `@types/pngjs`, and type-checks every entry point (`strict`, `skipLibCheck: false`) with `moduleResolution` `node16` and `bundler`. CI runs this check in the `consumer-types` job, not in `npm test`.
 - `npm run codemap` generates `CODEMAP.md` from the source tree and `package.json`.
 
 ## Invariants for Maintainers
