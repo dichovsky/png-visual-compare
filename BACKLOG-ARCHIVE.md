@@ -1,149 +1,146 @@
 # Backlog Archive
 
-> **Agent Rules:** Append completed tasks here. Add Impl: (Implementation details) and Rat: (Rationale/Why).
+> **Agent Rules:** Add completed tasks here. Include **Impl:** (implementation details) and **Rat:** (reason for the change).
 
-> Full original specs (file lists, prescribed signatures, acceptance criteria) are preserved in git history — see commits prior to the compact-backlog adoption. IDs in `[BRACKETS]` are stable cross-refs to git history, `CHANGELOG.md`, `BACKLOG.md`, and `docs/ARCHITECTURE.md`.
+> Git history contains full original specifications. IDs in `[BRACKETS]` link to git history, `CHANGELOG.md`, `BACKLOG.md`, and `docs/ARCHITECTURE.md`.
 
 ## 🔒 Security
 
 - [x] 🔴 🐛 SECU [SECU-01]: Symlink-safe path containment
-    - **Impl:** `realpathSync.native` on `baseDir` + target (or target's parent for output paths); ELOOP normalized; tests cover lexical + symlink traversal on Linux/macOS.
-    - **Rat:** Containment was lexical only — symlinks inside `baseDir` could escape, breaking the documented security boundary on server-side usage.
+    - **Impl:** Added `realpathSync.native` on `baseDir` and target paths, normalized `ELOOP`, and added symlink traversal tests on Linux and macOS.
+    - **Rat:** Lexical containment alone allowed symlinks inside `baseDir` to point outside the security boundary.
 - [x] 🔴 🐛 SECU [SECU-02]: Decoded-pixel limit (`maxPixels`)
-    - **Impl:** Added `maxPixels` option (default `16_777_216`); enforced in `getPngData` post-IHDR and in `comparePng` on the normalized canvas.
-    - **Rat:** Per-axis `maxDimension` allowed 16384×16384 ≈ 1 GiB decoded RGBA — DoS protection was incomplete.
+    - **Impl:** Added the `maxPixels` option (default `16_777_216`) and enforced it in `getPngData` and `comparePng`.
+    - **Rat:** Per-axis `maxDimension` allowed `16384 × 16384` images (~1 GiB of RGBA memory).
 - [x] 🔴 🐛 SECU [SECU-03]: Symlink-atomic diff write
-    - **Impl:** Both `fsDiffWriter` and `fsAsyncDiffWriter` use `openSync`/`open` with `O_NOFOLLOW`; symlink at target refused with `PathValidationError`. Shipped 6.1.1.
-    - **Rat:** `writeFileSync` followed symlinks → TOCTOU window between `validatePath` and write let a hostile process redirect diff bytes outside `diffOutputBaseDir`.
+    - **Impl:** Updated `fsDiffWriter` and `fsAsyncDiffWriter` to open files with `O_NOFOLLOW` and reject symlinks with `PathValidationError`.
+    - **Rat:** `writeFileSync` followed symlinks, which created a race window between `validatePath` and the write.
 - [x] 🔴 🐛 SECU [SECU-10]: `maxPixels` check before `extendImage`
-    - **Impl:** Relocated canvas-level `maxPixels` check into `normalizeImages` before `extendImage`; removed redundant check from `runComparison`.
-    - **Rat:** Spec said "before diff allocation" but check ran after `normalizeImages` had already allocated 2× ~1 GiB extended buffers — gate was cosmetic for the DoS path it was meant to close.
-- [x] 🟡 🐛 SECU [SECU-11]: `validatePath` output FS-state oracle
-    - **Impl:** Reordered `validatePath` so `baseDir` containment runs before `lstat`/`stat` shape checks via new `assertOutputTargetShape` helper.
-    - **Rat:** Out-of-bounds paths returned distinct error strings (symlink/directory/missing) → attacker oracle for filesystem enumeration outside the trust boundary.
-- [x] 🟡 🐛 SECU [SECU-12]: Diff written `0o600` (umask-safe)
-    - **Impl:** Both writers pass explicit `0o600` mode to `openSync`/`open`.
-    - **Rat:** `O_CREAT` without `mode` used `0o666 & ~umask` → world-readable diff PNGs on default Linux hosts (umask `0022` → `0o644`), leaking visual evidence of screenshotted content.
-
-- [x] 🟢 🐛 SECU [SECU-07]: `comparePngWithPorts` barrel hygiene (`@internal` or relocate)
-    - **Impl:** No change needed — `comparePngWithPorts` is exported from `src/comparePng.ts` but never re-exported by `src/index.ts`, and `package.json` `exports` maps only `.`, `./vitest`, `./jest`. It is unreachable from installed consumers. Tagging it `@internal` is folded into BUILD-05 (`stripInternal`).
-    - **Rat:** Audited against the barrel and the `exports` map rather than assumed — the leak the task guarded against does not exist.
-
-- [x] 🟡 🐛 SECU [SECU-04]: Cap pre-decode file read (`maxFileBytes`)
-    - **Impl:** New `maxFileBytes` option (default `DEFAULT_MAX_PIXELS * 8 + 1 MiB` = 135,266,304, sized for 16-bit RGBA) enforced in `readValidatedFile` from the opened handle's `fstat` size before any bytes are read, and again against the bytes actually read. Throws `ResourceLimitError` regardless of `throwErrorOnInvalidInputData`; path inputs only.
-    - **Rat:** `maxDimension`/`maxPixels` read the declared IHDR header, so they bounded the decoded image but not the compressed bytes needed to reach that header — a multi-gigabyte file was fully resident before either limit ran.
-- [x] 🟡 🐛 SECU [SECU-05]: Close async-path TOCTOU (validate→read)
-    - **Impl:** New `src/readValidatedFile.ts` runs a filesystem-free containment check, then opens the file to pin one inode, then runs `validatePathWithReal` and compares the handle's `dev`/`ino` (bigint) against the canonical path containment approved. Used by both `getPngData` and `fsAsyncImageSource`, so the sync path is covered too. Engages only when `inputBaseDir` is set.
-    - **Rat:** `validatePath` walked the path and `readFile` walked it again from scratch; anything swapped in between was what got read. Affected the sync path as well as the async one the item named. Node has no `openat`, so the race is detected rather than prevented — bytes never come from an unverified inode.
-- [x] 🟡 🐛 SECU [SECU-06]: Document decoder-bomb surface in README
-    - **Impl:** New README "Security Model" section covering decoded-vs-compressed bounds, the detect-not-prevent nature of the race defences, the file-identity requirement, and an explicit "what is not covered" list.
-    - **Rat:** The README presented `maxDimension`/`maxPixels` as the resource-exhaustion defence without stating that they inspect a header and bound nothing about the bytes read to reach it.
-- [x] 🟡 🐛 SECU [SECU-09]: Refuse symlink in mkdir parent component
-    - **Impl:** `secureMkdir` walks from `diffOutputBaseDir` downward, refusing symlinked components and creating missing ones singly; the file is then opened inside the `realDiffDirectory`-resolved parent so no symlink is traversed at open time; `O_TRUNC` moved off the open to an `ftruncate` gated on an inode match; `O_EXCL` establishes whether this call created the file, and cleanup unlinks only in that case.
-    - **Rat:** `mkdir` with `recursive: true` follows symlinks in every intermediate component and `O_NOFOLLOW` guards only the final one, so a symlinked parent redirected the whole write outside the boundary — and `O_TRUNC` would have emptied whatever it landed on before anything noticed.
-- [x] 🟡 🐛 SECU [SECU-13]: Refuse a hard-linked diff target under `diffOutputBaseDir`
-    - **Impl:** New `assertSingleLink` in `src/internal/assertPlainFile.ts`; both diff writers run it on the opened handle's `fstat` after `assertSameFile` and before `ftruncate`/`fchmod`/write, refusing `nlink > 1` with `PathValidationError`. Only with `diffOutputBaseDir`. Reads are deliberately unchecked (README → What is not covered).
-    - **Rat:** A hard link is the same inode, so the identity check passed for a link planted inside the boundary to a file elsewhere on the filesystem, and the write overwrote it. The count is read from the pinned handle, so a link made after the check can only name the diff file itself. Reads stay open to linked files because hard-linked baselines (content-addressed caches, `cp -al` snapshots) are legitimate.
-- [x] 🟡 🐛 SECU [SECU-14]: Refuse a FIFO/special file inside a boundary without blocking
-    - **Impl:** With a base dir set, `readValidatedFile(Sync)` and both diff writers add `O_NONBLOCK` to the open, and new `assertRegularFile` (`src/internal/assertPlainFile.ts`) refuses a non-regular handle after containment is proven. A writer's `ENXIO` (FIFO with no reader) maps to the same `PathValidationError`. Without a base dir the blocking open is kept.
-    - **Rat:** A planted FIFO blocked the open until a peer appeared — the whole thread for the sync API — and a FIFO with a reader received the diff bytes. The check runs after containment so the kind of a file outside the boundary is never reported.
+    - **Impl:** Moved the normalized-canvas `maxPixels` check into `normalizeImages` before `extendImage` runs.
+    - **Rat:** Running the check in `runComparison` happened after `normalizeImages` had already allocated two large buffers.
+- [x] 🟡 🐛 SECU [SECU-11]: `validatePath` output filesystem oracle
+    - **Impl:** Updated `validatePath` so `baseDir` containment runs before `lstat` and `stat` target shape checks.
+    - **Rat:** Out-of-bounds paths returned different errors for symlinks, directories, and missing files, which leaked filesystem state outside `baseDir`.
+- [x] 🟡 🐛 SECU [SECU-12]: Diff written with `0o600` permissions
+    - **Impl:** Set mode `0o600` on `open` and added `fchmod(0o600)` on the open handle in both diff writers.
+    - **Rat:** Default `O_CREAT` permissions created world-readable diff PNGs under standard `0022` umasks.
+- [x] 🟢 🐛 SECU [SECU-07]: `comparePngWithPorts` barrel check
+    - **Impl:** Verified that `src/index.ts` and `package.json` `exports` do not expose `comparePngWithPorts`.
+    - **Rat:** Confirmed that external consumers cannot import `comparePngWithPorts`.
+- [x] 🟡 🐛 SECU [SECU-04]: Limit pre-decode file read (`maxFileBytes`)
+    - **Impl:** Added `maxFileBytes` (default `135,266,304`) and enforced it in `readValidatedFile` on the `fstat` size and bytes read.
+    - **Rat:** `maxDimension` and `maxPixels` checked the decoded image size, but did not limit the compressed file size read into memory.
+- [x] 🟡 🐛 SECU [SECU-05]: Detect path swaps between validation and read
+    - **Impl:** Added `src/readValidatedFile.ts` to run lexical containment, open the file, run `validatePathWithReal`, and compare `dev` and `ino`.
+    - **Rat:** Opening the file before `realpath` validation ensures that bytes come from the verified inode.
+- [x] 🟡 🐛 SECU [SECU-06]: Document security model in `README.md`
+    - **Impl:** Added the Security Model section to `README.md` to explain resource limits, path containment, and known exclusions.
+    - **Rat:** Users needed clear documentation of what each security option protects.
+- [x] 🟡 🐛 SECU [SECU-09]: Reject symlinks in parent directories during diff writes
+    - **Impl:** Added `secureMkdir` and `realDiffDirectory` to create parent directories one segment at a time, reject symlinks, and defer `ftruncate` until after inode verification.
+    - **Rat:** `mkdir` with `recursive: true` followed symlinked parent directories outside `diffOutputBaseDir`.
+- [x] 🟡 🐛 SECU [SECU-13]: Reject hard-linked diff targets under `diffOutputBaseDir`
+    - **Impl:** Added `assertSingleLink` in `src/internal/assertPlainFile.ts` to reject diff targets with `nlink > 1` when `diffOutputBaseDir` is set.
+    - **Rat:** A hard link inside `diffOutputBaseDir` shares the same inode as an external file on the same filesystem.
+- [x] 🟡 🐛 SECU [SECU-14]: Reject FIFOs and special files inside a base directory without blocking
+    - **Impl:** Added `O_NONBLOCK` to file opens when a base directory is set and added `assertRegularFile` in `src/internal/assertPlainFile.ts`.
+    - **Rat:** Opening a FIFO without `O_NONBLOCK` blocked the process until a peer opened the pipe.
 
 ## ⚡ Performance
 
 - [x] 🔴 ♻️ PERF [PERF-01]: Lazy diff allocation
-    - **Impl:** Diff `PNG` allocated only when `diffFilePath` is provided; `pixelmatch` receives `diff?.data`.
-    - **Rat:** Unconditional `new PNG(maxWidth, maxHeight)` doubled memory pressure for the common compare-only case.
-- [x] 🟢 ♻️ PERF [PERF-08]: Playwright baseline writes fully decode the PNG to check limits — IHDR-only check
-    - **Impl:** `src/getPngData.ts` exports `assertPngHeaderLimits(buffer, maxDimension, maxPixels)` (internal; not in `src/index.ts`): it requires the signature and one complete 13-byte IHDR chunk, then runs the existing `assertImageLimits` (same `ResourceLimitError` messages as a full decode), the duplicate-IHDR scan and a zero-dimension check, each failure as `InvalidInputError`. Short or malformed input never reaches a `readUInt32BE` past the end. `src/playwright.ts` `writeBaseline` calls it with the resolved limits instead of `validatePngSnapshot`; Jest and Vitest keep the full decode. Tests: a malformed-header table (including the duplicate-IHDR fixtures), message parity with `getPngData` over each limit, and `PNG.sync.read` never called on Playwright baseline writes in `missing` / `all` / `changed` modes.
-    - **Rat:** The full decode existed only to enforce the image limits and cost a full RGBA allocation per baseline write, which is largest exactly for the full-page screenshots the limits target. Trade-off: a PNG with a valid header but corrupt image data is now written and fails its next comparison (README and CHANGELOG say so).
+    - **Impl:** Allocated the diff `PNG` buffer only when `shouldCreateDiffFile` is `true`.
+    - **Rat:** Allocating a diff buffer when `diffFilePath` was omitted wasted memory.
+- [x] 🟢 ♻️ PERF [PERF-08]: Check IHDR header limits without full PNG decode on Playwright baseline writes
+    - **Impl:** Added `assertPngHeaderLimits` in `src/getPngData.ts` and called it from `writeBaseline` in `src/playwright.ts`.
+    - **Rat:** Full PNG decoding on every new baseline write allocated an unnecessary RGBA buffer.
 
 ## 🏛️ Architecture · Types · API · Reliability
 
-- [x] 🔴 ♻️ ARCH [ARCH-01]: Split `comparePng` → pipeline stages
-    - **Impl:** Extracted `resolveOptions` / `loadSources` / `normalizeImages` / `runComparison` / `persistDiff` into `src/pipeline/*`; reduced `comparePng.ts` to a ≤30-line orchestrator.
-    - **Rat:** `comparePng` mixed option parsing, validation, security, loading, normalization, comparison, and persistence — primary maintainability hotspot blocking async + new stages.
-- [x] 🔴 📦 API [API-01]: Async API + injectable I/O ports (a+b+c+d)
-    - **Impl:** Defined `ImageSourcePort`/`DiffWriterPort` in `src/ports/`; wired sync via `fsImageSource`/`fsDiffWriter`; added `comparePngAsync` using `fs.promises`; README + CHANGELOG updated. Four sequential sub-items a→d.
-    - **Rat:** Only a sync entrypoint with monolithic I/O — blocked filesystem abstraction, async use cases, and test fakes for orchestration logic.
-- [x] 🔴 🐛 RELI [RELI-01]: Runtime-validate `excludedAreas`
-    - **Impl:** New `validateArea(area, i)` enforcing finite-integer + `x1 <= x2` + `y1 <= y2`; called before `addColoredAreasToImage`.
-    - **Rat:** NaN/Infinity/floats/reversed coordinates silently produced partial writes or no-ops — correctness bug disguised as permissive input handling.
-- [x] 🔴 🐛 RELI [RELI-02]: Boundary-validate `pixelmatchOptions`
-    - **Impl:** New `validatePixelmatchOptions` checks threshold/alpha/color tuples/booleans; called from `comparePng` options block.
-    - **Rat:** Caller errors depended on downstream library behavior; weakened API contract and created version coupling pressure.
-- [x] 🔴 🐛 RELI [RELI-03]: Structured error classes/codes
-    - **Impl:** New `src/errors.ts` exports `InvalidInputError`/`PathValidationError`/`ResourceLimitError` with stable `code` fields; throw sites migrated; tests assert types not message substrings.
-    - **Rat:** Callers had no stable way to branch on failure mode besides parsing free-text — brittle as validation and security checks grew.
-- [x] 🔴 🐛 RELI [RELI-04]: Zero-dimension PNG semantics
-    - **Impl:** `getPngData` rejects `width === 0 || height === 0` with `InvalidInputError`; non-throw variant returns invalid `LoadedPng`.
-    - **Rat:** Zero-size behavior was an implementation side effect, not a contract — corner cases under-specified for consumers and maintainers.
-- [x] 🟢 🐛 RELI [RELI-10]: Wrap `pixelmatch` errors → `ComparisonError`
-    - **Impl:** New public `ComparisonError extends Error` (`code: 'ERR_COMPARISON'`) in `src/errors.ts`; `runComparison` wraps the `pixelmatch(...)` call in try/catch and rethrows with the original on the ES2022 `cause` property; exported from `src/index.ts`; README + ARCHITECTURE error-model sections updated; unit tests cover Error / non-Error throws plus a passthrough.
-    - **Rat:** Raw `pixelmatch` throws leaked through both sync and async public APIs as untyped `Error`s — callers had to parse free-form messages to branch on comparison-kernel failures, defeating the structured-error model established by RELI-03.
-- [x] 🟢 🐛 RELI [RELI-06]: Reject negative coords in `validateArea`
-    - **Impl:** `validateArea` now throws `InvalidInputError` (`excludedAreas[i]: coordinates must be non-negative`) when any of `x1/y1/x2/y2` is `< 0`, after the finite-integer check and before the ordering checks; sync + async exception suites gain negative-coordinate cases.
-    - **Rat:** Negative excluded-area coordinates were silently clamped to `0` inside `addColoredAreasToImage`, so a caller typo (e.g. `x1: -5`) painted a different region than requested with no signal — fail-fast at the validation boundary instead. The paint layer keeps its defensive clamp for direct callers.
-- [x] 🟢 🐛 RELI [RELI-07]: `persistDiff` use `=== 0` not `<= 0`
-    - **Impl:** `getPersistableDiff` guard changed from `result.mismatchedPixels <= 0` to `=== 0`.
-    - **Rat:** `pixelmatch` returns a non-negative mismatch count, so `<= 0` and `=== 0` are behaviourally identical; `=== 0` states the actual contract ("no mismatches ⇒ no diff file") without implying negative counts are reachable.
-- [x] 🔴 ♻️ TYPE [TYPE-01]: Replace `PngData` sentinel with discriminated union
-    - **Impl:** Replaced `PngData` with `LoadedPng = {kind:'valid',png} | {kind:'invalid',reason}`; updated `getPngData` + loaders + tests; removed from public barrel (semver-major).
-    - **Rat:** Sentinel encoded failure as a fake `0×0` PNG — weakened invariants and let invalid input flow through as if real.
-- [x] 🔴 ♻️ TYPE [TYPE-02]: Brand `ValidatedPath` type
-    - **Impl:** Added `ValidatedPath = string & { readonly [__validatedPath]: never }`; `validatePath` returns it; internal-only (not exported from `src/index.ts`).
-    - **Rat:** `validatePath` returned a plain `string` — security-sensitive flow control relied solely on developer discipline, increasingly risky as the codebase grew.
-- [x] 🔴 ♻️ TYPE [TYPE-03]: Decouple public options from `pixelmatch`
-    - **Impl:** Added `src/adapters/toPixelmatchOptions.ts` translating public `PixelmatchOptions` → pixelmatch raw shape; `comparePng` uses the adapter.
-    - **Rat:** Public types mirrored `pixelmatch` directly — any pixelmatch option churn would propagate to the wrapper's stable surface.
-- [x] 🔴 🐛 RELI [RELI-11]: Jest cannot load the package — vendor `pixelmatch`
-    - **Impl:** `pixelmatch` 7.2.0 ported line for line to `src/vendor/pixelmatch.ts` under its ISC notice (a `/*!` header, kept in `out/`); `runComparison` and `toPixelmatchOptions` import it, and the npm package moved to devDependencies. `__tests__/vendor/pixelmatch.test.ts` is a differential oracle against upstream: counts and diff bytes over fixtures × 12 option sets × `Uint8Array`/`Uint8ClampedArray` output, error messages, and a bisected colour-delta threshold probe that catches coefficient drift. 100% coverage of the port.
-    - **Rat:** The CJS build `require()`d ESM-only `pixelmatch`. Node ≥ 22.12 handles that through `require(esm)`, but Jest's loader (29 and 30) and Vitest vm pools on Node 22 do not, so the `./jest` matcher never loaded in a stock Jest project. Vendoring beat build-time bundling (no new tooling, and the tests exercise the shipped code) and beat keeping the Babel workaround (a config burden on every consumer). Verified with the packed tarball in stock Jest 29.7 / 30.5 × Node 22.12 / 24 and Vitest 5 `vmThreads` / `vmForks` on Node 22.12.
+- [x] 🔴 ♻️ ARCH [ARCH-01]: Split `comparePng` into pipeline stages
+    - **Impl:** Created `resolveOptions`, `loadSources`, `normalizeImages`, `runComparison`, and `persistDiff` in `src/pipeline/*`.
+    - **Rat:** Separated option validation, loading, normalization, comparison, and file output into testable modules.
+- [x] 🔴 📦 API [API-01]: Add `comparePngAsync` and I/O ports
+    - **Impl:** Added `ImageSourcePort` and `DiffWriterPort` in `src/ports/` and added `comparePngAsync` using `fs.promises`.
+    - **Rat:** Enabled asynchronous file I/O and port injection for unit tests.
+- [x] 🔴 🐛 RELI [RELI-01]: Validate `excludedAreas` at runtime
+    - **Impl:** Added `validateArea(area, i)` to check finite integers and coordinate order before painting.
+    - **Rat:** Invalid coordinates previously caused silent no-ops or partial writes.
+- [x] 🔴 🐛 RELI [RELI-02]: Validate `pixelmatchOptions` at runtime
+    - **Impl:** Added `validatePixelmatchOptions` to check numeric ranges, booleans, color tuples, `windowSize`, and `ignoreMask`.
+    - **Rat:** Validating options at the public boundary gives consistent `InvalidInputError` failures.
+- [x] 🔴 🐛 RELI [RELI-03]: Add error classes with `code` properties
+    - **Impl:** Added `InvalidInputError`, `PathValidationError`, and `ResourceLimitError` in `src/errors.ts`.
+    - **Rat:** Callers can match errors by class or `code` instead of message text.
+- [x] 🔴 🐛 RELI [RELI-04]: Reject zero-dimension PNGs
+    - **Impl:** Updated `getPngData` to reject PNGs with `width === 0` or `height === 0`.
+    - **Rat:** Defined explicit behavior for zero-dimension images.
+- [x] 🟢 🐛 RELI [RELI-10]: Wrap `pixelmatch` errors in `ComparisonError`
+    - **Impl:** Added `ComparisonError` (`code: 'ERR_COMPARISON'`) in `src/errors.ts` and wrapped the `pixelmatch` call in `runComparison`.
+    - **Rat:** Preserved the structured error contract when `pixelmatch` throws an error.
+- [x] 🟢 🐛 RELI [RELI-06]: Reject negative coordinates in `validateArea`
+    - **Impl:** Updated `validateArea` to throw `InvalidInputError` when any coordinate is negative.
+    - **Rat:** Replaced silent clamping of negative coordinates with an immediate validation error.
+- [x] 🟢 🐛 RELI [RELI-07]: Check `mismatchedPixels === 0` in `persistDiff`
+    - **Impl:** Changed `result.mismatchedPixels <= 0` to `result.mismatchedPixels === 0` in `getPersistableDiff`.
+    - **Rat:** Matched the non-negative return contract of `pixelmatch`.
+- [x] 🔴 ♻️ TYPE [TYPE-01]: Replace `PngData` sentinel with `LoadedPng` union
+    - **Impl:** Replaced `PngData` with the `LoadedPng` discriminated union.
+    - **Rat:** Removed fake `0×0` PNG sentinel objects.
+- [x] 🔴 ♻️ TYPE [TYPE-02]: Add branded `ValidatedPath` type
+    - **Impl:** Added `ValidatedPath` in `src/types/validated-path.ts` as the return type of `validatePath`.
+    - **Rat:** Enforced path validation at compile time before file I/O.
+- [x] 🔴 ♻️ TYPE [TYPE-03]: Decouple `PixelmatchOptions` from `pixelmatch`
+    - **Impl:** Added `src/adapters/toPixelmatchOptions.ts` to copy validated fields to `pixelmatch`.
+    - **Rat:** Prevented unknown properties on `pixelmatchOptions` from reaching `pixelmatch`.
+- [x] 🔴 🐛 RELI [RELI-11]: Vendor `pixelmatch` in TypeScript
+    - **Impl:** Ported `pixelmatch` to `src/vendor/pixelmatch.ts` under its ISC license and added parity tests in `__tests__/vendor/pixelmatch.test.ts`.
+    - **Rat:** Removed the ESM-only runtime dependency so Jest and Vitest VM pools can load the CommonJS build without Babel transforms.
 - [x] 🟢 ♻️ TYPE [TYPE-06]: Remove the deprecated `LoadedPng` export (BREAKING, 8.0.0)
-    - **Impl:** Deleted `src/types/png.data.ts` and its `src/types/index.ts` / `src/index.ts` entries; the internal type stays in `src/pipeline/types.ts`. `__tests__/index.test.ts` now imports `LoadedPng` under `@ts-expect-error`, so re-exporting it fails typecheck (TS2578). New `scripts/check-consumer-types.mjs` (`npm run test:consumer-types`, CI job `consumer-types`) installs the packed tarball into a fresh project with only `@types/node`, `@playwright/test`, `expect` and `vitest` (no `@types/pngjs`) and type-checks a file importing every public value and type of all four entry points (`strict`, `skipLibCheck: false`, `lib` with `dom`) under `moduleResolution` `node16` and `bundler`. Zero diagnostics are allowed, third-party ones included. On 7.1.0 it reports exactly one `TS7016` for `pngjs` per resolution; after the removal, none. README's v6 guide note became a v8.0.0 migration note.
-    - **Rat:** No public API returns or accepts a `LoadedPng`, yet its export pulled `pngjs` types into every entry point's declarations, so a consumer type-checking with `skipLibCheck: false` needed `@types/pngjs` for a module it never imports. The consumer check tests what npm ships rather than `src/`, which `publicDeclarations.test.ts` only covers per file.
-- [x] 🟢 ♻️ TYPE [TYPE-07]: Dedupe `ComparePngInput` (`string|Buffer`) type
-    - **Impl:** One `ComparePngInput` in `src/types/compare.input.ts` (no `pngjs` types), collected in `src/types/index.ts` but not in `src/index.ts`'s public list; `comparePng`, `comparePngWithPorts` and `comparePngAsync` import it instead of declaring `string | Buffer` themselves. `__tests__/publicDeclarations.test.ts` now expects both public declarations to import only `./types` (+ `./defaults`), no `node:buffer`, and scans inline `import('...')` types as well as `from` clauses, which it used to miss. Internal loaders (`ports`, `pipeline/loadSources`, `getPngData`) keep their inline `string | Buffer`.
-    - **Rat:** The alias was declared twice and inlined in `comparePngAsync`; the only safe shared home is a module the public declarations may import, so not `src/pipeline/types.ts`, whose `pngjs` types would give TS7016 to consumers without `@types/pngjs` (TYPE-06). The public signatures are unchanged.
-- [x] 🔴 🐛 RELI [RELI-12]: Jest 30.5+ `retryTimes` false green — route snapshot state through the test identity
-    - **Impl:** `src/jest.ts` reads `currentTestIdentity()` from the matcher context and, when the snapshot state has `_bumpCounter` (added in 30.5.0 with `_markKeyChecked` / `_addSnapshot(…, { testIdentity })` / `_incrementSnapshotCount`), numbers, checks, writes and counts through those methods, as Jest's own `SnapshotState.match` does. Without them it keeps the direct `_counters` / `_uncheckedKeys` / `_snapshotData` updates. Unit rows pin each path against a fake 30.5 state; `__tests__/jest.integration.test.ts` runs real Jest 30.5 retries (a persistent mismatch fails, a flaky first attempt re-matches `renders 1`).
-    - **Rat:** Jest 30.5's `clear(testIdentity)` rolls back only what the test recorded against its identity, so the matcher's direct counter bump survived the retry: it resolved `renders 2`, recorded the mismatch as a baseline and passed. Reproduced in a packed-tarball consumer on Jest 30.5.2; the same consumer is unchanged on Jest 29.7.0, 30.0.0 and 30.4.2, whose `clear()` resets every counter.
-- [x] 🟢 🐛 RELI [RELI-13]: Jest 30 `test.failing` + `-u` overwrites the baseline with the known-bad image
-    - **Impl:** No change needed — the entry predates 685c782 (shipped in 7.0.1), which made `src/jest.ts` read `context.testFailing`: expected failures compare without writing a baseline or counting a result. A packed-tarball consumer running `test.failing` under `-u` keeps the baseline on Jest 30.0.0, 30.4.2 and 30.5.2 (also for `test.concurrent.failing`); a mutant that ignores `testFailing` overwrites it on 30.5.2 and fails the three `test.failing` cases in `__tests__/jest.integration.test.ts`, which pin the behaviour. The Jest 30.5 attempt-tracking path from RELI-12 keeps it (a unit row covers it).
-    - **Rat:** Verified against real Jest before closing rather than assumed. Jest 29.7 exposes no expected-failure flag to matchers, so the overwrite remains there, as README already documents.
-- [x] 🟢 🐛 API [API-06]: `toMatchPngSnapshot(undefined, options)` is rejected despite matching the declared overload
-    - **Impl:** `normalizePngSnapshotMatcherArgs` treats an undefined first argument as the `(hint?, options?)` form with no hint, so it resolves like `(options)`. `createPngSnapshotMatcher` types its arguments as `[options?] | [hint?, options?]`, which Playwright's `expect.extend` turns into the same two forms the Jest and Vitest augmentations declare. A table in `pngSnapshotMatcher.test.ts` pins every declared form and each rejection; Jest, Vitest and Playwright rows show `(undefined, options)` comparing the unnamed baseline; `e2e/fixtures/{jest,playwright}-matcher/types.fixture.ts` pin the types (`@ts-expect-error` on options in both positions).
-    - **Rat:** The runtime accepted less than the declared overloads, and Playwright's type accepted more than the runtime (options in both positions). Both now match the declared forms in all three frameworks.
+    - **Impl:** Deleted `src/types/png.data.ts` and its entries in `src/types/index.ts` and `src/index.ts`. The internal type stays in `src/pipeline/types.ts`. `__tests__/index.test.ts` imports `LoadedPng` under `@ts-expect-error`, so a new export fails type-checking. Added `scripts/check-consumer-types.mjs` (`npm run test:consumer-types`, CI job `consumer-types`). It installs the packed tarball into a new project without `@types/pngjs` and type-checks all four entry points (`strict`, `skipLibCheck: false`) with `moduleResolution` `node16` and `bundler`. It allows zero diagnostics.
+    - **Rat:** No public function returns or accepts `LoadedPng`, but its export put `pngjs` types in the public declarations. A consumer that type-checks with `skipLibCheck: false` then needed `@types/pngjs`. The consumer check tests the files that npm publishes, not `src/`.
+- [x] 🟢 ♻️ TYPE [TYPE-07]: Deduplicate `ComparePngInput` type
+    - **Impl:** Defined `ComparePngInput` in `src/types/compare.input.ts` and used it in `comparePng`, `comparePngWithPorts`, and `comparePngAsync`.
+    - **Rat:** Removed duplicate `string | Buffer` type definitions.
+- [x] 🔴 🐛 RELI [RELI-12]: Fix Jest 30.5+ `retryTimes` snapshot state tracking
+    - **Impl:** Updated `src/jest.ts` to pass `currentTestIdentity()` to `_bumpCounter`, `_markKeyChecked`, `_addSnapshot`, and `_incrementSnapshotCount` on Jest 30.5+.
+    - **Rat:** Allowed Jest 30.5+ to roll back snapshot counters and baselines when a test attempt fails before a retry.
+- [x] 🟢 🐛 RELI [RELI-13]: Preserve baselines in Jest 30+ `test.failing` with `-u`
+    - **Impl:** Verified that `src/jest.ts` checks `context.testFailing` and skips baseline writes during expected-failure tests.
+    - **Rat:** Prevented `test.failing` assertions from overwriting valid baselines under `-u`.
+- [x] 🟢 🐛 API [API-06]: Accept `toMatchPngSnapshot(undefined, options)`
+    - **Impl:** Updated `normalizePngSnapshotMatcherArgs` and `createPngSnapshotMatcher` to accept `(undefined, options)` across Jest, Vitest, and Playwright.
+    - **Rat:** Matched runtime argument parsing to the TypeScript function overloads.
 
 ## 🧪 Tests & QA
 
-- [x] 🟡 🧪 TEST [TEST-01]: Fixture-free orchestrator tests (a+b)
-    - **Impl:** New `__tests__/comparePng.logic.test.ts` (3 in-memory-buffer cases) + `__tests__/comparePng.ports.test.ts` (fake port injection). Sub-items: a (decision logic), b (port injection after API-01b).
-    - **Rat:** Orchestration decision logic was only testable through real PNG decode + disk fixtures — slow and coupled logic tests to fixture maintenance.
+- [x] 🟡 🧪 TEST [TEST-01]: Add fixture-free orchestrator unit tests
+    - **Impl:** Added `__tests__/comparePng.logic.test.ts` and `__tests__/comparePng.ports.test.ts`.
+    - **Rat:** Tested orchestration logic in memory without disk I/O.
 
 ## 📝 Docs
 
-- [x] 🟡 📝 DOC [DOC-02]: Add `SECURITY.md` (disclosure channel)
-    - **Impl:** Added `SECURITY.md` with supported versions (`6.x`) and GitHub private vulnerability reporting guidance.
-    - **Rat:** Security reporters needed a clear disclosure path without relying on public issues or an unverified contact address.
-
-- [x] 🟡 📝 DOC [DOC-01]: Sweep stale RELI-03 frontmatter
-    - **Impl:** No change needed — `RELI-03` now appears only in its own `BACKLOG-ARCHIVE.md` entry and in one rationale line that cites it as prior art. No stale frontmatter remains in any tracked Markdown.
-    - **Rat:** Repo-wide grep found nothing to sweep; the task outlived the condition that created it.
+- [x] 🟡 📝 DOC [DOC-02]: Add `SECURITY.md`
+    - **Impl:** Added `SECURITY.md` with supported versions and vulnerability reporting instructions.
+    - **Rat:** Provided a private channel for security reports.
+- [x] 🟡 📝 DOC [DOC-01]: Check for obsolete RELI-03 frontmatter
+    - **Impl:** Verified that no tracked Markdown files contain obsolete RELI-03 frontmatter.
+    - **Rat:** Confirmed documentation cleanliness.
 
 ## 🛠️ Build · Deps · CI · DX
 
-- [x] 🟢 ♻️ DX [DX-03]: Add `test:fast` script (skip pretest chain)
-    - **Impl:** Added `npm run test:fast` as a direct verbose Vitest run without the unit-test preflight chain.
-    - **Rat:** Maintainers needed a documented fast iteration command that skips clean, lint, format, license, typecheck, and coverage gates.
-- [x] 🟢 ♻️ CI [CI-01]: Add `pull_request` trigger to `test.yml`
-    - **Impl:** Added `pull_request` to the main test workflow and renamed the workflow from push-only to `Tests`.
-    - **Rat:** PRs should run the existing cross-platform test matrix before merge, not only after branch pushes.
-- [x] 🟢 ♻️ CI [CI-05]: SHA-pin actions in `publish.yml`
-    - **Impl:** Every `uses:` in `publish.yml` pins a full commit SHA with a trailing `# vX.Y.Z` comment.
-    - **Rat:** Mutable tags let a compromised action publish arbitrary code with the release job's npm credentials.
-- [x] 🟡 ♻️ CI [CI-06]: Split `publish.yml` into test and publish jobs
-    - **Impl:** Three jobs. `verify` (`contents: read`) runs `npm ci` → audit → `npm test` → build → `release:check:pre` → `npm pack`, uploads the tarball and exposes its sha256 and the resolved Node version as outputs. `publish` (`contents: read` + `id-token: write`) has no checkout: setup-node at that Node version, the npm ≥ 11.5.1 floor step, download, `sha256sum --check`, `npm publish ./<tarball> --provenance --access public --ignore-scripts`. `post-release` checks out without credentials and runs `release:check:post` with no `npm ci` (Node builtins + npm CLI only). Upload/download-artifact pinned to v7.0.1 / v8.0.1 commit SHAs.
-    - **Rat:** `id-token: write` was granted to the one job that also ran `npm ci` and `prepublishOnly` (`npm test`), so every devDependency's code could mint the npm publish token. npm/cli v11.20.0 `lib/commands/publish.js` runs lifecycle scripts only for a directory spec and reads the package name for the OIDC exchange from the tarball's manifest; libnpmpublish builds provenance from `GITHUB_*` env vars and the tarball digest, so the publish job needs neither scripts nor a checkout.
-- [x] 🟢 ♻️ CI [CI-07]: CI job at the engines floor (Node 22.12.0)
-    - **Impl:** `engines-floor` job in `test.yml`: `npm ci` + build + `npm pack` on the `.nvmrc` Node, then setup-node `22.12.0` and `node ./scripts/install-smoke.mjs <tarball>`. The new script installs a spec into a fresh temp project with `--engine-strict`, then from inside it loads the root entry via `require()` and a static named ESM `import` and asserts `comparePng` (both) and `comparePngAsync` return 434926 for `ILTQq.png` vs `youtube-play-button.png`. `postrelease-check.mjs` now runs the same script (whole run retried) instead of its own import-only smoke.
-    - **Rat:** Nothing ran the package on the Node version `engines.node` promises; dev tooling needs ≥ 22.13, so every CI job used Node 24. Sharing the script keeps one consumer smoke for both the pre-merge tarball and the published version, and upgrades the post-release check from "functions exist" to real comparisons.
+- [x] 🟢 ♻️ DX [DX-03]: Add `test:fast` script
+    - **Impl:** Added `npm run test:fast` to run Vitest without `pretest:unit`.
+    - **Rat:** Provided a fast test command for local development.
+- [x] 🟢 ♻️ CI [CI-01]: Run `test.yml` on pull requests
+    - **Impl:** Added the `pull_request` trigger to `.github/workflows/test.yml`.
+    - **Rat:** Ran CI checks before branch merge.
+- [x] 🟢 ♻️ CI [CI-05]: Pin GitHub Actions by commit SHA in `publish.yml`
+    - **Impl:** Pinned all `uses:` entries in `publish.yml` to commit SHAs with version comments.
+    - **Rat:** Protected the release workflow from mutable action tags.
+- [x] 🟡 ♻️ CI [CI-06]: Separate `verify`, `publish`, and `post-release` jobs in `publish.yml`
+    - **Impl:** Split `publish.yml` into three jobs so only `publish` has `id-token: write` permission and publishes the verified tarball with `--ignore-scripts`.
+    - **Rat:** Prevented `devDependencies` from accessing the OIDC publish token during tests.
+- [x] 🟢 ♻️ CI [CI-07]: Add `engines-floor` CI job and `scripts/install-smoke.mjs`
+    - **Impl:** Added the `engines-floor` job in `test.yml` and `scripts/install-smoke.mjs` to test installation and runtime execution on the minimum supported Node.js version.
+    - **Rat:** Verified that the packed tarball installs and runs on the `engines.node` version.

@@ -9,16 +9,16 @@
 
 ---
 
-A Node.js utility to compare PNG images or their areas without binary and OS dependencies.
+A Node.js library that compares PNG images or image regions without native binary dependencies.
 
-**Key Benefits:**
+**Key Features:**
 
-- ✨ **Zero Native Binaries** — Pure JavaScript for supported macOS and Linux environments
-- 🖼️ **File or Buffer** — Accept absolute file paths or raw `Buffer` inputs
-- 🔍 **Pixel-Level Accuracy** — Powered by [pixelmatch](https://github.com/mapbox/pixelmatch)
-- 🎭 **Exclusion Zones** — Skip regions during comparison with `excludedAreas`
-- 🗂️ **Diff Output** — Optionally write a diff PNG with highlighted mismatches
-- 💪 **TypeScript Support** — Full type definitions included
+- ✨ **Zero Native Binaries** — Pure JavaScript for macOS and Linux
+- 🖼️ **File or Buffer Input** — Accepts file paths or raw PNG `Buffer` objects
+- 🔍 **Pixel-Level Accuracy** — Uses [pixelmatch](https://github.com/mapbox/pixelmatch) 8.0.0
+- 🎭 **Excluded Areas** — Skips rectangular regions during comparison with `excludedAreas`
+- 🗂️ **Diff Image Output** — Writes a diff PNG with highlighted mismatches when requested
+- 💪 **TypeScript Support** — Includes complete TypeScript declarations
 
 ## Table of Contents
 
@@ -42,55 +42,64 @@ A Node.js utility to compare PNG images or their areas without binary and OS dep
 npm install -D png-visual-compare
 ```
 
-> **Platform Requirement:** macOS or Linux only. Windows is not supported.
+> **Operating System:** macOS or Linux only. Windows is not supported.
 >
-> **Node.js Requirement:** Node.js 22.12.0 or higher is required.
+> **Node.js Version:** Node.js 26.0.0 or later is required.
 
 ---
 
 ## Migration Guide to v8.0.0
 
-`LoadedPng` is no longer exported. It was deprecated in 7.1.0 because no public API returns or accepts one, so delete any `import type { LoadedPng } from 'png-visual-compare'`. If you are upgrading from 5.x, delete your `PngData` imports too rather than switching them to `LoadedPng` as the v6.0.0 guide describes.
+1. Use Node.js 26.0.0 or later.
+2. Remove `LoadedPng` imports.
 
-The declarations of the package's entry points no longer reference `pngjs`, so type-checking with `skipLibCheck: false` no longer needs `@types/pngjs`.
+### 1. Node.js Version Requirement
+
+`engines.node` requires `>=26.0.0`.
+
+### 2. Remove `LoadedPng` Imports
+
+The package no longer exports `LoadedPng`. Version 7.1.0 deprecated it because no public function returns or accepts it. Remove all `import type { LoadedPng } from 'png-visual-compare'` statements. If you upgrade from 5.x, remove your `PngData` imports too. Do not replace them with `LoadedPng` as the v6.0.0 guide shows.
+
+The declarations of the package entry points no longer refer to `pngjs`. Type-checking with `skipLibCheck: false` does not need `@types/pngjs`.
 
 ---
 
 ## Migration Guide to v7.0.0
 
-1. Run on Node.js 22.12.0 or later.
-2. If you use `png-visual-compare/vitest`, upgrade to Vitest 5.
-3. Expect `maxFileBytes` and the stricter containment checks to surface as new errors in edge cases.
-4. If `vitest` 4 or `@playwright/test` older than 1.60 is installed, upgrade it first — npm now refuses the install even if you only use `comparePng`.
+1. Use Node.js 26.0.0 or later.
+2. Upgrade to Vitest 5 if you use `png-visual-compare/vitest`.
+3. Check for new errors from `maxFileBytes` and path containment rules.
+4. Upgrade `vitest` to v5 and `@playwright/test` to v1.60+ if they are installed in your project.
 
-### 1. Node.js 22.12.0 or later is required
+### 1. Node.js Version Requirement
 
-`engines.node` is now `>=22.12.0` (was `>=20`). Node.js 20 is end-of-life.
+`engines.node` requires `>=26.0.0`.
 
-### 2. The Vitest matcher requires Vitest 5
+### 2. Vitest 5 Requirement
 
-The `vitest` peer range is now `>=5.0.0 <6` (was `>=4.1.0 <5`). Vitest 5 changed `Matchers` to two type parameters (`Matchers<R, T>`), and the `toMatchPngSnapshot` augmentation no longer type-checks against Vitest 4. Stay on 6.3.0 if you cannot upgrade Vitest yet. The Jest matcher and the `comparePng` / `comparePngAsync` signatures are unchanged.
+The `vitest` peer dependency range is `>=5.0.0 <6`. Vitest 5 changed `Matchers` to take two type parameters (`Matchers<R, T>`). Because of this change, `toMatchPngSnapshot` does not type-check with Vitest 4. Use version 6.3.0 if you must stay on Vitest 4. The Jest matcher and `comparePng` / `comparePngAsync` signatures did not change.
 
-### 3. New limits and containment checks
+### 3. File Size Limits and Containment Checks
 
-- `maxFileBytes` (default `135266304`) caps the size of a PNG read from a path and throws `ResourceLimitError` when exceeded, regardless of `throwErrorOnInvalidInputData`. `Buffer` inputs are not affected. See [Resource limits](#resource-limits).
-- With `inputBaseDir` or `diffOutputBaseDir` set, these are now refused with `PathValidationError`: a file swapped between validation and use, a filesystem that reports no file identity, and (with `diffOutputBaseDir`) a symlinked parent directory of `diffFilePath`. See [Security Model](#security-model).
+- `maxFileBytes` (default `135266304`) limits the byte size of a PNG file read from a path. It throws `ResourceLimitError` when a file exceeds the limit, even when `throwErrorOnInvalidInputData` is `false`. This limit does not apply to `Buffer` inputs. See [Resource limits](#resource-limits).
+- When `inputBaseDir` or `diffOutputBaseDir` is set, the library throws `PathValidationError` if a file changes between validation and use, if the filesystem reports no inode number, or if a parent directory of `diffFilePath` is a symlink. See [Security Model](#security-model).
 
-### 4. Peer dependency conflicts at install
+### 4. Peer Dependency Checks During Install
 
-`vitest` and `@playwright/test` are optional peer dependencies, and npm checks an optional peer whenever it is installed — whether or not you import the matching subpath. A project with `vitest` 4 or with `@playwright/test` older than 1.60 therefore gets `ERESOLVE` from `npm install png-visual-compare@7`, even if it only calls `comparePng`. With a caret range such as `^1.55.0`, npm instead upgrades Playwright to the latest 1.x, which changes the browser builds you test against. Upgrade the peer first, or keep 6.3.0. `legacy-peer-deps=true` in `.npmrc` bypasses the check, but it applies to every later install, not just this one.
+`vitest` and `@playwright/test` are optional peer dependencies. npm checks optional peer ranges whenever those packages are installed in your project. If your project has `vitest` 4 or `@playwright/test` older than 1.60, `npm install` fails with `ERESOLVE` even when you use only `comparePng`. Upgrade those peer packages first, or stay on version 6.3.0.
 
 ---
 
 ## Migration Guide to v6.0.0
 
 1. Replace `PngData` imports with `LoadedPng`.
-2. Recheck any caller-supplied `excludedAreas`, `pixelmatchOptions`, `diffFilePath`, `inputBaseDir`, and `diffOutputBaseDir`.
-3. If your code already uses async filesystem orchestration, switch to `comparePngAsync`.
+2. Check all `excludedAreas`, `pixelmatchOptions`, `diffFilePath`, `inputBaseDir`, and `diffOutputBaseDir` values.
+3. Use `comparePngAsync` for asynchronous file operations.
 
 ### 1. Replace `PngData` with `LoadedPng`
 
-`PngData` is no longer exported. If you imported it from the package, switch to `LoadedPng`:
+The package no longer exports `PngData`. Import `LoadedPng` instead:
 
 ```typescript
 // Before
@@ -100,33 +109,33 @@ import type { PngData } from 'png-visual-compare';
 import type { LoadedPng } from 'png-visual-compare';
 ```
 
-### 2. Expect stricter option validation
+### 2. Option Validation Rules
 
-The library now fails fast for malformed option data instead of relying on downstream behavior:
+The library validates all options before it loads or compares images:
 
-- `excludedAreas` must be an array of non-negative finite integer rectangles with `x1 <= x2` and `y1 <= y2`
-- `pixelmatchOptions` must be an object with validated numeric/boolean/tuple fields
-- `diffFilePath`, `inputBaseDir`, and `diffOutputBaseDir` must be strings when provided
-- `diffFilePath` now rejects existing directories and existing symlinks in output mode
+- `excludedAreas` must be an array of rectangles with non-negative finite integers where `x1 <= x2` and `y1 <= y2`.
+- `pixelmatchOptions` must be an object with valid field types and ranges.
+- `diffFilePath`, `inputBaseDir`, and `diffOutputBaseDir` must be strings when defined.
+- `diffFilePath` rejects existing directories and existing symlinks.
 
-### 3. Security/resource limits still throw in permissive mode
+### 3. Security and Resource Errors Always Throw
 
-`throwErrorOnInvalidInputData: false` only downgrades ordinary invalid-image inputs. Security, resource-boundary, and comparison-kernel checks still throw:
+Setting `throwErrorOnInvalidInputData: false` ignores only invalid image inputs. Security, resource-limit, and comparison errors always throw:
 
-- `inputBaseDir` / `diffOutputBaseDir` containment violations → `PathValidationError`
-- symlink traversal and invalid output target checks → `PathValidationError`
-- `maxDimension` / `maxPixels` limits → `ResourceLimitError`
-- failures inside the underlying `pixelmatch` call → `ComparisonError` (the original error is preserved on `cause`)
+- `inputBaseDir` and `diffOutputBaseDir` containment errors throw `PathValidationError`.
+- Symlink traversal and invalid output targets throw `PathValidationError`.
+- `maxDimension`, `maxPixels`, and `maxFileBytes` violations throw `ResourceLimitError`.
+- Errors inside `pixelmatch` throw `ComparisonError` (with the original error in `cause`).
 
-### 4. Use `comparePngAsync` for promise-based I/O
+### 4. Use `comparePngAsync` for Promises
 
-If your integration already uses async filesystem orchestration, prefer:
+Use `comparePngAsync` for asynchronous file reads and diff writes:
 
 ```typescript
 import { comparePngAsync } from 'png-visual-compare';
 ```
 
-It preserves the same comparison semantics as `comparePng`, but performs file-backed reads/writes asynchronously.
+`comparePngAsync` uses the same comparison rules as `comparePng` and runs file I/O with `fs.promises`.
 
 ---
 
@@ -136,20 +145,20 @@ It preserves the same comparison semantics as `comparePng`, but performs file-ba
 import { comparePng, comparePngAsync } from 'png-visual-compare';
 
 const mismatchedPixels: number = comparePng(
-    img1, // First PNG: absolute file path or Buffer
-    img2, // Second PNG: absolute file path or Buffer
+    img1, // First PNG: file path or Buffer
+    img2, // Second PNG: file path or Buffer
     {
-        excludedAreas, // Regions to skip during comparison. Default: []
-        diffFilePath, // Path to write the diff PNG (only written when mismatch > 0). Default: undefined
-        throwErrorOnInvalidInputData, // Throw on missing/invalid input. Default: true
-        extendedAreaColor, // Color used for size-padding regions. Default: { r: 0, g: 255, b: 0 }
-        excludedAreaColor, // Color used for excluded areas. Default: { r: 0, g: 0, b: 255 }
-        maxDimension, // Max allowed image width/height in px. Always throws if exceeded. Default: 16384
-        maxPixels, // Max allowed decoded pixel count per image/canvas. Default: 16777216
-        maxFileBytes, // Max allowed size of a PNG read from a path. Always throws if exceeded. Default: 135266304
-        diffOutputBaseDir, // Restrict diffFilePath writes to this directory (path-traversal guard). Default: undefined
-        inputBaseDir, // Restrict png1/png2 reads to this directory (path-traversal guard). Default: undefined
-        pixelmatchOptions, // Public PixelmatchOptions validated and adapted for pixelmatch. Default: undefined
+        excludedAreas, // Rectangular regions to skip. Default: []
+        diffFilePath, // Output path for the diff PNG (written only when mismatches > 0). Default: undefined
+        throwErrorOnInvalidInputData, // Throw on missing or invalid input. Default: true
+        extendedAreaColor, // Fill color for size-padding regions. Default: { r: 0, g: 255, b: 0 }
+        excludedAreaColor, // Fill color for excluded areas. Default: { r: 0, g: 0, b: 255 }
+        maxDimension, // Maximum image width or height in pixels. Default: 16384
+        maxPixels, // Maximum pixel count per image or comparison canvas. Default: 16777216
+        maxFileBytes, // Maximum file size in bytes for path inputs. Default: 135266304
+        diffOutputBaseDir, // Restrict diffFilePath writes to this directory. Default: undefined
+        inputBaseDir, // Restrict png1 and png2 file reads to this directory. Default: undefined
+        pixelmatchOptions, // Options passed to pixelmatch. Default: undefined
     },
 );
 
@@ -164,17 +173,17 @@ expect(asyncMismatchedPixels).toBe(0);
 
 ## Snapshot Matchers
 
-The package also ships `toMatchPngSnapshot()` matchers for **Vitest** and **Jest** (side-effect plugins) and for **Playwright** (an extended `expect`), so PNG buffers can be asserted against a stored baseline.
+The package provides `toMatchPngSnapshot()` matchers for **Vitest**, **Jest**, and **Playwright** to compare a PNG `Buffer` against a stored baseline.
 
 ### Vitest
 
-Register the matcher in your test setup file:
+Import the matcher in your Vitest setup file:
 
 ```typescript
 import 'png-visual-compare/vitest';
 ```
 
-Then assert any PNG `Buffer` or `Uint8Array`:
+Call `toMatchPngSnapshot()` on a PNG `Buffer` or `Uint8Array`:
 
 ```typescript
 import { readFileSync } from 'node:fs';
@@ -189,31 +198,31 @@ expect(readFileSync('./thresholded-diff.png')).toMatchPngSnapshot('thresholded d
 });
 ```
 
-Update stored snapshots with the normal Vitest command:
+Update stored snapshots with Vitest:
 
 ```sh
 npx vitest run -u
 ```
 
-**Requires Vitest 5** (peer range `>=5.0.0 <6`). Vitest 4 is not supported from 7.0.0; see [Migration Guide to v7.0.0](#migration-guide-to-v700).
+**Requires Vitest 5** (peer range `>=5.0.0 <6`).
 
 ### Jest
 
-From 7.0.1, it works with a stock Jest configuration — no Babel or transform setup is needed. On 7.0.0 and earlier, Jest needs the Babel transform described in the [7.0.0 README](https://github.com/dichovsky/png-visual-compare/blob/release/v7.0.0/README.md#jest); drop it once you upgrade.
+The Jest matcher works with default Jest configurations without Babel transforms.
 
-The Jest type augmentation declares `expect` as an optional peer with no version range, so it never blocks an install. It is there so pnpm 9 and later can resolve `expect` for the augmentation, which targets the `expect` shipped with Jest 29 and 30. pnpm 8 does not link optional peers your project does not depend on, so on pnpm 8 add `expect` as a direct devDependency to get the types.
+The Jest type augmentation lists `expect` as an optional peer dependency with no version range so pnpm 9+ can resolve `expect` types. On pnpm 8, install `expect` as a direct `devDependency` to load the type augmentation.
 
-Tests that use the matcher can be retried with `jest.retryTimes`: every attempt compares against the same baseline. On Jest 30.5 and later, Jest also discards the baselines a failed attempt recorded, and its snapshot totals, before the retry.
+You can retry tests that use the matcher with `jest.retryTimes`. Every attempt compares against the same baseline. On Jest 30.5+, Jest rolls back baselines and snapshot counts from failed attempts before it retries.
 
-On Jest 30+, `test.failing` PNG assertions compare without recording or updating baselines or snapshot totals. Jest 29 does not expose the expected-failure flag to matchers, so this protection is unavailable there. Obsolete sibling PNG baselines are reported by `jest --ci`; remove them with `jest -u` after deleting assertions.
+On Jest 30+, `test.failing` assertions compare images without writing baselines or changing snapshot counts. Run `jest --ci` to detect obsolete sibling baselines, and run `jest -u` to remove them.
 
-Register the matcher from `setupFilesAfterEnv`:
+Register the matcher in `setupFilesAfterEnv`:
 
 ```typescript
 import 'png-visual-compare/jest';
 ```
 
-Then use it the same way in tests:
+Call `toMatchPngSnapshot()` in your tests:
 
 ```typescript
 import { readFileSync } from 'node:fs';
@@ -228,13 +237,13 @@ expect(readFileSync('./thresholded-diff.png')).toMatchPngSnapshot('thresholded d
 });
 ```
 
-Update stored snapshots with Jest's normal snapshot flow:
+Update stored snapshots with Jest:
 
 ```sh
 npx jest -u
 ```
 
-If your Jest config uses `injectGlobals: false`, register the matcher explicitly in your setup file:
+If your Jest configuration sets `injectGlobals: false`, register the matcher in your setup file:
 
 ```typescript
 import { expect } from '@jest/globals';
@@ -245,7 +254,7 @@ registerJestPngSnapshotMatcher(expect);
 
 ### Playwright
 
-Import `expect` from the Playwright entry point instead of `@playwright/test`. Capture the screenshot yourself and assert the `Buffer`:
+Import `expect` from `png-visual-compare/playwright`. Take a screenshot and pass the `Buffer` to `expect`:
 
 ```typescript
 import { test } from '@playwright/test';
@@ -256,12 +265,12 @@ test('header', async ({ page }) => {
 
     expect(await page.screenshot()).toMatchPngSnapshot('header');
     expect(await page.locator('canvas').screenshot()).toMatchPngSnapshot('chart', {
-        excludedAreas: [{ x1: 0, y1: 0, x2: 120, y2: 24 }], // e.g. a live timestamp drawn on the canvas
+        excludedAreas: [{ x1: 0, y1: 0, x2: 120, y2: 24 }],
     });
 });
 ```
 
-Already extending `expect`? Add the matchers yourself, or combine with `mergeExpects`:
+To combine with custom Playwright matchers, extend `baseExpect` with `pngMatchers`:
 
 ```typescript
 import { expect as baseExpect } from '@playwright/test';
@@ -270,39 +279,37 @@ import { pngMatchers } from 'png-visual-compare/playwright';
 export const expect = baseExpect.extend(pngMatchers);
 ```
 
-The matcher is synchronous, like Playwright's own `toMatchSnapshot()`, so there is nothing to `await`. It follows Playwright's snapshot conventions:
+The Playwright matcher is synchronous and follows Playwright snapshot conventions:
 
-- **Baselines are PNG files** at `testInfo.snapshotPath(name)`, so they honour `snapshotPathTemplate` and sit next to your `toHaveScreenshot()` baselines. `'header'` becomes `header.png`, and every assertion with that name compares against it, so `expect.poll(...).toMatchPngSnapshot('header')` works; a repeated name numbers only its report artifacts (`header-1-actual.png`, …). Unnamed assertions are named from the test title (`<title>-png-1.png`), shortened with a hash when long.
-- **`--update-snapshots`** works exactly as for `toMatchSnapshot()`: `missing` (the default) writes a missing baseline and fails the test softly, so every missing baseline is written in one run and the test is not retried against it, `changed` rewrites mismatching baselines, `all` rewrites every baseline that differs, and `none` never writes. `ignoreSnapshots: true` skips the assertion.
-- **On failure** the baseline, received image and diff image are attached as `<name>-expected.png`, `<name>-actual.png` and `<name>-diff.png`, so the HTML report shows its image diff viewer.
-- **The diff location is managed for you**: passing `diffFilePath` or `diffOutputBaseDir` throws.
-- **Image limits apply to baselines too.** A received image over `maxDimension` or `maxPixels` throws `ResourceLimitError` rather than being written as a baseline no later run could compare against. The limits are read from the PNG header, so writing a baseline does not decode the image. Full-page or HiDPI screenshots pass the defaults quickly — at `deviceScaleFactor: 2`, a 1280 px wide `fullPage` capture exceeds `maxPixels` once the page is about 3,277 CSS px tall — so pass a larger `maxPixels` (and `maxDimension` for very long pages) to those assertions.
-- **Requires `@playwright/test` 1.60 or later.** The soft, non-retried failure for a missing baseline uses the same matcher-result fields as Playwright's built-ins, which it honours from 1.60.
+- **Baselines are PNG files** at `testInfo.snapshotPath(name)`. They use `snapshotPathTemplate` and sit next to `toHaveScreenshot()` baselines. `'header'` resolves to `header.png`. Unnamed assertions use `<title>-png-1.png`.
+- **`--update-snapshots`** works like `toMatchSnapshot()`: `missing` writes missing baselines and marks the test as a soft failure, `changed` updates mismatching baselines, `all` rewrites all baselines that differ, and `none` never writes baselines. `ignoreSnapshots: true` skips the assertion.
+- **On failure**, the matcher attaches `<name>-expected.png`, `<name>-actual.png`, and `<name>-diff.png` to the Playwright HTML report.
+- **Do not pass `diffFilePath` or `diffOutputBaseDir`**: the matcher manages diff paths and throws if you set those options.
+- **Image limits apply to baselines**: a received image above `maxDimension` or `maxPixels` throws `ResourceLimitError` before writing the baseline. For large `fullPage` or HiDPI screenshots, pass a larger `maxPixels` or `maxDimension` in the matcher options.
+- **Requires `@playwright/test` 1.60 or later.**
 
-How it differs from `toHaveScreenshot()` / `toMatchSnapshot()`:
+Differences between `toMatchPngSnapshot()` and Playwright built-in matchers:
 
-|                                         | `toMatchPngSnapshot()`                                        | Playwright built-ins                                  |
-| --------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
-| Ignore a region                         | `excludedAreas` by pixel coordinates (canvas, video, images)  | `mask` by DOM locator                                 |
-| Received and baseline differ in size    | Compared on a padded canvas; reports a pixel count and a diff | Fails with "Expected an image W×H, received W×H"      |
-| Tolerance                               | Per-pixel `threshold` only; passes at 0 mismatched pixels     | `threshold`, `maxDiffPixels`, `maxDiffPixelRatio`     |
-| Capture and stabilisation               | You pass a `Buffer`                                           | `toHaveScreenshot()` retries until two captures match |
-| Same engine in Jest, Vitest, standalone | Yes                                                           | No                                                    |
+| Feature                                    | `toMatchPngSnapshot()`                                     | Playwright built-in matchers                          |
+| ------------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------- |
+| Ignore a region                            | `excludedAreas` in pixel coordinates                       | `mask` by DOM locator                                 |
+| Different image dimensions                 | Pads to common canvas and reports pixel count and diff PNG | Fails immediately on dimension mismatch               |
+| Tolerance                                  | Per-pixel `threshold`; passes at 0 mismatched pixels       | `threshold`, `maxDiffPixels`, `maxDiffPixelRatio`     |
+| Screenshot capture                         | Caller passes a `Buffer`                                   | `toHaveScreenshot()` retries until two captures match |
+| Shared engine across Jest, Vitest, Node.js | Yes                                                        | No                                                    |
 
-`toMatchPngSnapshot()` is intentionally strict: it accepts only PNG `Buffer` / `Uint8Array` input, and passes any provided `ComparePngOptions` to `comparePng` when checking the stored snapshot. Recording or updating a baseline always requires a PNG within the configured image limits, even when `throwErrorOnInvalidInputData` is `false`. Jest and Vitest decode it first. Playwright checks only its signature and header, so a PNG with a valid header but corrupt image data is written, and fails its next comparison.
+### Negated Assertions
 
-### Negated assertions
-
-`expect(received).not.toMatchPngSnapshot()` asserts that the received PNG **differs** from the stored snapshot:
+Use `expect(received).not.toMatchPngSnapshot()` to verify that a PNG **differs** from the stored baseline:
 
 ```typescript
 expect(await page.screenshot()).not.toMatchPngSnapshot('light mode');
 ```
 
-- **Passes** when the received PNG differs from the stored snapshot beyond the configured threshold.
-- **Fails** when they match.
-- **Never writes or updates a snapshot**, even under `-u` — you cannot record what an image must _not_ be.
-- **Throws when no snapshot is stored.** A missing baseline would otherwise pass vacuously, which is a false green. Record the baseline with a positive `toMatchPngSnapshot()` first.
+- **Passes** when the received PNG has at least 1 mismatched pixel.
+- **Fails** when the received PNG has 0 mismatched pixels.
+- **Never writes or updates a baseline**, even when you run with `-u`.
+- **Throws an error when no baseline exists.** Record the baseline with a positive `toMatchPngSnapshot()` assertion first.
 
 ---
 
@@ -310,40 +317,39 @@ expect(await page.screenshot()).not.toMatchPngSnapshot('light mode');
 
 ### `comparePng(png1, png2, opts?): number`
 
-Compares two PNG images pixel-by-pixel and returns the number of mismatched pixels (`0` means identical).
+Compares two PNG images pixel by pixel and returns the number of mismatched pixels (`0` means that the images match).
 
 **Parameters:**
 
-| Parameter | Type                | Description                                         |
-| --------- | ------------------- | --------------------------------------------------- |
-| `png1`    | `string \| Buffer`  | First PNG — absolute file path or raw PNG `Buffer`  |
-| `png2`    | `string \| Buffer`  | Second PNG — absolute file path or raw PNG `Buffer` |
-| `opts`    | `ComparePngOptions` | Optional configuration object                       |
+| Parameter | Type                | Description                               |
+| --------- | ------------------- | ----------------------------------------- |
+| `png1`    | `string \| Buffer`  | First PNG: file path or raw PNG `Buffer`  |
+| `png2`    | `string \| Buffer`  | Second PNG: file path or raw PNG `Buffer` |
+| `opts`    | `ComparePngOptions` | Optional configuration object             |
 
 ---
 
 ### `comparePngAsync(png1, png2, opts?): Promise<number>`
 
-Async equivalent of `comparePng`. It performs the same comparison flow, but uses `fs.promises`
-for file-backed reads and diff writes.
+Asynchronous version of `comparePng`. It runs the same comparison pipeline and uses `fs.promises` for file reads and diff writes.
 
 ---
 
 ### `ComparePngOptions`
 
-| Option                         | Type                | Default                  | Description                                                                                                                                                                                                                                                  |
-| ------------------------------ | ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `excludedAreas`                | `Area[]`            | `[]`                     | Rectangular regions to exclude from comparison (painted on both images before diffing, so they always match)                                                                                                                                                 |
-| `diffFilePath`                 | `string`            | `undefined`              | File path for the diff PNG. Only written when `result > 0`                                                                                                                                                                                                   |
-| `throwErrorOnInvalidInputData` | `boolean`           | `true`                   | Throw on missing/unsupported input. Set to `false` to treat invalid input as a zero-size PNG. An error is always thrown when **both** inputs are invalid                                                                                                     |
-| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Fill colour for padded regions when images differ in size. Override when the default green clashes with your image content                                                                                                                                   |
-| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill colour applied to `excludedAreas` on both images before comparison. Override when the default blue clashes with your image content                                                                                                                      |
-| `maxDimension`                 | `number`            | `16384`                  | Maximum allowed width or height (px) for either input image. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Protects against DoS via crafted PNG headers                                       |
-| `maxPixels`                    | `number`            | `16777216`               | Maximum decoded pixel count for a single input image and for the normalized comparison canvas. Set to `Infinity` to disable. Protects against large-but-axis-valid PNGs that would still exhaust memory                                                      |
-| `maxFileBytes`                 | `number`            | `135266304`              | Maximum size, in bytes, of a PNG read from a path. Ignored for `Buffer` inputs. **Always throws when exceeded, regardless of `throwErrorOnInvalidInputData`.** Set to `Infinity` to disable. Bounds the compressed bytes read before the header is inspected |
-| `diffOutputBaseDir`            | `string`            | `undefined`              | When set, `diffFilePath` must resolve to a path **inside** this directory. Any attempt to write outside it throws `"Path traversal detected"`. Use in server-side contexts where `diffFilePath` may be caller-controlled                                     |
-| `inputBaseDir`                 | `string`            | `undefined`              | When set, string input paths (`png1` / `png2`) must resolve to a path **inside** this directory. Any attempt to read outside it throws `"Path traversal detected"`. Use in server-side contexts where paths may be caller-controlled                         |
-| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options forwarded to [pixelmatch](https://github.com/mapbox/pixelmatch)                                                                                                                                                                                      |
+| Option                         | Type                | Default                  | Description                                                                                                                                                               |
+| ------------------------------ | ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `excludedAreas`                | `Area[]`            | `[]`                     | Rectangular regions to skip during comparison. The library paints these regions on both images so they always match.                                                      |
+| `diffFilePath`                 | `string`            | `undefined`              | File path for the output diff PNG. The library writes this file only when `mismatchedPixels > 0`.                                                                         |
+| `throwErrorOnInvalidInputData` | `boolean`           | `true`                   | Throw an error when an input is missing or invalid. Set to `false` to treat one invalid input as a `0×0` PNG. The library always throws when **both** inputs are invalid. |
+| `extendedAreaColor`            | `Color`             | `{ r: 0, g: 255, b: 0 }` | Fill color for padded areas when the two images have different dimensions.                                                                                                |
+| `excludedAreaColor`            | `Color`             | `{ r: 0, g: 0, b: 255 }` | Fill color for `excludedAreas` on both images.                                                                                                                            |
+| `maxDimension`                 | `number`            | `16384`                  | Maximum width or height in pixels for each input image. **Always throws `ResourceLimitError` when exceeded.** Set to `Infinity` to disable.                               |
+| `maxPixels`                    | `number`            | `16777216`               | Maximum pixel count for each input image and for the normalized canvas. **Always throws `ResourceLimitError` when exceeded.** Set to `Infinity` to disable.               |
+| `maxFileBytes`                 | `number`            | `135266304`              | Maximum byte size for a PNG file read from a path (ignored for `Buffer` inputs). **Always throws `ResourceLimitError` when exceeded.** Set to `Infinity` to disable.      |
+| `diffOutputBaseDir`            | `string`            | `undefined`              | Base directory for `diffFilePath`. Writing outside this directory throws `PathValidationError`.                                                                           |
+| `inputBaseDir`                 | `string`            | `undefined`              | Base directory for `png1` and `png2` file paths. Reading outside this directory throws `PathValidationError`.                                                             |
+| `pixelmatchOptions`            | `PixelmatchOptions` | `undefined`              | Options passed to [pixelmatch](https://github.com/mapbox/pixelmatch).                                                                                                     |
 
 ---
 
@@ -374,27 +380,29 @@ type Color = {
 
 ### `PixelmatchOptions`
 
-| Option         | Type        | Default         | Description                                                                                  |
-| -------------- | ----------- | --------------- | -------------------------------------------------------------------------------------------- |
-| `threshold`    | `number`    | `0.1`           | Matching threshold `0`–`1`. Lower = more sensitive                                           |
-| `includeAA`    | `boolean`   | `false`         | When `true`, anti-aliased pixels count as mismatches                                         |
-| `alpha`        | `number`    | `0.1`           | Opacity of unchanged pixels in the diff image                                                |
-| `aaColor`      | `[r, g, b]` | `[255, 255, 0]` | Colour of anti-aliased pixels in the diff                                                    |
-| `diffColor`    | `[r, g, b]` | `[255, 0, 0]`   | Colour of differing pixels in the diff                                                       |
-| `diffColorAlt` | `[r, g, b]` | `undefined`     | Diff colour where `png2` is darker than `png1` (added vs removed); falls back to `diffColor` |
-| `diffMask`     | `boolean`   | `false`         | Show only changed pixels on a transparent background                                         |
-| `checkerboard` | `boolean`   | `true`          | Blend semi-transparent pixels against a checkerboard (vs white)                              |
+| Option         | Type                              | Default         | Description                                                                                    |
+| -------------- | --------------------------------- | --------------- | ---------------------------------------------------------------------------------------------- |
+| `threshold`    | `number`                          | `0.1`           | Matching threshold from `0` to `1`. Smaller values make the comparison more sensitive.         |
+| `includeAA`    | `boolean`                         | `false`         | Set to `true` to disable anti-aliasing detection and count anti-aliased pixels as mismatches.  |
+| `alpha`        | `number`                          | `0.1`           | Opacity of unchanged pixels in the diff image (`0` to `1`).                                    |
+| `aaColor`      | `[r, g, b]`                       | `[255, 255, 0]` | Color of anti-aliased pixels in the diff image.                                                |
+| `diffColor`    | `[r, g, b]`                       | `[255, 0, 0]`   | Color of mismatched pixels in the diff image.                                                  |
+| `diffColorAlt` | `[r, g, b]`                       | `undefined`     | Color for dark-on-light differences in the diff image. Defaults to `diffColor` when undefined. |
+| `diffMask`     | `boolean`                         | `false`         | Draw the diff over a transparent background instead of the original image.                     |
+| `checkerboard` | `boolean`                         | `true`          | Blend semi-transparent pixels over a checkerboard pattern (`true`) or over white (`false`).    |
+| `windowSize`   | `number`                          | `16`            | Side length in pixels of square blocks for the spatial pre-pass, or `Infinity` to disable it.  |
+| `ignoreMask`   | `Uint8Array \| Uint8ClampedArray` | `undefined`     | Flat byte mask (`1 byte per pixel`, length `width * height`). Non-zero entries skip pixels.    |
 
 ### Errors
 
-All public errors extend the built-in `Error` and expose a stable string `code` for runtime matching without parsing messages. Match either via `instanceof` or via `code`:
+All public error classes extend `Error` and define a string `code` property. Check errors with `instanceof` or `error.code`:
 
-| Class                 | `code`                  | When it throws                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| --------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `InvalidInputError`   | `ERR_INVALID_PNG_INPUT` | A PNG input is missing, malformed, or cannot be decoded, or an `excludedAreas`, colour, or `pixelmatchOptions` value is invalid. Per-input failures are recoverable via `throwErrorOnInvalidInputData: false` (treated as a zero-size PNG); invalid options always throw                                                                                                                                                                        |
-| `PathValidationError` | `ERR_PATH_VALIDATION`   | A file path fails validation: traversal outside a base directory, symlink at the output target, empty/null-byte path. With `inputBaseDir` / `diffOutputBaseDir` set, also a file swapped between validation and use, a symlinked diff parent directory, a filesystem that reports no file identity, a FIFO or device where that base directory expects a regular file, or (with `diffOutputBaseDir`) a diff target with more than one hard link |
-| `ResourceLimitError`  | `ERR_RESOURCE_LIMIT`    | A PNG would exceed `maxDimension`, `maxPixels`, or `maxFileBytes`. **Always throws** regardless of `throwErrorOnInvalidInputData`                                                                                                                                                                                                                                                                                                               |
-| `ComparisonError`     | `ERR_COMPARISON`        | The underlying `pixelmatch` call threw. The original failure is preserved on the standard `cause` property. **Always throws**                                                                                                                                                                                                                                                                                                                   |
+| Class                 | `code`                  | Cause                                                                                                                                                                                                              |
+| --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `InvalidInputError`   | `ERR_INVALID_PNG_INPUT` | A PNG input is missing, malformed, or undecodable, or an option in `excludedAreas`, `extendedAreaColor`, `excludedAreaColor`, or `pixelmatchOptions` is invalid.                                                   |
+| `PathValidationError` | `ERR_PATH_VALIDATION`   | A path fails validation: traversal outside a base directory, symlink at the output path, null byte, swapped inode, symlinked diff parent directory, missing inode identity, FIFO/device, or hard-linked diff file. |
+| `ResourceLimitError`  | `ERR_RESOURCE_LIMIT`    | A PNG exceeds `maxDimension`, `maxPixels`, or `maxFileBytes`. **Always throws** regardless of `throwErrorOnInvalidInputData`.                                                                                      |
+| `ComparisonError`     | `ERR_COMPARISON`        | The `pixelmatch` call threw an error (for example, an `ignoreMask` size mismatch). The original error is on `error.cause`. **Always throws.**                                                                      |
 
 ```typescript
 import { comparePng, ComparisonError } from 'png-visual-compare';
@@ -404,100 +412,101 @@ try {
 } catch (error) {
     if (error instanceof ComparisonError) {
         console.error('Pixel comparison failed:', error.message);
-        console.error('Underlying:', error.cause);
+        console.error('Cause:', error.cause);
     }
 }
 ```
 
-### Exported constants
+### Exported Constants
 
-| Constant                      | Value                    | Description                                                                                                                      |
-| ----------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill colour for size-extended padding regions                                                                            |
-| `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill colour for excluded areas                                                                                           |
-| `DEFAULT_MAX_DIMENSION`       | `16384`                  | Default maximum image dimension (px). Import this constant when you want to reference the default value                          |
-| `DEFAULT_MAX_PIXELS`          | `16777216`               | Default maximum decoded pixel count for one image or the normalized comparison canvas                                            |
-| `DEFAULT_MAX_FILE_BYTES`      | `135266304`              | Default maximum size (bytes) of a PNG read from a path — the raw size of a 16-bit RGBA image at `DEFAULT_MAX_PIXELS`, plus 1 MiB |
+| Constant                      | Value                    | Description                                                                                  |
+| ----------------------------- | ------------------------ | -------------------------------------------------------------------------------------------- |
+| `DEFAULT_EXTENDED_AREA_COLOR` | `{ r: 0, g: 255, b: 0 }` | Default fill color for extended canvas padding                                               |
+| `DEFAULT_EXCLUDED_AREA_COLOR` | `{ r: 0, g: 0, b: 255 }` | Default fill color for excluded areas                                                        |
+| `DEFAULT_MAX_DIMENSION`       | `16384`                  | Default maximum image width or height in pixels                                              |
+| `DEFAULT_MAX_PIXELS`          | `16777216`               | Default maximum pixel count per image or normalized canvas                                   |
+| `DEFAULT_MAX_FILE_BYTES`      | `135266304`              | Default maximum byte size for a PNG read from a file path (`DEFAULT_MAX_PIXELS * 8 + 1 MiB`) |
 
 ---
 
 ## Security Model
 
-The security options are opt-in and bound distinct things. Knowing what each one does _not_ cover matters as much as what it does.
+The security options are optional and protect distinct boundaries.
 
-### Resource limits
+### Resource Limits
 
-`maxDimension` and `maxPixels` read the width and height declared in the PNG's IHDR header. They bound the **decoded** image, which is what protects you from a small file that claims to be 60000 × 60000 pixels.
+`maxDimension` and `maxPixels` check the width and height in the PNG IHDR header. They limit the **decoded** image size and stop small files that declare huge dimensions (for example, `60000 × 60000` pixels).
 
-They say nothing about how many bytes must be read to reach that header. Without a separate limit, a multi-gigabyte file is fully resident in memory before either check runs. `maxFileBytes` closes that gap by bounding the **compressed** bytes. It is checked from the file's size before a single byte is read, and again against the bytes actually read, so a file that grows mid-read, a FIFO, or a device cannot slip past it.
+They also limit decompression. Before `pngjs` decodes an image, the library inflates the image data with `node:zlib` and stops one byte past the size declared in the IHDR header (at most about 128 MiB with default limits). If a file decompresses past that size, the library rejects it immediately.
 
-The default is 135,266,304 bytes (129 MiB): the raw size of a 16-bit RGBA image — the widest PNG pixel format, 8 bytes per pixel — at `maxPixels`, plus 1 MiB for filter bytes, compression framing, and metadata chunks. No PNG that passes `maxPixels` reaches it, whatever its bit depth. Lower it if you compare untrusted uploads and want a tighter memory bound.
+`maxFileBytes` limits the **compressed** file size before the header is read. The library checks `maxFileBytes` against the file size before reading any bytes, and checks it again against the bytes read. The default limit is `135,266,304` bytes (129 MiB). `maxFileBytes` applies only to file path inputs, not to `Buffer` inputs.
 
-`maxFileBytes` applies only to path inputs. A `Buffer` you pass in is already in memory, and `maxPixels` still bounds its decode.
+When `inputBaseDir` is set, the library checks path containment before `maxFileBytes` so the error message never leaks the size of a file outside `inputBaseDir`.
 
-When `inputBaseDir` is set, containment is checked before the byte cap. The cap's error names an exact size and is not recoverable, so checking it first would disclose the size and existence of a file outside the boundary. A path outside the boundary always fails as a `PathValidationError`, before the file is even opened.
+### Corrupt Image Data
 
-### Path containment
+`pngjs` 7 does not report an error when non-interlaced PNG image data is truncated or has an invalid Adler-32 checksum, and it inflates interlaced PNG data without an output size limit. To prevent uninitialized memory reads and decompression bombs, this library inflates the image data with `node:zlib` before decoding and requires the exact byte count declared by the header. Any mismatch throws `InvalidInputError`.
 
-`inputBaseDir` and `diffOutputBaseDir` confine reads and writes to a directory, enforced after symlink resolution. Both are unset by default, in which case no boundary exists and none of the checks below run.
+### Path Containment
 
-When a boundary is set, the library defends against a path that changes underneath it:
+`inputBaseDir` and `diffOutputBaseDir` restrict file reads and diff writes to a base directory after symlink resolution. Both options are `undefined` by default.
 
-- **Reads** refuse a path that is lexically outside the boundary before touching the filesystem, so whether it exists is never disclosed. They then open the file, pinning one inode, and prove that inode is the one containment approved. Bytes are never returned from a file that failed the check. A FIFO or device inside the boundary is refused with a `PathValidationError`, and the open does not block, so a FIFO planted there cannot hang the call.
-- **Writes** create each parent directory one component at a time and refuse any component that is a symlink. The parent chain is then resolved and the file is opened _inside the canonical directory_, so the path traversed at open time contains no symlink at all — redirecting the write requires renaming a real directory in that chain, not merely planting a link. Truncation is deferred until after the opened handle has been proven to sit inside the boundary, so an escaped target is never emptied. A target that has more than one hard link, or is a FIFO or device, is refused before anything is truncated or written, and the open does not block on a FIFO. Failed writes close their handles without deleting the output path: another writer may have replaced it, and Node provides no atomic way to unlink only the originally opened inode. A refused write can leave an empty owner-only file behind. After a detected parent-directory swap, that file can sit at the redirected location outside `diffOutputBaseDir`, with no diff bytes written to it. A later write failure can leave partial output at the verified destination.
+When you set a base directory, the library checks for path swaps during I/O:
 
-Node exposes no `openat`, so the underlying race cannot be _prevented_ portably. These checks **detect** a swap and refuse, rather than making the swap impossible. The practical guarantee is that no data crosses the boundary in either direction, not that an attacker cannot try.
+- **Reads** reject paths lexically outside `inputBaseDir` before touching the filesystem. Then the library opens the file with `O_NONBLOCK`, pins the file descriptor, verifies symlink-resolved containment, and checks that the open descriptor has the same `dev` and `ino` as the approved path and is a regular file.
+- **Writes** create missing parent directories one segment at a time and reject symlinks in the parent chain. The writer resolves the canonical parent directory, opens the file with `O_WRONLY | O_CREAT | O_NOFOLLOW | O_NONBLOCK`, verifies `dev` and `ino` after open, rejects non-regular files and files with more than one hard link, and truncates the file only after all checks pass. On failure, the writer closes the handle without unlinking the path so it never deletes a file swapped in by another process.
 
-Both checks need the filesystem to report file identity. On a mount that reports none (some network filesystems), containment cannot be verified and the operation is refused with a `PathValidationError` rather than passing silently. Unset the base directory option if you need to run there without containment.
+Node.js does not provide `openat`. Because of this, these checks **detect** a path swap and abort the operation instead of preventing the rename at the OS level.
 
-### What is not covered
+Both containment checks require non-zero inode numbers from the filesystem. If a filesystem reports `ino === 0`, the library throws `PathValidationError`.
 
-- Decompression cost inside `pngjs` itself is bounded only indirectly, through the limits above.
-- Without `inputBaseDir` or `diffOutputBaseDir` there is no containment boundary, and neither the swap-detection checks nor the hard-link and special-file refusals run. A FIFO passed as an input or as `diffFilePath` then blocks the call that opens it, as it always has, so you can still read from a pipe on purpose.
-- **Hard links, on reads.** A hard link inside `inputBaseDir` to a file elsewhere on the same filesystem _is_ that file — the same inode — so containment cannot tell them apart, and a read returns its bytes. Reads do not refuse linked files, because hard-linked baselines are legitimate (content-addressed caches, `cp -al` snapshots). Diff writes under `diffOutputBaseDir` do refuse them, so a link planted there is never overwritten. Keep the base directories writable only by trusted processes. On Linux, `fs.protected_hardlinks=1` (the default on most distributions) stops users hard-linking files they do not own.
-- **Sockets.** A Unix socket inside a boundary cannot be opened, so the call fails at once rather than hanging, but as an unreadable or unwritable file, not a `PathValidationError` — except a diff write on Linux, where the socket's `ENXIO` is refused like a FIFO's.
-- The library is intended for test-time and server-side comparison of images you control. It is not a sandbox for arbitrary untrusted input.
+### What Is Not Covered
+
+- Setting `maxDimension` and `maxPixels` to `Infinity` removes the decompression size limit.
+- When `inputBaseDir` and `diffOutputBaseDir` are not set, containment, swap detection, hard-link checks, and FIFO checks do not run.
+- **Hard links on reads**: A hard link inside `inputBaseDir` shares the same inode as its target on the same filesystem. Reads allow hard links so content-addressed caches and `cp -al` baselines work. Diff writes under `diffOutputBaseDir` reject files with `nlink > 1`. Keep `inputBaseDir` writable only by trusted processes.
+- This library is designed for test runners and server-side comparisons of controlled images. Do not use it as an untrusted sandbox.
 
 ---
 
 ## Excluded Areas Builder
 
-Defining `excludedAreas` coordinates by hand can be tedious. The **Excluded Areas Builder** is a browser-based visual tool included in this repository that lets you draw exclusion rectangles directly on your image and copy the resulting `Area[]` JSON with one click.
+The **Excluded Areas Builder** is a browser tool in this repository. Use it to draw exclusion rectangles on an image and copy the `Area[]` JSON array.
 
-### Launch
+### Start the Tool
 
 ```sh
 npm run tool:excluded-areas-builder
 ```
 
-This opens `tools/excluded-areas-builder.html` in your default browser on macOS or Linux. No server or build step is required — the file runs entirely in the browser.
+This command opens `tools/excluded-areas-builder.html` in your default browser on macOS or Linux.
 
-### How to use
+### How to Use the Tool
 
-**1. Load your image**
+**1. Load an image**
 
-Either click **Upload Image** in the toolbar or drag and drop any PNG (or other image format) onto the page.
+Click **Upload Image** in the toolbar or drag and drop a PNG image onto the page.
 
-**2. Zoom to a comfortable level**
+**2. Adjust the zoom level**
 
-- Click **Fit** to scale the image to fit the viewport (default on load).
-- Click **+** / **−** to zoom in or out in 25% steps.
-- Hold `Ctrl` (or `Cmd` on macOS) and scroll to zoom continuously.
+- Click **Fit** to fit the image to the viewport.
+- Click **+** or **−** to zoom in or out in 25% steps.
+- Hold `Ctrl` (or `Cmd` on macOS) and scroll to zoom.
 
 **3. Draw exclusion rectangles**
 
-Click and drag on the image to draw a rectangle. Release the mouse to commit it. Each committed rectangle is shown with an orange border and a `#N` label in its top-left corner matching the numbered list in the sidebar.
+Click and drag on the image to draw a rectangle. Release the mouse button to save the rectangle.
 
 **4. Select and delete rectangles**
 
-- Click a rectangle on the image or its entry in the sidebar to select it (turns blue).
-- Press `Delete` or `Backspace` to remove the selected rectangle, or click the **×** button next to any entry in the sidebar.
-- Click **Clear all** to remove every rectangle at once.
-- Press `Escape` to deselect without deleting.
+- Click a rectangle on the image or in the sidebar list to select it.
+- Press `Delete` or `Backspace`, or click **×** in the sidebar, to delete a rectangle.
+- Click **Clear all** to delete all rectangles.
+- Press `Escape` to clear the selection.
 
 **5. Copy the JSON**
 
-The **Area[] JSON** panel in the sidebar updates live as you draw. Click **Copy** to copy the JSON to your clipboard, then paste it directly into your `comparePng` call:
+Click **Copy** in the **Area[] JSON** panel and paste the array into `comparePng`:
 
 ```typescript
 import { comparePng } from 'png-visual-compare';
@@ -510,13 +519,13 @@ const mismatchedPixels = comparePng(img1, img2, {
 });
 ```
 
-All coordinates are in original image pixels regardless of the current zoom level.
+The tool always outputs coordinates in original image pixels regardless of the zoom level.
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, commands, and PR guidelines.
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, commands, and pull request rules.
 
 ---
 

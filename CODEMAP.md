@@ -12,9 +12,9 @@ Schema: `codemap.v2`
     "schema": "codemap.v2",
     "repo": {
         "name": "png-visual-compare",
-        "version": "7.2.0"
+        "version": "7.2.1"
     },
-    "sourceHash": "24fad89cbdd82854ad8064d1d3c9c3038e727ee5ca05fab7a930b2a82cab191c",
+    "sourceHash": "25d8965e8bf077d29d7f54f5db28aa2d7d5771c618e26286258a72391df163ee",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -47,7 +47,7 @@ Schema: `codemap.v2`
             "kind": "type",
             "entrypoint": "src/index.ts",
             "file": "src/types/compare.options.ts",
-            "line": 49,
+            "line": 61,
             "signature": "export type ComparePngOptions = { excludedAreas?: Area[]; diffFilePath?: string; throwErrorOnInvalidInputData?: boolean; extendedAreaColor?: Color; excludedAreaColor?: Color; maxDimension?: number; ma…",
             "jsdoc": null,
             "typeOnly": true
@@ -568,7 +568,7 @@ Schema: `codemap.v2`
                 {
                     "name": "PNG_SIGNATURE",
                     "kind": "const",
-                    "line": 7,
+                    "line": 8,
                     "exported": false,
                     "signature": "const PNG_SIGNATURE",
                     "members": null,
@@ -577,7 +577,7 @@ Schema: `codemap.v2`
                 {
                     "name": "IHDR_PEEK_LENGTH",
                     "kind": "const",
-                    "line": 13,
+                    "line": 14,
                     "exported": false,
                     "signature": "const IHDR_PEEK_LENGTH = 24",
                     "members": null,
@@ -586,7 +586,7 @@ Schema: `codemap.v2`
                 {
                     "name": "IHDR_CHUNK_TYPE",
                     "kind": "const",
-                    "line": 15,
+                    "line": 16,
                     "exported": false,
                     "signature": "const IHDR_CHUNK_TYPE = 0x49484452",
                     "members": null,
@@ -595,7 +595,7 @@ Schema: `codemap.v2`
                 {
                     "name": "IHDR_DATA_LENGTH",
                     "kind": "const",
-                    "line": 16,
+                    "line": 17,
                     "exported": false,
                     "signature": "const IHDR_DATA_LENGTH = 13",
                     "members": null,
@@ -604,7 +604,7 @@ Schema: `codemap.v2`
                 {
                     "name": "IHDR_END",
                     "kind": "const",
-                    "line": 18,
+                    "line": 19,
                     "exported": false,
                     "signature": "const IHDR_END = 33",
                     "members": null,
@@ -613,7 +613,7 @@ Schema: `codemap.v2`
                 {
                     "name": "peekPngDimensions",
                     "kind": "function",
-                    "line": 25,
+                    "line": 26,
                     "exported": false,
                     "signature": "function peekPngDimensions(data: Buffer): { width: number; height: number } | null",
                     "members": null,
@@ -622,7 +622,7 @@ Schema: `codemap.v2`
                 {
                     "name": "assertImageLimits",
                     "kind": "function",
-                    "line": 37,
+                    "line": 38,
                     "exported": false,
                     "signature": "function assertImageLimits(buffer: Buffer, maxDimension: number | undefined, maxPixels: number | undefined): void",
                     "members": null,
@@ -631,16 +631,70 @@ Schema: `codemap.v2`
                 {
                     "name": "assertSinglePngHeader",
                     "kind": "function",
-                    "line": 63,
+                    "line": 64,
                     "exported": false,
                     "signature": "function assertSinglePngHeader(buffer: Buffer): void",
                     "members": null,
                     "jsdoc": "pngjs accepts repeated IHDR chunks and decodes using the last dimensions. Reject them before decoding so a later header cannot bypass the size guard. Leave other malformed framing and CRC checks to the decoder; advancing by chunk length also avoids mistaking IHDR bytes inside chunk data for a header."
                 },
                 {
+                    "name": "IDAT_CHUNK_TYPE",
+                    "kind": "const",
+                    "line": 76,
+                    "exported": false,
+                    "signature": "const IDAT_CHUNK_TYPE = 0x49444154",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "CHANNELS_BY_COLOR_TYPE",
+                    "kind": "const",
+                    "line": 78,
+                    "exported": false,
+                    "signature": "const CHANNELS_BY_COLOR_TYPE: Partial<Record<number, number>> = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }",
+                    "members": null,
+                    "jsdoc": "Samples per pixel by IHDR colour type, as pngjs maps them; pngjs rejects any other type."
+                },
+                {
+                    "name": "PNG_BIT_DEPTHS",
+                    "kind": "const",
+                    "line": 79,
+                    "exported": false,
+                    "signature": "const PNG_BIT_DEPTHS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "ADAM7_PASSES",
+                    "kind": "const",
+                    "line": 82,
+                    "exported": false,
+                    "signature": "const ADAM7_PASSES",
+                    "members": null,
+                    "jsdoc": "Adam7 passes as [x0, y0, dx, dy]: a pass holds the pixels at (x0 + i * dx, y0 + j * dy)."
+                },
+                {
+                    "name": "declaredImageDataLength",
+                    "kind": "function",
+                    "line": 96,
+                    "exported": false,
+                    "signature": "function declaredImageDataLength(width: number, height: number, bitsPerPixel: number, interlaced: boolean): number",
+                    "members": null,
+                    "jsdoc": "The inflated IDAT size pngjs requires: scanlines of a filter byte plus packed samples, for the whole image or, when interlaced, for each Adam7 pass that has pixels (an empty pass has none)."
+                },
+                {
+                    "name": "assertCompleteImageData",
+                    "kind": "function",
+                    "line": 121,
+                    "exported": false,
+                    "signature": "function assertCompleteImageData(buffer: Buffer): void",
+                    "members": null,
+                    "jsdoc": "pngjs 7's sync inflate ignores zlib errors and misreads zlib's progress counters, so when a non-interlaced IDAT stream is corrupt or short it returns its whole `Buffer.allocUnsafe` output buffer, and recycled heap memory decodes as pixels. For interlaced data it calls `zlib.inflateSync` with no output limit, so a tiny image can inflate gigabytes. Inflate the stream here first, capped at the byte count the header declares plus one, and require exactly that count. Other interlace methods are left to pngjs, which rejects them before inflating."
+                },
+                {
                     "name": "assertPngHeaderLimits",
                     "kind": "function",
-                    "line": 84,
+                    "line": 159,
                     "exported": true,
                     "signature": "export function assertPngHeaderLimits(buffer: Buffer, maxDimension: number, maxPixels: number): void",
                     "members": null,
@@ -649,7 +703,7 @@ Schema: `codemap.v2`
                 {
                     "name": "finalizeDecodedPng",
                     "kind": "function",
-                    "line": 104,
+                    "line": 179,
                     "exported": false,
                     "signature": "function finalizeDecodedPng(decoded: LoadedPng, throwErrorOnInvalidInputData: boolean): LoadedPng",
                     "members": null,
@@ -658,7 +712,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getPngData",
                     "kind": "function",
-                    "line": 115,
+                    "line": 190,
                     "exported": true,
                     "signature": "export function getPngData( pngSource: string | Buffer, throwErrorOnInvalidInputData: boolean, maxDimension?: number, maxPixels?: number, inputBaseDir?: string, maxFileBytes?: number, ): LoadedPng",
                     "members": null,
@@ -669,6 +723,7 @@ Schema: `codemap.v2`
                 "./errors",
                 "./pipeline/types",
                 "./readValidatedFile",
+                "node:zlib",
                 "pngjs"
             ],
             "reExports": []
@@ -2227,7 +2282,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparePngOptions",
                     "kind": "type",
-                    "line": 49,
+                    "line": 61,
                     "exported": true,
                     "signature": "export type ComparePngOptions = { excludedAreas?: Area[]; diffFilePath?: string; throwErrorOnInvalidInputData?: boolean; extendedAreaColor?: Color; excludedAreaColor?: Color; maxDimension?: number; ma…",
                     "members": null,
@@ -2472,9 +2527,27 @@ Schema: `codemap.v2`
                     "jsdoc": null
                 },
                 {
-                    "name": "validatePixelmatchOptions",
+                    "name": "validateWindowSize",
                     "kind": "function",
                     "line": 27,
+                    "exported": false,
+                    "signature": "function validateWindowSize(name: string, value: unknown): void",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "validateIgnoreMask",
+                    "kind": "function",
+                    "line": 33,
+                    "exported": false,
+                    "signature": "function validateIgnoreMask(name: string, value: unknown): void",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "validatePixelmatchOptions",
+                    "kind": "function",
+                    "line": 39,
                     "exported": true,
                     "signature": "export function validatePixelmatchOptions(opts: PixelmatchOptions): void",
                     "members": null,
@@ -2520,7 +2593,7 @@ Schema: `codemap.v2`
                 {
                     "name": "pixelmatch",
                     "kind": "function",
-                    "line": 65,
+                    "line": 69,
                     "exported": true,
                     "signature": "export function pixelmatch( img1: PixelData, img2: PixelData, output: PixelData | undefined, width: number, height: number, options: PixelmatchKernelOptions = {}, ): number",
                     "members": null,
@@ -2529,7 +2602,7 @@ Schema: `codemap.v2`
                 {
                     "name": "isPixelData",
                     "kind": "function",
-                    "line": 160,
+                    "line": 238,
                     "exported": false,
                     "signature": "function isPixelData(arr: unknown): arr is PixelData",
                     "members": null,
@@ -2538,43 +2611,286 @@ Schema: `codemap.v2`
                 {
                     "name": "antialiased",
                     "kind": "function",
-                    "line": 169,
+                    "line": 247,
                     "exported": false,
-                    "signature": "function antialiased( img: PixelData, x1: number, y1: number, width: number, height: number, a32: Uint32Array, b32: Uint32Array, checkerboard: boolean, ): boolean",
+                    "signature": "function antialiased(img: PixelData, x1: number, y1: number, width: number, height: number, a32: Uint32Array, b32: Uint32Array): boolean",
                     "members": null,
                     "jsdoc": "Check if a pixel is likely a part of anti-aliasing; based on \"Anti-aliased Pixel and Intensity Slope Detector\" paper by V. Vysniauskas, 2009"
                 },
                 {
                     "name": "hasManySiblings",
                     "kind": "function",
-                    "line": 238,
+                    "line": 309,
                     "exported": false,
                     "signature": "function hasManySiblings(img: Uint32Array, x1: number, y1: number, width: number, height: number): boolean",
                     "members": null,
                     "jsdoc": "Check if a pixel has 3+ adjacent pixels of the same color."
                 },
                 {
+                    "name": "LIN",
+                    "kind": "const",
+                    "line": 346,
+                    "exported": false,
+                    "signature": "const LIN",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "L_R",
+                    "kind": "const",
+                    "line": 354,
+                    "exported": false,
+                    "signature": "const L_R",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "L_G",
+                    "kind": "const",
+                    "line": 355,
+                    "exported": false,
+                    "signature": "const L_G",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "L_B",
+                    "kind": "const",
+                    "line": 356,
+                    "exported": false,
+                    "signature": "const L_B",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "M_R",
+                    "kind": "const",
+                    "line": 357,
+                    "exported": false,
+                    "signature": "const M_R",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "M_G",
+                    "kind": "const",
+                    "line": 358,
+                    "exported": false,
+                    "signature": "const M_G",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "M_B",
+                    "kind": "const",
+                    "line": 359,
+                    "exported": false,
+                    "signature": "const M_B",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "S_R",
+                    "kind": "const",
+                    "line": 360,
+                    "exported": false,
+                    "signature": "const S_R",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "S_G",
+                    "kind": "const",
+                    "line": 361,
+                    "exported": false,
+                    "signature": "const S_G",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "S_B",
+                    "kind": "const",
+                    "line": 362,
+                    "exported": false,
+                    "signature": "const S_B",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "linLUT",
+                    "kind": "function",
+                    "line": 377,
+                    "exported": false,
+                    "signature": "function linLUT(x: number): number",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "CBRT_N",
+                    "kind": "const",
+                    "line": 383,
+                    "exported": false,
+                    "signature": "const CBRT_N = 4096",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "CBRT",
+                    "kind": "const",
+                    "line": 384,
+                    "exported": false,
+                    "signature": "const CBRT",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "CBRT_EXACT",
+                    "kind": "const",
+                    "line": 386,
+                    "exported": false,
+                    "signature": "const CBRT_EXACT = 8",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "cbrtLUT",
+                    "kind": "function",
+                    "line": 387,
+                    "exported": false,
+                    "signature": "function cbrtLUT(x: number): number",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "OKLAB_CACHE_BITS",
+                    "kind": "const",
+                    "line": 397,
+                    "exported": false,
+                    "signature": "const OKLAB_CACHE_BITS = 12",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "OKLAB_CACHE_SHIFT",
+                    "kind": "const",
+                    "line": 398,
+                    "exported": false,
+                    "signature": "const OKLAB_CACHE_SHIFT",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "OKLAB_CACHE_SIZE",
+                    "kind": "const",
+                    "line": 399,
+                    "exported": false,
+                    "signature": "const OKLAB_CACHE_SIZE",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "OKLAB_CACHE_KEYS",
+                    "kind": "const",
+                    "line": 400,
+                    "exported": false,
+                    "signature": "const OKLAB_CACHE_KEYS",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "OKLAB_CACHE_VALUES",
+                    "kind": "const",
+                    "line": 401,
+                    "exported": false,
+                    "signature": "const OKLAB_CACHE_VALUES",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "TOE_K1",
+                    "kind": "const",
+                    "line": 403,
+                    "exported": false,
+                    "signature": "const TOE_K1 = 0.206",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "TOE_K2",
+                    "kind": "const",
+                    "line": 404,
+                    "exported": false,
+                    "signature": "const TOE_K2 = 0.03",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "TOE_K3",
+                    "kind": "const",
+                    "line": 405,
+                    "exported": false,
+                    "signature": "const TOE_K3",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
                     "name": "colorDelta",
                     "kind": "function",
-                    "line": 262,
+                    "line": 419,
                     "exported": false,
-                    "signature": "function colorDelta(img1: PixelData, img2: PixelData, k: number, m: number, checkerboard: boolean): number",
+                    "signature": "function colorDelta(img1: PixelData, img2: PixelData, k: number, checkerboard: boolean, maxDelta: number): number",
                     "members": null,
-                    "jsdoc": "Calculate color difference according to the paper \"Measuring perceived color difference using YIQ NTSC transmission color space in mobile applications\" by Y. Kotsarenko and F. Ramos. Caller guarantees the two pixels differ, so the early-zero check is omitted."
+                    "jsdoc": "Calculate the perceptual color difference between two pixels using the OKLab color space (Björn Ottosson, 2020, https://bottosson.github.io/posts/oklab/) with the HyAB metric (|ΔLr| + √(Δa² + Δb²); Abasi et al. 2019), which tracks large color differences well. The Lr lightness is Ottosson's toe-corrected OKLab lightness, which avoids over-expanding near-black image/display differences while preserving the black-white 0..1 scale. Caller guarantees the two pixels differ, so the early-zero check is omitted."
+                },
+                {
+                    "name": "colorDeltaOpaque",
+                    "kind": "function",
+                    "line": 437,
+                    "exported": false,
+                    "signature": "function colorDeltaOpaque(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number, maxDelta: number): number",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "colorDeltaTransparent",
+                    "kind": "function",
+                    "line": 491,
+                    "exported": false,
+                    "signature": "function colorDeltaTransparent( r1: number, g1: number, b1: number, a1: number, r2: number, g2: number, b2: number, a2: number, k: number, checkerboard: boolean, maxDelta: number, ): number",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "oklabHyabDelta",
+                    "kind": "function",
+                    "line": 543,
+                    "exported": false,
+                    "signature": "function oklabHyabDelta(dLr: number, dl: number, dm: number, ds: number, maxDelta: number): number",
+                    "members": null,
+                    "jsdoc": null
+                },
+                {
+                    "name": "lightness",
+                    "kind": "function",
+                    "line": 560,
+                    "exported": false,
+                    "signature": "function lightness(l: number, m: number, s: number): number",
+                    "members": null,
+                    "jsdoc": "Toe-corrected OKLab lightness (Lr) from cube-rooted LMS values."
                 },
                 {
                     "name": "brightnessDelta",
                     "kind": "function",
-                    "line": 306,
+                    "line": 582,
                     "exported": false,
-                    "signature": "function brightnessDelta( img: PixelData, k: number, m: number, r1: number, g1: number, b1: number, a1: number, checkerboard: boolean, ): number",
+                    "signature": "function brightnessDelta(img: PixelData, m: number, r1: number, g1: number, b1: number, a1: number): number",
                     "members": null,
                     "jsdoc": "Specialized brightness-only color delta for the anti-aliasing detector, with the center pixel's RGBA hoisted out of the neighbor loop."
                 },
                 {
                     "name": "drawPixel",
                     "kind": "function",
-                    "line": 345,
+                    "line": 606,
                     "exported": false,
                     "signature": "function drawPixel(output: PixelData, pos: number, r: number, g: number, b: number): void",
                     "members": null,
@@ -2583,9 +2899,9 @@ Schema: `codemap.v2`
                 {
                     "name": "drawGrayPixel",
                     "kind": "function",
-                    "line": 352,
+                    "line": 613,
                     "exported": false,
-                    "signature": "function drawGrayPixel(img: PixelData, i: number, alpha: number, output: PixelData): void",
+                    "signature": "function drawGrayPixel(output: PixelData, i: number, img: PixelData, alpha: number): void",
                     "members": null,
                     "jsdoc": null
                 }

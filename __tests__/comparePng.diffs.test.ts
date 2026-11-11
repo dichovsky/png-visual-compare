@@ -9,19 +9,19 @@ const testDataArrayValidInput: { id: number; actual: string; expected: string; r
         id: 1,
         actual: resolve('./test-data/actual/ILTQq.png'),
         expected: resolve('./test-data/expected/youtube-play-button.png'),
-        result: 434926,
+        result: 429113,
     },
     {
         id: 2,
         actual: resolve('./test-data/actual/ILTQq copy.png'),
         expected: resolve('./test-data/expected/ILTQq copy.png'),
-        result: 480,
+        result: 479,
     },
     {
         id: 3,
         actual: resolve('./test-data/actual/youtube-play-button.png'),
         expected: resolve('./test-data/expected/pnggrad16rgb.png'),
-        result: 506139,
+        result: 503676,
     },
 ];
 

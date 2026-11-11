@@ -31,8 +31,10 @@ const VERSION_LIVE_DELAYS_MS = [5_000, 10_000, 20_000, 40_000, 80_000, 160_000];
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Failure details quote npm's stderr, which an inherited npm_config_loglevel=silent
+// (`npm run -s`, .npmrc) would blank; a CLI flag outranks every other config source.
 function npm(args, options = {}) {
-    return spawnSync('npm', args, { encoding: 'utf8', ...options });
+    return spawnSync('npm', [...args, '--loglevel=error'], { encoding: 'utf8', ...options });
 }
 
 /**

@@ -9,7 +9,7 @@
  * known mismatch count for two PNGs from test-data/. Exits non-zero on failure.
  *
  * Runs in the `engines-floor` job of `.github/workflows/test.yml` (the packed
- * tarball on Node 22.12.0, the `engines.node` floor) and in the install-smoke
+ * tarball on Node 26.0.0, the `engines.node` floor) and in the install-smoke
  * check of `scripts/postrelease-check.mjs` (the version just published).
  */
 
@@ -24,7 +24,7 @@ const testData = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '
 const ACTUAL = path.join(testData, 'actual', 'ILTQq.png');
 const EXPECTED = path.join(testData, 'expected', 'youtube-play-button.png');
 // Same pair and count as __tests__/comparePng.test.ts and __tests__/comparePngAsync.test.ts.
-const EXPECTED_MISMATCH = 434926;
+const EXPECTED_MISMATCH = 429113;
 
 const spec = process.argv[2];
 if (!spec) {
@@ -54,7 +54,9 @@ const dir = mkdtempSync(path.join(tmpdir(), 'pvc-smoke-'));
 let status = 1;
 try {
     writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'pvc-smoke', version: '0.0.0', private: true }));
-    const install = spawnSync('npm', ['install', '--no-audit', '--no-fund', '--engine-strict', installSpec], {
+    // --loglevel=error: the failure message below quotes npm's stderr, which an inherited
+    // npm_config_loglevel=silent (`npm run -s release:check:post`) would otherwise blank.
+    const install = spawnSync('npm', ['install', '--no-audit', '--no-fund', '--engine-strict', '--loglevel=error', installSpec], {
         cwd: dir,
         encoding: 'utf8',
     });

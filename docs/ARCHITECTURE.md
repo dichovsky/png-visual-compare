@@ -1,19 +1,19 @@
 # Architecture
 
-This document describes the current internal architecture of `png-visual-compare` after the backlog refactor.
+This document describes the internal architecture of `png-visual-compare`.
 
-## System overview
+## System Overview
 
-The package is a small PNG comparison engine with:
+The package compares PNG images and provides these interfaces:
 
-- **Public sync API:** `comparePng(png1, png2, opts?)`
-- **Public async API:** `comparePngAsync(png1, png2, opts?)`
-- **Test-framework matchers:** `toMatchPngSnapshot()` via the `png-visual-compare/vitest`, `png-visual-compare/jest`, and `png-visual-compare/playwright` subpaths
-- **Internal sync hook:** `comparePngWithPorts(...)` in `src/comparePngWithPorts.ts` for orchestrator/port tests — kept out of `comparePng.ts` so the public declarations never reference the port types
+- **Public synchronous API:** `comparePng(png1, png2, opts?)`
+- **Public asynchronous API:** `comparePngAsync(png1, png2, opts?)`
+- **Test-framework matchers:** `toMatchPngSnapshot()` in `png-visual-compare/vitest`, `png-visual-compare/jest`, and `png-visual-compare/playwright`
+- **Internal synchronous test seam:** `comparePngWithPorts(...)` in `src/comparePngWithPorts.ts` (not exported in public declarations)
 
-The package accepts either absolute file paths or raw PNG `Buffer`s, normalizes both images to a comparable canvas, runs `pixelmatch`, and optionally writes a diff PNG.
+The package accepts absolute file paths or raw PNG `Buffer` inputs. It normalizes both images to a common canvas, runs `pixelmatch`, and writes a diff PNG when requested.
 
-## High-level flow
+## High-Level Flow
 
 ```text
 comparePng / comparePngAsync
@@ -24,9 +24,9 @@ comparePng / comparePngAsync
   -> persistDiff / async diff writer
 ```
 
-## Public surface
+## Public Surface
 
-### Runtime exports
+### Runtime Exports
 
 - `comparePng`
 - `comparePngAsync`
@@ -40,297 +40,263 @@ comparePng / comparePngAsync
 - `DEFAULT_MAX_FILE_BYTES`
 - `DEFAULT_MAX_PIXELS`
 
-### Public types
+### Public Types
 
 - `Area`
 - `Color`
 - `ComparePngOptions`
 - `PixelmatchOptions`
 
-### Subpath exports
+### Subpath Exports
 
-Each subpath adds a `toMatchPngSnapshot()` matcher for one test framework. All three validate the received PNG and the matcher arguments through `src/matchers/createPngSnapshotMatcher.ts` and compare with `comparePng`.
+Each subpath provides a `toMatchPngSnapshot()` matcher for one test framework. All three subpaths validate the received PNG and matcher arguments with `src/matchers/createPngSnapshotMatcher.ts` and compare images with `comparePng`.
 
-- `png-visual-compare/vitest` (`src/vitest.mts`): side-effect import. Registers the matcher on Vitest's `expect` and augments `Matchers<R, T>` (Vitest 5). Baselines are serialised Buffers in Vitest's `.snap` file. Optional peer: `vitest` `>=5.0.0 <6`.
-- `png-visual-compare/jest` (`src/jest.ts`): side-effect import. Registers the matcher on Jest's global `expect` when present, exports `registerJestPngSnapshotMatcher`, and augments both global `jest.Matchers` and the imported `expect` matcher types. Baselines are serialised Buffers in Jest's `.snap` file. Optional peers: `jest` (`>=29 <31`) and `expect` (any version; used only for the type augmentation).
-- `png-visual-compare/playwright` (`src/playwright.ts`): no side effects. Exports `expect` (Playwright's `expect` extended with a synchronous `toMatchPngSnapshot()`) and `pngMatchers`. Baselines are PNG files at `testInfo.snapshotPath(name)` (see `docs/adr/0001-playwright-baselines-as-png-files.md`). Optional peer: `@playwright/test` `>=1.60.0 <2`.
+- `png-visual-compare/vitest` (`src/vitest.mts`): side-effect import. Registers the matcher on Vitest `expect` and augments `Matchers<R, T>` (Vitest 5). Stores baselines as serialized `Buffer` strings in `.snap` files. Optional peer: `vitest >=5.0.0 <6`.
+- `png-visual-compare/jest` (`src/jest.ts`): side-effect import. Registers the matcher on Jest global `expect` when available, exports `registerJestPngSnapshotMatcher`, and augments Jest matcher types. Stores baselines as serialized `Buffer` strings in `.snap` files. Optional peers: `jest >=29 <31` and `expect`.
+- `png-visual-compare/playwright` (`src/playwright.ts`): no side effects. Exports `expect` (Playwright `expect` extended with synchronous `toMatchPngSnapshot()`) and `pngMatchers`. Stores baselines as PNG files at `testInfo.snapshotPath(name)`. Optional peer: `@playwright/test >=1.60.0 <2`.
 
-## Module layout
+## Module Layout
 
-| Area                  | Files                                                                                                                                  | Responsibility                                                                                                |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Public entrypoints    | `src/index.ts`, `src/comparePng.ts`, `src/comparePngAsync.ts`                                                                          | Package exports and sync/async orchestration                                                                  |
-| Pipeline              | `src/pipeline/*`                                                                                                                       | Option resolution, source loading, normalization, comparison, diff persistence                                |
-| Validation            | `src/validatePath.ts`, `src/validateArea.ts`, `src/validateColor.ts`, `src/validatePixelmatchOptions.ts`                               | Boundary validation for security and correctness                                                              |
-| Image helpers         | `src/getPngData.ts`, `src/extendImage.ts`, `src/fillImageSizeDifference.ts`, `src/addColoredAreasToImage.ts`, `src/drawPixelOnBuff.ts` | PNG decoding and low-level image mutation                                                                     |
-| Guarded file read     | `src/readValidatedFile.ts`                                                                                                             | Opens a file before validating it, so bytes provably come from the approved inode                             |
-| Internal helpers      | `src/internal/*`                                                                                                                       | `assertSameFile`, `assertPlainFile`, `secureMkdir`, `realDiffDirectory` — shared filesystem-safety primitives |
-| Ports                 | `src/ports/*`                                                                                                                          | Sync/async filesystem adapters and internal test injection seams                                              |
-| Vendored kernel       | `src/vendor/pixelmatch.ts`                                                                                                             | `pixelmatch` 7.2.0 as a TypeScript port (ISC), so the CommonJS build has no ESM-only dependency               |
-| Types/defaults/errors | `src/types/*`, `src/defaults.ts`, `src/errors.ts`                                                                                      | Shared contracts and stable defaults                                                                          |
-| Adapter boundary      | `src/adapters/toPixelmatchOptions.ts`                                                                                                  | Internal translation from public `PixelmatchOptions` to `pixelmatch`                                          |
-| Matchers              | `src/vitest.mts`, `src/jest.ts`, `src/playwright.ts`, `src/matchers/*`                                                                 | `toMatchPngSnapshot` adapters for the `./vitest`, `./jest`, `./playwright` subpaths                           |
+| Area                  | Files                                                                                                                                  | Responsibility                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Public entrypoints    | `src/index.ts`, `src/comparePng.ts`, `src/comparePngAsync.ts`                                                                          | Package exports and synchronous or asynchronous orchestration              |
+| Pipeline              | `src/pipeline/*`                                                                                                                       | Option resolution, source loading, normalization, comparison, diff writing |
+| Validation            | `src/validatePath.ts`, `src/validateArea.ts`, `src/validateColor.ts`, `src/validatePixelmatchOptions.ts`                               | Input validation for security and correctness                              |
+| Image helpers         | `src/getPngData.ts`, `src/extendImage.ts`, `src/fillImageSizeDifference.ts`, `src/addColoredAreasToImage.ts`, `src/drawPixelOnBuff.ts` | PNG decoding and pixel buffer updates                                      |
+| Guarded file read     | `src/readValidatedFile.ts`                                                                                                             | Opens a file before validation so bytes come from the approved inode       |
+| Internal helpers      | `src/internal/*`                                                                                                                       | `assertSameFile`, `assertPlainFile`, `secureMkdir`, `realDiffDirectory`    |
+| Ports                 | `src/ports/*`                                                                                                                          | Synchronous and asynchronous filesystem adapters and test seams            |
+| Vendored kernel       | `src/vendor/pixelmatch.ts`                                                                                                             | `pixelmatch` 8.0.0 TypeScript port (ISC) with no ESM-only dependency       |
+| Types/defaults/errors | `src/types/*`, `src/defaults.ts`, `src/errors.ts`                                                                                      | Shared contracts, default values, and error classes                        |
+| Adapter boundary      | `src/adapters/toPixelmatchOptions.ts`                                                                                                  | Translates public `PixelmatchOptions` to `pixelmatch` options              |
+| Matchers              | `src/vitest.mts`, `src/jest.ts`, `src/playwright.ts`, `src/matchers/*`                                                                 | `toMatchPngSnapshot` adapters for `./vitest`, `./jest`, and `./playwright` |
 
-## Sync architecture
+## Synchronous Architecture
 
-`comparePng` is intentionally thin:
+`comparePng` runs five steps in order:
 
-1. `resolveOptions(opts)` validates all public options and fills defaults.
-2. `loadSources(png1, png2, options)` loads both inputs through the configured sync image source port.
-3. `normalizeImages(sources, options)` clones/masks/extends images into a common canvas.
-4. `runComparison(images, options)` enforces normalized-canvas limits and calls `pixelmatch`.
-5. `persistDiff(result, options)` writes a diff only when mismatches exist and a valid output path was configured.
+1. `resolveOptions(opts)` validates all public options and sets default values.
+2. `loadSources(png1, png2, options)` loads both inputs through the synchronous image source port.
+3. `normalizeImages(sources, options)` clones, extends, and masks the images on a common canvas.
+4. `runComparison(images, options)` runs `pixelmatch` on the normalized images.
+5. `persistDiff(result, options)` writes the diff PNG when mismatches exist and `diffFilePath` is set.
 
-## Async architecture
+## Asynchronous Architecture
 
-`comparePngAsync` reuses the same option resolution, normalization, and comparison stages as sync mode. The only async-specific pieces are:
+`comparePngAsync` uses the same option resolution, normalization, and comparison steps as `comparePng`. It replaces only the I/O ports:
 
 - `fsAsyncImageSource.load(...)`
 - `fsAsyncDiffWriter.write(...)`
 
-The async loader starts both source loads concurrently with `Promise.all(...)`, then returns the same `LoadedSources` shape used by the sync pipeline.
+`loadSourcesAsync` starts both reads concurrently with `Promise.all(...)` and returns the `LoadedSources` object.
 
-## Detailed pipeline stages
+## Pipeline Stages
 
 ### 1. `resolveOptions`
 
 `src/pipeline/resolveOptions.ts`
 
-Responsibilities:
+This stage performs these tasks:
 
-- applies defaults for colors and limits
-- validates `excludedAreas`
-- validates `pixelmatchOptions`
-- validates `diffFilePath`
-- validates `inputBaseDir` / `diffOutputBaseDir` types
-- computes:
-    - `shouldCreateDiffFile`
-    - resolved/branded `diffFilePath`
-    - validated numeric limits (`maxDimension`, `maxPixels`, `maxFileBytes`)
-
-This is the main **public input boundary** for options.
+- Sets default values for colors and resource limits.
+- Validates `excludedAreas`.
+- Validates `pixelmatchOptions`.
+- Validates `diffFilePath`.
+- Validates `inputBaseDir` and `diffOutputBaseDir`.
+- Computes `shouldCreateDiffFile`, the validated `diffFilePath`, and the numeric limits (`maxDimension`, `maxPixels`, `maxFileBytes`).
 
 ### 2. `loadSources`
 
 `src/pipeline/loadSources.ts`
 
-Loads both inputs via the selected `ImageSourcePort` (default: `fsImageSource`).
+Loads both inputs through the `ImageSourcePort` (default: `fsImageSource`).
 
-The async path does not use this module: `loadSourcesAsync`, private to `src/comparePngAsync.ts`, loads both inputs concurrently through `fsAsyncImageSource` (an `AsyncImageSourcePort`) and applies the same both-invalid check.
+In asynchronous mode, `loadSourcesAsync` in `src/comparePngAsync.ts` loads both inputs concurrently through `fsAsyncImageSource` and runs the same validation check.
 
-If both sides are invalid, the pipeline throws `InvalidInputError` with a message naming each input's failure reason (e.g. `Both PNG inputs are invalid — png1: could not decode PNG content; png2: source path could not be loaded.`).
+If both inputs are invalid, the function throws `InvalidInputError` and lists the failure reason for each input.
 
 ### 3. `normalizeImages`
 
 `src/pipeline/normalizeImages.ts`
 
-Responsibilities:
+This stage performs these tasks:
 
-- converts `LoadedPng` into comparable `PNGWithMetadata`
-- clones valid decoded PNGs before mutation
-- turns one-sided invalid inputs into comparable `0×0` canvases
-- enforces `maxPixels` on the normalized comparison canvas (SECU-10), **before** any extension allocates oversized buffers
-- extends both images to `max(width) × max(height)`
-- paints padded regions with `extendedAreaColor`
-- paints `excludedAreas` on both images **last**, on the final canvas, so they always match regardless of content — including regions added by size extension
+- Converts `LoadedPng` objects into `PNGWithMetadata` objects.
+- Clones valid decoded PNGs before it modifies pixels.
+- Converts one invalid input (when `throwErrorOnInvalidInputData` is `false`) into a `0×0` canvas.
+- Checks `maxPixels` on the normalized canvas (SECU-10) **before** `extendImage` allocates buffers.
+- Extends both images to `max(width) × max(height)`.
+- Paints padded regions with `extendedAreaColor`.
+- Paints `excludedAreas` on both images **last** so excluded coordinates always match.
 
-Important invariant: normalization returns **new images** and does not mutate decoded source PNGs in place.
+Normalization always returns new image buffers and never modifies decoded source buffers in place.
 
 ### 4. `runComparison`
 
 `src/pipeline/runComparison.ts`
 
-Responsibilities:
+This stage performs these tasks:
 
-- lazily allocates a diff image only when diff output is requested
-- converts public `pixelmatchOptions` through `toPixelmatchOptions(...)`
-- calls `pixelmatch(...)`
-- wraps any throw from `pixelmatch` in a `ComparisonError` (RELI-10), preserving the original failure on the standard `cause` property
-
-> The normalized-canvas `maxPixels` guard lives in `normalizeImages` (SECU-10), not here — the check must fire **before** `extendImage` allocates its target buffers.
+- Allocates a diff `PNG` only when `shouldCreateDiffFile` is `true`.
+- Maps public `pixelmatchOptions` with `toPixelmatchOptions(...)`.
+- Calls `pixelmatch(...)`.
+- Wraps any error from `pixelmatch` in a `ComparisonError` (RELI-10) with the original error on `cause`.
 
 ### 5. `persistDiff`
 
 `src/pipeline/persistDiff.ts`
 
-Writes the diff only when all of the following are true:
+Writes the diff PNG only when all of these conditions hold:
 
-- mismatches exist
-- `diffFilePath` was provided
-- diff creation was requested
-- a diff PNG was actually allocated
+- `mismatchedPixels > 0`
+- `diffFilePath` is defined
+- `shouldCreateDiffFile` is `true`
+- The diff `PNG` buffer exists
 
-## Input loading model
+## Input Loading Model
 
 `src/getPngData.ts`
 
-`getPngData(...)` returns the discriminated union:
+`getPngData(...)` returns this discriminated union:
 
 ```ts
 type LoadedPng = { kind: 'valid'; png: PNGWithMetadata } | { kind: 'invalid'; reason: 'path' | 'decode' | 'type' };
 ```
 
-Key behavior:
+Key rules:
 
-- string paths are read through `readValidatedFileSync` / `readValidatedFile` (see below), never with a bare `readFile`
-- file-backed PNGs are capped by `maxFileBytes` before any bytes are read, then pre-screened with IHDR dimension peeking before decode
-- all PNG sources are scanned for duplicate IHDR chunks before decode, so a later header cannot override the dimensions checked by the resource limits
-- zero-dimension decoded PNGs are explicitly rejected
-- `assertPngHeaderLimits` (internal, not in `src/index.ts`) applies the same limits, with the same `ResourceLimitError` messages, from the signature and IHDR alone; it throws `InvalidInputError` for a missing, truncated, repeated or zero-dimension header. The Playwright adapter calls it before writing a baseline instead of decoding the image
-- malformed `Buffer`s are handled separately from malformed file paths
-- `throwErrorOnInvalidInputData: false` downgrades ordinary invalid image inputs, but not security/resource-boundary failures
+- String paths use `readValidatedFileSync` or `readValidatedFile`, never a direct `readFile` call.
+- File inputs check `maxFileBytes` before reading any bytes, then check IHDR dimensions before full decode.
+- The loader scans all PNG inputs for duplicate IHDR chunks before decode so a second header cannot bypass dimension limits.
+- The loader inflates image data with `node:zlib` before decode, stops one byte past the expected byte count from the IHDR header, and requires that exact byte count.
+- The loader rejects zero-dimension PNGs with `InvalidInputError`.
+- `assertPngHeaderLimits` (internal) checks the PNG signature and IHDR limits without decoding pixel data. The Playwright matcher calls it before writing a baseline.
+- `throwErrorOnInvalidInputData: false` converts invalid image data into `{ kind: 'invalid' }`, but security and resource-limit errors still throw.
 
-### Guarded file read
+### Guarded File Read
 
 `src/readValidatedFile.ts`
 
-`validatePath` walks a path and the subsequent `readFile` walks it again from scratch, so anything swapped in between is what actually gets read. Node exposes no `openat`, and `/proc/self/fd` is Linux-only, so the race cannot be _prevented_ portably. It is detected instead:
+Node.js does not provide a portable `openat` call. Instead of preventing path swaps, `readValidatedFile` detects them and rejects the read:
 
-1. filesystem-free checks: `assertPathSyntax`, and when `inputBaseDir` is set, `assertLexicalContainment` — a path outside the boundary fails as containment before the open can reveal whether it exists (ENOENT vs `PathValidationError` would otherwise be an existence oracle) or block on a FIFO
-2. `open` the lexically resolved path — the one validation approves — pinning one inode for the rest of the call. The raw string could name a different file when `..` follows a symlinked directory, because the kernel resolves `..` after the link. When `inputBaseDir` is set the open adds `O_NONBLOCK`, so a FIFO inside the boundary opens at once instead of waiting for a writer (SECU-14); it changes nothing for a regular file
-3. `fstat` the handle with `{ bigint: true }` for its size and identity
-4. `validatePathWithReal` for the symlink-resolved containment check
-5. when `inputBaseDir` is set, `assertSameFile` compares the handle's `dev`/`ino` against the canonical path containment approved, then `assertRegularFile` refuses a handle that is not a regular file (SECU-14) — after containment, so the kind of a file outside the boundary is never reported
-6. `maxFileBytes` is enforced against the stat size — **after** step 5, because its error names an exact byte count and escapes permissive mode, so checking earlier would disclose the size of a file outside the boundary
-7. read from the handle, never from the path string again, holding `maxFileBytes` against the bytes actually read — the stat size is only a hint, understated by a file that grows mid-read, a FIFO, or a device
+1. Run syntax checks (`assertPathSyntax`) and, when `inputBaseDir` is set, lexical containment (`assertLexicalContainment`). Paths outside the boundary fail before `open` touches the filesystem.
+2. Open the lexically resolved path to pin one inode. When `inputBaseDir` is set, pass `O_NONBLOCK` so a FIFO does not block (SECU-14).
+3. Call `fstat` with `{ bigint: true }` on the open file handle to read its size and inode identity.
+4. Call `validatePathWithReal` to check symlink-resolved containment.
+5. When `inputBaseDir` is set, call `assertSameFile` to match the handle `dev` and `ino` against the canonical path, then call `assertRegularFile` (SECU-14).
+6. Check `maxFileBytes` against the `fstat` size after containment succeeds.
+7. Read bytes from the open handle and enforce `maxFileBytes` on the total bytes read.
 
-The identity check is skipped without `inputBaseDir`: `validatePath` consults no filesystem in that case, so there is no boundary a swap could cross, and running it anyway would expose every default caller to a false positive whenever a baseline is replaced by atomic rename.
+`assertSameFile` rejects a zero `ino` with `PathValidationError` because filesystems without inode numbers cannot prove identity.
 
-`assertSameFile` refuses a zero `ino` rather than treating it as a match — some network mounts report no file identity, and two zeroes would otherwise compare equal and silently disable the check.
+## Validation and Security Boundaries
 
-## Validation and security boundaries
-
-### Path validation
+### Path Validation
 
 `src/validatePath.ts`
 
-The validator:
+The path validator performs these checks:
 
-- rejects empty/whitespace-only paths
-- rejects null bytes
-- resolves absolute paths
-- enforces lexical containment before filesystem access
-- resolves symlinks for both input and output containment
-- rejects:
-    - symlink loops
-    - existing output directories
-    - existing output symlinks
-- permits not-yet-created output parent directories by validating the nearest existing ancestor
+- Rejects empty or whitespace-only paths.
+- Rejects paths with null bytes.
+- Resolves paths to absolute paths.
+- Checks lexical containment before filesystem access.
+- Resolves symlinks for input and output containment.
+- Rejects symlink loops, existing output directories, and existing output symlinks.
+- Validates the nearest existing parent directory when output parent directories do not exist yet.
 
-The module exposes four entry points:
+The module exports four functions:
 
-- `assertPathSyntax(filePath)` — the filesystem-free checks (empty, whitespace-only, null byte). Split out so `readValidatedFile`, which must `open` before validating, can still reject a malformed path as a `PathValidationError` instead of letting the runtime raise its own `TypeError`.
-- `assertLexicalContainment(filePath, baseDir)` — the filesystem-free half of the containment check, run by `readValidatedFile` before its `open`. It only ever rejects; approval still needs the symlink-resolved check, so it cannot be raced into letting anything through.
-- `validatePathWithReal(...)` — returns `{ validated, real }`, where `real` is the canonical path the containment check was proven against.
-- `validatePath(...)` — the original signature, a thin wrapper returning `.validated`.
+- `assertPathSyntax(filePath)` — checks syntax without filesystem access.
+- `assertLexicalContainment(filePath, baseDir)` — checks lexical containment without filesystem access.
+- `validatePathWithReal(...)` — returns `{ validated, real }`, where `real` is the canonical path after symlink resolution.
+- `validatePath(...)` — returns `validated`.
 
-> **Why `real` matters:** `validated` is the _lexically_ resolved path. Stat'ing it walks the same, possibly already-compromised, route a second time, so a symlink planted after validation would be followed by both walks and the two inodes would agree on the escaped file. Any caller proving an opened handle sits inside the boundary must compare against `real`.
+> **Check order (SECU-11):** When `baseDir` is set, lexical and realpath containment checks run **before** output target shape checks. Every path outside `baseDir` throws `Path traversal detected: ...` instead of leaking whether the target is a symlink or directory.
 
-> **Check ordering (SECU-11):** when `baseDir` is set, the lexical and realpath containment checks run **before** the output-mode symlink/directory shape checks. As a consequence, every out-of-bounds path surfaces as a uniform `Path traversal detected: …` error and never as `must not be an existing symlink/directory` — closing a filesystem-enumeration oracle for paths outside the security boundary.
-
-### Diff write contract
+### Diff Write Contract
 
 `src/ports/fsDiffWriter.ts`, `src/ports/fsAsyncDiffWriter.ts`
 
-The diff write:
+Both diff writers follow these steps:
 
-- creates parent directories one component at a time via `secureMkdir`, refusing any component that is a symlink. `mkdir(..., { recursive: true })` follows symlinks in every intermediate component while `O_NOFOLLOW` guards only the final one, so a symlinked parent could redirect the whole write outside `diffOutputBaseDir` (SECU-09). A component another writer creates between the `lstat` and the `mkdir` is not an error — the `EEXIST` re-checks what was created, so concurrent writes into one new directory succeed while a symlink planted in that window is still refused. Without `diffOutputBaseDir` there is no boundary to protect and the recursive form is kept.
-- resolves the parent chain with `realDiffDirectory` **before** opening, then opens inside that canonical directory. The path traversed at open time therefore contains no symlink at all: redirecting the write requires renaming a real directory in the resolved chain, not merely planting a link.
-- opens the target once with `O_WRONLY | O_CREAT | O_NOFOLLOW`, creating a new file or opening an existing file without truncation. A live or dangling symlink at the target fails with `ELOOP`, mapped to `PathValidationError` (SECU-03). When `diffOutputBaseDir` is set the open adds `O_NONBLOCK` (SECU-14): a FIFO with no reader then fails with `ENXIO`, mapped to the same `PathValidationError` as the post-open regular-file check, instead of blocking until a reader appears.
-- closes the handle on failure without unlinking the target path. Even after a successful identity check, another writer can replace that path before cleanup. Node has no atomic unlink-by-inode operation, so preserving replacement files takes precedence over removing failed output. A detected parent swap can leave an empty owner-only file at the redirected location outside `diffOutputBaseDir`, with no diff bytes written. A later write failure can leave partial output at the verified destination.
-- re-resolves the parent chain with `realDiffDirectory` **after** the open, in both writers, and ties the handle to the file inside it with `assertSameFile`. Stat'ing the pre-open canonical path instead would walk a route swapped since and agree with itself.
-- then refuses, from the same `fstat` of the handle, a target that is not a regular file (`assertRegularFile`, SECU-14) or has more than one hard link (`assertSingleLink`, SECU-13). A hard link is the same inode under another name, so the identity check passes for a link to a file elsewhere on the same filesystem; only the link count tells them apart. A new file, or one only ever written here, has one link. Without `diffOutputBaseDir` neither check runs, as before.
-- defers truncation: `O_TRUNC` is absent from the open, and `ftruncate(0)` runs only once `assertSameFile` has tied the handle to the canonical target. Truncating on open would empty an escaped target before anything could detect it.
-- passes an explicit POSIX create-mode `0o600` to `open` and then issues an explicit `fchmod(0o600)` on the open handle (SECU-12). The `open` mode alone is insufficient: POSIX masks it with `~umask` (a restrictive umask can only narrow it further, never widen it) and truncation does not reset the mode of a pre-existing file. The post-open `fchmod` makes the final mode `0o600` in both the create and overwrite cases.
+- Create parent directories one component at a time with `secureMkdir` when `diffOutputBaseDir` is set, and reject any symlink component (SECU-09).
+- Resolve the parent directory chain with `realDiffDirectory` before opening the file.
+- Open the target file with `O_WRONLY | O_CREAT | O_NOFOLLOW` (plus `O_NONBLOCK` when `diffOutputBaseDir` is set, SECU-14).
+- Close the file handle on failure without unlinking the path so a concurrent replacement file is never deleted.
+- Resolve the parent chain again after `open` and verify the handle identity with `assertSameFile`.
+- Reject non-regular files (`assertRegularFile`, SECU-14) and files with multiple hard links (`assertSingleLink`, SECU-13) when `diffOutputBaseDir` is set.
+- Truncate the file with `ftruncate(0)` only after identity and link checks pass.
+- Set file permissions to `0o600` on `open` and call `fchmod(0o600)` on the open handle (SECU-12).
 
-### Area validation
+### Area Validation
 
 `src/validateArea.ts`
 
-`excludedAreas` must be:
+`excludedAreas` must meet these rules:
 
-- an array
-- of non-null objects
-- with finite integer coordinates
-- with non-negative coordinates
-- with `x1 <= x2`
-- with `y1 <= y2`
+- Must be an array of non-null objects.
+- Each coordinate (`x1`, `y1`, `x2`, `y2`) must be a non-negative finite integer.
+- `x1 <= x2` and `y1 <= y2`.
 
-### Pixelmatch boundary
+### Pixelmatch Boundary
 
 `src/validatePixelmatchOptions.ts`
 
-The public wrapper owns runtime validation for:
+The validator checks all public `PixelmatchOptions` fields before `runComparison` runs:
 
 - `threshold`
 - `alpha`
 - `includeAA`
 - `diffMask`
 - `checkerboard`
+- `windowSize`
+- `ignoreMask`
 - `aaColor`
 - `diffColor`
 - `diffColorAlt`
 
-This prevents invalid data from leaking directly into the `pixelmatch` kernel.
+`src/vendor/pixelmatch.ts` is a TypeScript port of `pixelmatch` 8.0.0 under its ISC license (RELI-11). `__tests__/vendor/pixelmatch.test.ts` tests the port against the upstream `pixelmatch` package across fixtures, options, error messages, and color-delta thresholds.
 
-`pixelmatch` itself is vendored as `src/vendor/pixelmatch.ts`, a line-for-line TypeScript port of 7.2.0 kept under its ISC notice. The CommonJS build used to `require()` the ESM-only upstream package, which Jest's module loader and Vitest's vm pools on Node.js 22 cannot load (RELI-11). `__tests__/vendor/pixelmatch.test.ts` checks the port against upstream, kept as a devDependency: mismatch counts and diff bytes across the fixtures and every option, error messages, and the exact colour-delta threshold boundary. A failure there after an upstream bump means the port needs re-syncing.
-
-## Error model
+## Error Model
 
 `src/errors.ts`
 
-Stable error classes:
+Public error classes:
 
-- `InvalidInputError` → `ERR_INVALID_PNG_INPUT`
-- `PathValidationError` → `ERR_PATH_VALIDATION`
-- `ResourceLimitError` → `ERR_RESOURCE_LIMIT`
-- `ComparisonError` → `ERR_COMPARISON` (wraps `pixelmatch` failures; preserves the underlying error on `cause`)
+- `InvalidInputError` -> `ERR_INVALID_PNG_INPUT`
+- `PathValidationError` -> `ERR_PATH_VALIDATION`
+- `ResourceLimitError` -> `ERR_RESOURCE_LIMIT`
+- `ComparisonError` -> `ERR_COMPARISON` (wraps `pixelmatch` errors and sets `cause`)
 
-These are used consistently across sync and async flows.
+## Ports
 
-## Ports and extension points
+### Synchronous Ports
 
-### Sync ports
-
-- `ImageSourcePort`
-- `DiffWriterPort`
+- `ImageSourcePort` (default: `fsImageSource`)
+- `DiffWriterPort` (default: `fsDiffWriter`)
 - `ComparisonPorts`
 
-Default implementations:
+### Asynchronous Ports
 
-- `fsImageSource`
-- `fsDiffWriter`
+- `AsyncImageSourcePort` (default: `fsAsyncImageSource`)
+- `AsyncDiffWriterPort` (default: `fsAsyncDiffWriter`)
 
-### Async ports
+## Package and Build Architecture
 
-- `AsyncImageSourcePort`
-- `AsyncDiffWriterPort`
+- `tsconfig.json` type-checks the entire repository (`src/`, `__tests__/`, `e2e/`, and config files) with `noEmit: true`.
+- `tsconfig.prod.json` extends `tsconfig.json` and emits the package build from `src/` to `out/`.
+- `npm run typecheck` checks the repository with `tsconfig.json`.
+- `npm run build` compiles the package with `tsconfig.prod.json`.
+- `package.json` exposes `"."`, `"./vitest"`, `"./jest"`, and `"./playwright"`.
+- npm publishes only `out/`.
+- The declarations of the entry points must not refer to `pngjs` types. If they do, a consumer without `@types/pngjs` gets TS7016 when `skipLibCheck` is `false`. `npm run test:consumer-types` builds and packs the package, installs the tarball into a new project without `@types/pngjs`, and type-checks every entry point (`strict`, `skipLibCheck: false`) with `moduleResolution` `node16` and `bundler`. CI runs this check in the `consumer-types` job, not in `npm test`.
+- `npm run codemap` generates `CODEMAP.md` from the source tree and `package.json`.
 
-Default implementations:
+## Invariants for Maintainers
 
-- `fsAsyncImageSource`
-- `fsAsyncDiffWriter`
-
-The ports isolate file I/O from orchestration so tests can validate decision logic without disk fixtures.
-
-## Package/build architecture
-
-- `tsconfig.json` is the repo-wide development config:
-    - `noEmit: true`
-    - includes repository TypeScript such as `src/`, `__tests__/`, `e2e/`, and root config files
-    - includes DOM libs so browser-facing Playwright tests typecheck in editors and CI
-- `tsconfig.prod.json` extends the dev config and restores emitted library build settings for `src/ -> out`
-- `npm run typecheck` validates the full repository via `tsconfig.json`
-- `npm run build` emits the published package via `tsconfig.prod.json`
-- package export surface is `"."` plus the `"./vitest"`, `"./jest"`, and `"./playwright"` matcher subpaths (`sideEffects` lists `./out/vitest.mjs` and `./out/jest.js`; the Playwright entry has none)
-- only `out/` is published to npm
-- the entry points' declarations must not reach `pngjs` types (a consumer without `@types/pngjs` would get TS7016 under `skipLibCheck: false`); `npm run test:consumer-types` builds, packs, installs the tarball into a fresh project without `@types/pngjs`, and type-checks every entry point (`strict`, `skipLibCheck: false`) under `moduleResolution` `node16` and `bundler`. CI runs it as the `consumer-types` job, not as part of `npm test`
-- `npm run codemap` regenerates `CODEMAP.md` from the current source tree and package metadata
-
-## Agent-relevant invariants
-
-- `comparePng.ts` should stay orchestration-only
-- sync and async APIs should preserve the same comparison semantics
-- security/resource-limit failures must not be downgraded into fake success values
-- diff output should never be written for zero mismatches
-- new public option fields should be validated in `resolveOptions` before downstream use
+- Keep `comparePng.ts` for orchestration only.
+- Keep comparison behavior identical between `comparePng` and `comparePngAsync`.
+- Never downgrade security or resource-limit errors when `throwErrorOnInvalidInputData` is `false`.
+- Never write a diff file when `mismatchedPixels === 0`.
+- Validate all new public options in `resolveOptions`.

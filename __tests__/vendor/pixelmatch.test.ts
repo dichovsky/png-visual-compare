@@ -71,6 +71,7 @@ function synthetic(width: number, height: number, offset: number): Image {
 function paletteImage(width: number, height: number, seed: number): Image {
     const random = seededRandom(seed);
     const palette = [
+        [255, 255, 255],
         [200, 40, 40],
         [40, 200, 40],
         [30, 30, 30],
@@ -127,9 +128,19 @@ const optionSets: { name: string; options: PixelmatchKernelOptions | undefined }
     { name: 'custom colours', options: { aaColor: [1, 2, 3], diffColor: [9, 9, 9], diffColorAlt: [0, 255, 255] } },
     { name: 'diffMask', options: { diffMask: true } },
     { name: 'checkerboard off', options: { checkerboard: false } },
+    { name: 'windowSize 4', options: { windowSize: 4 } },
+    { name: 'windowSize 1', options: { windowSize: 1 } },
     {
         name: 'everything',
-        options: { threshold: 0.05, includeAA: true, alpha: 0.5, diffMask: true, checkerboard: false, diffColorAlt: [0, 0, 255] },
+        options: {
+            threshold: 0.05,
+            includeAA: true,
+            alpha: 0.5,
+            diffMask: true,
+            checkerboard: false,
+            diffColorAlt: [0, 0, 255],
+            windowSize: 8,
+        },
     },
 ];
 
@@ -175,6 +186,30 @@ describe('vendored pixelmatch matches upstream', () => {
         expect(pixelmatch(...clamped, undefined, 8, 8)).toBe(upstream(...clamped, undefined, 8, 8));
         expect(pixelmatch(...buffers, undefined, 8, 8)).toBe(upstream(...buffers, undefined, 8, 8));
     });
+
+    test('matches upstream for ignoreMask and windowSize edge cases', () => {
+        const first = synthetic(12, 12, 0);
+        const second = synthetic(12, 12, 2);
+        const totalPixels = 12 * 12;
+
+        // Partial mask: skips every third pixel
+        const partialMask = new Uint8Array(totalPixels);
+        for (let i = 0; i < totalPixels; i += 3) partialMask[i] = 1;
+        expect(pixelmatch(first.data, second.data, undefined, 12, 12, { ignoreMask: partialMask })).toBe(
+            upstream(first.data, second.data, undefined, 12, 12, { ignoreMask: partialMask }),
+        );
+
+        // Full mask: all differing pixels are masked so fast-path identical check returns 0
+        const fullMask = new Uint8Array(totalPixels).fill(1);
+        expect(pixelmatch(first.data, second.data, undefined, 12, 12, { ignoreMask: fullMask })).toBe(
+            upstream(first.data, second.data, undefined, 12, 12, { ignoreMask: fullMask }),
+        );
+
+        // Windowed mode when pixels differ in bytes but stay below threshold (diff === 0 with finite windowSize)
+        expect(pixelmatch(first.data, second.data, undefined, 12, 12, { threshold: 1, windowSize: 4 })).toBe(
+            upstream(first.data, second.data, undefined, 12, 12, { threshold: 1, windowSize: 4 }),
+        );
+    });
 });
 
 describe('vendored pixelmatch rejects invalid input like upstream', () => {
@@ -183,9 +218,14 @@ describe('vendored pixelmatch rejects invalid input like upstream', () => {
         { name: 'img1 is not pixel data', args: [[0, 0, 0, 0] as unknown as Uint8Array, valid, undefined, 2, 2] },
         { name: 'img2 is a wider typed array', args: [valid, new Uint16Array(16) as unknown as Uint8Array, undefined, 2, 2] },
         { name: 'output is a DataView', args: [valid, valid, new DataView(new ArrayBuffer(16)) as unknown as Uint8Array, 2, 2] },
+        {
+            name: 'ignoreMask is not pixel data',
+            args: [valid, valid, undefined, 2, 2, { ignoreMask: [0, 0, 0, 0] as unknown as Uint8Array }],
+        },
         { name: 'image sizes differ', args: [valid, new Uint8Array(12), undefined, 2, 2] },
         { name: 'output size differs', args: [valid, valid, new Uint8Array(12), 2, 2] },
         { name: 'data does not match width/height', args: [valid, valid, undefined, 3, 2] },
+        { name: 'ignoreMask size differs', args: [valid, valid, undefined, 2, 2, { ignoreMask: new Uint8Array(3) }] },
     ];
 
     for (const { name, args } of invalidCases) {

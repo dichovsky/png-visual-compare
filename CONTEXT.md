@@ -1,34 +1,34 @@
 # png-visual-compare
 
-Compares two PNG images pixel by pixel and reports how many pixels differ, standalone or through test-framework matchers.
+This library compares two PNG images pixel by pixel and returns the count of different pixels. Use it standalone or with test-framework matchers.
 
-## Language
+## Terms
 
 **Baseline**:
-The stored, approved image that a received image is expected to match.
-_Avoid_: Expected snapshot, golden, reference image
+The stored, approved image that a received image must match.
+_Do not use_: Expected snapshot, golden, reference image
 
 **Received image**:
-The image under test, whether a browser screenshot or any other PNG.
-_Avoid_: Actual, screenshot (when meaning the compared input)
+The PNG image under test.
+_Do not use_: Actual, screenshot (when you mean the compared input)
 
 **Diff image**:
-The rendered PNG that visualises where the received image and the baseline differ.
-_Avoid_: Diff file, delta
+The output PNG that shows where the received image and the baseline differ.
+_Do not use_: Diff file, delta
 
 **Mismatched pixels**:
-The count of pixels that differ after normalisation; zero means the images match.
-_Avoid_: Diff count, pixel diff
+The count of pixels that differ after normalization. Zero means that the images match.
+_Do not use_: Diff count, pixel diff
 
 **Excluded area**:
-A rectangle, given in pixel coordinates, painted a solid colour on both images so it always matches.
-_Avoid_: Mask, ignore region
+A rectangle in pixel coordinates that the library paints with one solid color on both images. Excluded areas always match.
+_Do not use_: Mask, ignore region
 
 **Extended area**:
-The padding added to an image to reach the common canvas size when the two images differ in size; wherever it overlaps real content in the other image, it counts as mismatched pixels.
-_Avoid_: Size-difference fill
+The padding that the library adds when two images have different dimensions. Where this padding overlaps content in the other image, the library counts those pixels as mismatched.
+_Do not use_: Size-difference fill
 
-## Flagged ambiguities
+## Rules for Terms
 
-- "Snapshot" names only the matcher API (`toMatchPngSnapshot`) and a framework's storage mechanism, never the image itself: use **Baseline**.
-- Playwright's "mask" hides regions chosen by DOM locator; an **Excluded area** is chosen by pixel coordinates. They are not interchangeable.
+- Use **Snapshot** only for the matcher API (`toMatchPngSnapshot`) and the framework storage mechanism. Use **Baseline** for the stored image.
+- Playwright `mask` hides regions by DOM locator. An **Excluded area** uses pixel coordinates. Do not use these terms interchangeably.

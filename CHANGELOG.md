@@ -1,469 +1,224 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+This file records all notable changes to this project.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
 ### Removed
 
-- **BREAKING: `LoadedPng` type export** — deprecated in 7.1.0 because no public API returns
-  or accepts one. With it gone, no entry point's declarations reach `pngjs` types, so
-  type-checking with `skipLibCheck: false` and no `@types/pngjs` no longer reports
-  `TS7016`. Migration: delete any `import type { LoadedPng } from 'png-visual-compare'`
-  (TYPE-06).
+- **BREAKING: Removed the `LoadedPng` type export** — Version 7.1.0 deprecated `LoadedPng` because no public function returns or accepts it. The declarations of the entry points no longer refer to `pngjs` types, so type-checking with `skipLibCheck: false` and without `@types/pngjs` does not report `TS7016`. Migration: remove all `import type { LoadedPng } from 'png-visual-compare'` statements (TYPE-06).
 
 ### Changed
 
-- **CI** — a new `consumer-types` job in `test.yml` runs `npm run test:consumer-types`:
-  it installs the packed tarball into a fresh project without `@types/pngjs` and
-  type-checks every entry point (`strict`, `skipLibCheck: false`) under
-  `moduleResolution` `node16` and `bundler`, so declarations that reach `pngjs` again
-  fail CI (TYPE-06).
+- **BREAKING: Node.js 26.0.0 or later is required** — Updated `engines.node` to `>=26.0.0`, `.nvmrc` to `26`, `Dockerfile` to `node:26-slim`, and the `engines-floor` CI job to `26.0.0`.
+- **Upgraded vendored `pixelmatch` to 8.0.0** — Synced `src/vendor/pixelmatch.ts` to `pixelmatch` 8.0.0 (OKLab HyAB perceptual color distance and block pre-pass) and added support for `pixelmatchOptions.windowSize` and `pixelmatchOptions.ignoreMask`.
+- **Converted documentation to ASD-STE100** — Rewrote all repository Markdown documentation in Simplified Technical English (ASD-STE100).
+- **CI** — Added the `consumer-types` job to `test.yml`. It runs `npm run test:consumer-types`, which installs the packed tarball into a new project without `@types/pngjs` and type-checks every entry point (`strict`, `skipLibCheck: false`) with `moduleResolution` `node16` and `bundler`. If a declaration refers to `pngjs` types, the job fails (TYPE-06).
+
+### Security
+
+- **Resolved transitive dependency vulnerabilities** — Updated dependencies and added `overrides` for `deepmerge`, `glob`, and `minimatch` in `package.json` so `npm audit` reports 0 vulnerabilities.
+
+## [7.2.1] - 2026-09-27
+
+### Security
+
+- **Rejected corrupt non-interlaced PNG image data before decoding** — `pngjs` 7.0.0 misses `zlib` errors on truncated or invalid non-interlaced `IDAT` streams and returns an uninitialized `Buffer`. This library now inflates image data with `node:zlib` before decoding and requires the exact byte count declared by the `IHDR` header. Any mismatch (including a bad Adler-32 checksum) throws `InvalidInputError`.
+- **Bounded interlaced PNG decompression by the declared image dimensions** — `pngjs` 7.0.0 inflates interlaced (Adam7) image data without an output limit. This library now inflates interlaced data with `node:zlib`, stops one byte past the expected Adam7 scanline size, and throws `InvalidInputError` on any size mismatch.
+
+### Fixed
+
+- **Fixed `npm run -s release:check:pre` for unpublished versions** — Added `--loglevel=error` to all `npm` commands in the release scripts so `-s` (`npm_config_loglevel=silent`) does not hide `E404` output on `stderr`.
+
+### Changed
+
+- **Docs** — Clarified in `README.md` that a path inside `inputBaseDir` that escapes through a symlink is opened first and then rejected with `PathValidationError` before `maxFileBytes` is checked or any byte is read.
+- **Docs** — Updated `.github/copilot-instructions.md` to state that `src/adapters/toPixelmatchOptions.ts` copies validated `PixelmatchOptions` keys instead of passing the object directly.
+- **CI** — Added `.github/workflows/lint-workflows.yml` to run `actionlint` 1.7.12 and `shellcheck` on `.github/workflows`.
 
 ## [7.2.0] - 2026-09-27
 
 ### Security
 
-- **Diff writes refuse a hard-linked target** — with `diffOutputBaseDir` set, a diff file
-  that has more than one hard link is refused with `PathValidationError` before it is
-  truncated or written. A hard link is the same inode as the file it links to, so the
-  containment and identity checks passed for a link planted inside the boundary to a
-  file elsewhere on the same filesystem, and the write overwrote that file. A new diff
-  file, and one that only ever had one name, are unaffected. A diff output you hard-link
-  on purpose now fails to write under `diffOutputBaseDir`; remove the extra link first.
-  Without `diffOutputBaseDir` nothing changes. Reads are not checked — see README →
-  Security Model → What is not covered. Closes SECU-13.
-- **A FIFO or device inside a boundary is refused instead of blocking** — with
-  `inputBaseDir` set, a FIFO or device at an input path, and with `diffOutputBaseDir` set,
-  one at `diffFilePath`, is refused with `PathValidationError`. Like the other boundary
-  refusals under `inputBaseDir`, it throws even with `throwErrorOnInvalidInputData: false`,
-  so a device such as `/dev/null` there no longer compares as an unreadable input. Each
-  base directory guards only its own paths. Previously the open waited for
-  something to open the other end, which blocked `comparePng`'s whole thread, and a
-  diff written to a FIFO that already had a reader went into the pipe. Under a boundary
-  both opens now use `O_NONBLOCK`, which makes no difference for a regular file, and
-  the opened handle must be a regular file once containment is proven. Without a base
-  directory the open still blocks, so a pipe passed on purpose keeps working.
-  Closes SECU-14.
+- **Rejected hard-linked diff targets under `diffOutputBaseDir`** — When `diffOutputBaseDir` is set, diff writers reject any target file with `nlink > 1` (`PathValidationError`) before truncation or write (SECU-13).
+- **Rejected FIFOs and device files inside a base directory without blocking** — When `inputBaseDir` or `diffOutputBaseDir` is set, file opens use `O_NONBLOCK` and reject non-regular files with `PathValidationError` (SECU-14).
 
 ### Fixed
 
-- **A retried Jest test no longer passes on a PNG mismatch** — on Jest 30.5 and later,
-  `jest.retryTimes` undoes only the snapshot changes a test made through Jest's per-test
-  attempt record, and the matcher numbered its keys outside it. Outside `--ci`, a retry
-  therefore looked up `<name> 2`, recorded the mismatching image as a new baseline, and
-  passed; a first attempt that failed for another reason left a stray `<name> 2` baseline
-  too. The matcher now numbers keys, writes baselines and counts results through that
-  record, so every attempt compares against the same baseline. Jest 29 and 30.0–30.4,
-  which reset all snapshot counters before a retry, keep the previous behaviour (RELI-12).
-- **`toMatchPngSnapshot(undefined, options)` is accepted** — it matches the declared
-  `(name?, options?)` form but failed with "accepts ComparePngOptions as the first argument
-  unless a snapshot hint string is provided". In Jest, Vitest and Playwright it now
-  behaves like `toMatchPngSnapshot(options)` (API-06).
+- **Fixed Jest 30.5+ `jest.retryTimes` snapshot tracking** — Updated `src/jest.ts` to record snapshot keys, baselines, and counts with `currentTestIdentity()` so retries compare against the same baseline (RELI-12).
+- **Accepted `toMatchPngSnapshot(undefined, options)`** — Updated argument parsing in Jest, Vitest, and Playwright to treat `(undefined, options)` the same as `(options)` (API-06).
 
 ### Changed
 
-- **Playwright's `toMatchPngSnapshot` type declares the same two call forms as Jest and
-  Vitest**: `(options?)` and `(name?, options?)`. Passing options in both positions, which
-  always failed at runtime, is now also a type error (API-06). The matcher type that
-  `registerJestPngSnapshotMatcher` hands to `expect.extend` carries the same two forms.
-- **Playwright baseline writes no longer decode the image** — the image limits are
-  checked from the PNG signature and header alone, with the same `ResourceLimitError`
-  messages, so recording a large screenshot no longer decodes it in full. Malformed or
-  truncated headers still throw `InvalidInputError`, but a PNG with a valid header and
-  corrupt image data is now written, and fails its next comparison (PERF-08).
-- **CI** — the publish workflow is split into `verify`, `publish` and `post-release` jobs, and
-  only `publish` can request the OIDC token npm Trusted Publishing uses. Before, the job that
-  published also ran `npm ci` and the full test suite, so any devDependency could have minted
-  the npm publish token. `verify` now tests, builds and packs the tarball; `publish` checks the
-  tarball's sha256 and publishes it with `--ignore-scripts`, without a checkout, install or build.
-  The published package is built the same way. Closes CI-06.
-- **CI** — a new `engines-floor` job in the test workflow installs the packed tarball on
-  Node.js 22.12.0, the `engines.node` minimum, with `--engine-strict`. It then loads the package
-  through both `require()` and `import` and checks that `comparePng` and `comparePngAsync` return
-  the known mismatch count for two test PNGs. `release:check:post` runs the same smoke
-  (`scripts/install-smoke.mjs`) against the published version; before, it only checked that
-  the two functions existed. Closes CI-07.
+- **Aligned Playwright `toMatchPngSnapshot` TypeScript overloads with Jest and Vitest** — Declared `(options?)` and `(name?, options?)` overloads so passing options in both arguments fails type-checking (API-06).
+- **Checked Playwright baseline limits from the PNG header only** — Updated `writeBaseline` in `src/playwright.ts` to check `maxDimension` and `maxPixels` from the PNG signature and `IHDR` header without decoding the image (PERF-08).
+- **CI** — Split `publish.yml` into `verify`, `publish`, and `post-release` jobs so only `publish` requests the OIDC token and publishes the verified tarball with `--ignore-scripts` (CI-06).
+- **CI** — Added the `engines-floor` job in `test.yml` and `scripts/install-smoke.mjs` to test the packed tarball on the minimum `engines.node` version (CI-07).
 
 ## [7.1.0] - 2026-09-26
 
 ### Deprecated
 
-- **`LoadedPng` type export** — no public API returns or accepts a `LoadedPng`; it
-  describes an internal loading step. It will be removed in 8.0.0, so delete any
-  `import type { LoadedPng }` (TYPE-06).
+- **Deprecated `LoadedPng` type export** — Marked `LoadedPng` as deprecated for removal in 8.0.0 because no public API returns or accepts it (TYPE-06).
 
 ### Changed
 
-- **Public type declarations** — `comparePng`'s declarations no longer reference the
-  internal port types, and the package entry lists its public types explicitly instead of
-  re-exporting everything under `src/types`. The exported names are unchanged. This
-  removes one of the two paths by which the public declarations reach `pngjs` types.
-  Consumers see no difference yet: while the deprecated `LoadedPng` is exported, every
-  entry point still reaches `pngjs` through it, so type-checking with
-  `skipLibCheck: false` and no `@types/pngjs` still reports `TS7016` until `LoadedPng`
-  is removed in 8.0.0.
+- **Cleaned up public type declarations** — Removed internal port type references from `comparePng` declarations and listed public type exports explicitly in `src/index.ts`.
 
 ## [7.0.1] - 2026-09-26
 
 ### Fixed
 
-- **Jest can load the package without extra configuration** — the CommonJS build
-  `require()`d `pixelmatch` 7, which ships only as an ES module. Node.js loads that through
-  `require(esm)`, but Jest's own module loader (Jest 29 and 30) cannot, so importing
-  `png-visual-compare` or `png-visual-compare/jest` failed in a stock Jest project — the root import since 4.0.0
-  moved to `pixelmatch` 7, and `png-visual-compare/jest` since that subpath shipped in
-  6.1.0. Vitest's `vmThreads` / `vmForks` pools failed too: on Node.js 22 the import
-  threw, and on Node.js 24 it loaded but every comparison threw
-  `pixelmatch_1.default is not a function`. `pixelmatch` 7.2.0 (ISC) is now vendored as a TypeScript port, checked
-  byte for byte against upstream, so the Babel workaround documented for 7.0.0 is no longer
-  needed. Closes RELI-11.
-- Reject undecodable PNGs, and PNGs over `maxDimension` / `maxPixels`, before
-  recording or updating matcher baselines in Jest, Vitest, and Playwright.
-  Jest and Vitest now reject oversized images during first-baseline recording
-  instead of saving a baseline that only fails the limits on its next comparison.
-- Report obsolete sibling Jest PNG snapshots. Existing suites may fail `jest --ci`
-  until obsolete baselines are removed with `jest -u`.
-- Preserve baselines and snapshot counters inside Jest 30+ `test.failing` and
-  Vitest 5 `test.fails` assertions. Jest 29 does not expose its expected-failure
-  state to matchers and is not covered by this protection.
-- Keep Vitest's normal mismatch reporting when snapshot updates are disabled, or
-  when only new baselines may be recorded and the baseline already exists.
-- Support typed Jest registration and assertions with `expect` imported from
-  `@jest/globals`, including `injectGlobals: false` projects.
+- **Vendored `pixelmatch` so Jest can load the package without Babel** — Ported `pixelmatch` 7.2.0 to `src/vendor/pixelmatch.ts` under its ISC license so Jest and Vitest VM pools can load the CommonJS build directly (RELI-11).
+- **Validated PNGs before writing baselines** — Rejected undecodable PNGs and images above `maxDimension` or `maxPixels` before recording or updating baselines in Jest, Vitest, and Playwright.
+- **Reported obsolete sibling Jest snapshots** — Updated the Jest matcher so `jest --ci` reports unused sibling snapshots.
+- **Protected baselines in expected-failure tests** — Skipped baseline writes and counter updates inside Jest 30+ `test.failing` and Vitest 5 `test.fails` assertions.
+- **Preserved Vitest mismatch reporting when updates are disabled** — Kept standard mismatch diffs in `none` and `new` snapshot update modes.
+- **Supported `@jest/globals` `expect`** — Added type support for `expect` imported from `@jest/globals` when `injectGlobals: false` is set.
 
 ### Security
 
-- Reject PNGs with duplicate IHDR chunks before decoding, preventing later headers
-  from bypassing the image dimension and pixel limits.
-- **Refused diff writes no longer unlink by path** — in 7.0.0, a parent directory
-  swapped after the open could make cleanup delete a pre-existing file outside
-  `diffOutputBaseDir`, contrary to the 7.0.0 cleanup guarantee below. Failed writes
-  now only close their handle. An empty or partial output can remain, including an
-  empty owner-only file at a redirected location outside the boundary when the
-  post-open check detects a parent swap. No diff bytes are written to that refused
-  file. Follow-up to SECU-09.
+- **Rejected PNGs with duplicate `IHDR` chunks** — Scanned PNG inputs for multiple `IHDR` chunks before decoding so a second header cannot bypass image limits.
+- **Stopped unlinking refused diff paths** — Changed diff writers to close the file handle without unlinking on failure so a swapped path is never deleted (follow-up to SECU-09).
 
 ### Changed
 
-- **CI** — the post-release `version-live` check now retries with backoff for about
-  five minutes, so registry propagation delay no longer turns a successful publish
-  run red (it did for 7.0.0).
-- **CI** — include `CODEMAP.md` in the Docker test context and restrict unit-test
-  discovery to the repository's `__tests__` directory, excluding nested worktrees.
+- **CI** — Added retry backoff to the post-release `version-live` check.
+- **CI** — Included `CODEMAP.md` in the Docker build context and restricted Vitest discovery to `__tests__/`.
 
 ### Dependencies
 
-- **New optional peer `expect`, with no version range** — it lets pnpm 9 and later
-  resolve `expect` for the `png-visual-compare/jest` type augmentation, which targets
-  the `expect` shipped with Jest 29 and 30. pnpm 8 does not link optional peers the
-  root does not depend on, so on pnpm 8 add `expect` as a direct devDependency. Because the peer accepts any
-  version, it never causes `ERESOLVE`, whatever `expect` a project depends on.
-- `pixelmatch` is no longer a runtime dependency; `pngjs` is the only one. `pixelmatch`
-  stays a devDependency as the parity oracle for the vendored copy.
+- **Added optional peer `expect` with `*` range** — Allowed pnpm 9+ to resolve `expect` for the `png-visual-compare/jest` type augmentation.
+- **Moved `pixelmatch` to `devDependencies`** — Kept `pngjs` as the only production dependency.
 
 ## [7.0.0] - 2026-09-26
 
-Breaking changes — the Node.js floor, the Vitest peer range, and install-time peer
-checks — are marked **BREAKING** under **Changed** below. See the README's migration
-guide for upgrade steps.
-
 ### Added
 
-- **Playwright matcher** — `png-visual-compare/playwright` exports an `expect` extended
-  with a synchronous `toMatchPngSnapshot()`, plus `pngMatchers` for your own
-  `expect.extend` / `mergeExpects`. Baselines are PNG files at `testInfo.snapshotPath()`
-  (see `docs/adr/0001-playwright-baselines-as-png-files.md`), `--update-snapshots` and
-  `ignoreSnapshots` behave as for Playwright's `toMatchSnapshot()`, and failures attach
-  expected/actual/diff images for the HTML report's image diff viewer. A received image
-  over `maxDimension` / `maxPixels` throws `ResourceLimitError` instead of being written as
-  a baseline no later run could compare against. `@playwright/test` `>=1.60.0 <2` is an
-  optional peer dependency.
-
-- **`maxFileBytes` option** (default `135_266_304`, exported as `DEFAULT_MAX_FILE_BYTES`) —
-  caps the size of a PNG read from a path, checked from the file's size before any
-  bytes are read and again against the bytes actually read, so a file that grows
-  mid-read, a FIFO, or a device cannot slip past it. `maxDimension` and `maxPixels` inspect the declared IHDR header and
-  so bound the _decoded_ image; nothing previously bounded the _compressed_ bytes, so a
-  multi-gigabyte file was fully resident before either limit was consulted. Throws
-  `ResourceLimitError` regardless of `throwErrorOnInvalidInputData`, matching the other
-  two limits. Ignored for `Buffer` inputs, whose memory the caller already holds.
-  Closes SECU-04.
-
-    The cap is checked _after_ the containment check, not before: its error names an
-    exact byte count and escapes even in permissive mode, so checking it first would
-    disclose the existence and size of a file outside `inputBaseDir`.
-
-    The default is the raw size of a 16-bit RGBA image — the widest PNG pixel format,
-    8 bytes per pixel — at `maxPixels`, plus 1 MiB for filter bytes, compression framing,
-    and metadata chunks. No PNG that passes `maxPixels` reaches it, whatever its bit
-    depth. Lower it if you compare untrusted uploads and want a tighter memory bound.
+- **Added Playwright matcher (`png-visual-compare/playwright`)** — Exported extended `expect` with synchronous `toMatchPngSnapshot()` and `pngMatchers`. Stored baselines as PNG files at `testInfo.snapshotPath()` and attached expected, actual, and diff PNGs to the Playwright report on failure.
+- **Added `maxFileBytes` option** (default `135_266_304`, exported as `DEFAULT_MAX_FILE_BYTES`) — Limited the byte size of PNG files read from paths before decoding (SECU-04).
 
 ### Changed
 
-- **BREAKING: Node.js 22.12.0 or later is required** — `engines.node` is now `>=22.12.0`
-  (was `>=20`). Node.js 20 reached end-of-life in April 2026. The floor is 22.12.0 rather
-  than 22.0.0 because the CommonJS build `require()`s `pixelmatch` 7, which is ESM-only,
-  and `require()` of an ES module is enabled by default only from Node.js 22.12.0. The
-  old `>=20` range was already inaccurate: 6.3.0 fails at load with `ERR_REQUIRE_ESM` on
-  Node.js 20.17 and 22.8, for example. The new range lets npm report the mismatch at
-  install time instead.
-- **BREAKING: Vitest peer range is now `>=5.0.0 <6`** (was `>=4.1.0 <5`). Vitest 5 changed the
-  `Assertion`/`Matchers` interfaces to two type parameters (`<R, T>`), so the
-  `toMatchPngSnapshot` module augmentation in `png-visual-compare/vitest` now targets
-  `Matchers<R, T>` and no longer type-checks against Vitest 4. Stay on the previous
-  release if you are still on Vitest 4.
-- **BREAKING: optional peers are checked at install** — npm checks an optional peer
-  whenever it is installed, whether or not you import the matching subpath. A project
-  with `vitest` 4 or with `@playwright/test` older than 1.60 now gets `ERESOLVE` from
-  `npm install png-visual-compare@7` even if it only calls `comparePng`; with a caret
-  range such as `^1.55.0`, npm upgrades Playwright instead. Upgrade the peer first.
-- **CI** — both test jobs now take their Node version from `.nvmrc` (`24`) instead of
-  hardcoded versions (`24.x` on Ubuntu, `20.x` on macOS).
-- **CI** — the macOS job in `test.yml` is now marked `continue-on-error`: it still runs
-  and reports, but does not gate merges while a pre-existing macOS-only Vitest fork
-  crash (roughly 1 run in 5 under coverage, tracked as TEST-08) remains unfixed. macOS
-  stays a supported platform (`"os": ["darwin", "linux"]`); Windows remains
-  unsupported and untested by design, dropped as a breaking change in 6.0.0.
-- **CI** — `actions/checkout` and `actions/setup-node` are now SHA-pinned in
-  `publish.yml` as well as `test.yml`, both annotated with the matching release tag
-  (`v7.0.1` / `v7.0.0`). Closes CI-05.
-- **Docs** — `.github/copilot-instructions.md` was resynced with the code: the CI
-  matrix, the OIDC Trusted Publishing flow (no `NPM_TOKEN`), the `pixelmatch ~7.2.0`
-  floor, the `./vitest` and `./jest` subpath exports, the `sideEffects` array, and the
-  `npm run` script list. `CLAUDE.md` and `AGENTS.md` now list `codemap:check` in the
-  `pretest:unit` chain.
-- **Docs** — the README gains a v7.0.0 migration guide, a verified Jest configuration
-  (Jest's own module loader cannot `require()` the ESM-only `pixelmatch` without it,
-  which was already true in 6.x — tracked as RELI-11), and guidance on image limits for
-  full-page Playwright screenshots. `SECURITY.md` now lists 7.x as supported.
+- **BREAKING: Required Node.js 22.12.0 or later** — Updated `engines.node` from `>=20` to `>=22.12.0`.
+- **BREAKING: Updated `vitest` peer range to `>=5.0.0 <6`** — Updated the Vitest matcher type augmentation for Vitest 5 `Matchers<R, T>`.
+- **BREAKING: Enforced optional peer ranges at install time** — Updated peer ranges for `vitest` and `@playwright/test`.
+- **CI** — Configured test jobs to read the Node.js version from `.nvmrc`, marked the `macos` job `continue-on-error` (TEST-08), and pinned GitHub Actions by commit SHA (CI-05).
+- **Docs** — Added the v7.0.0 migration guide and updated `SECURITY.md`, `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md`.
 
 ### Security
 
-- **Path reads are pinned to one inode** — `comparePng` and `comparePngAsync` now run a
-  filesystem-free containment check, open the input file, and only then validate it,
-  proving the opened handle is the file containment approved. A path outside
-  `inputBaseDir` is refused before it is opened, so whether it exists is never disclosed. Previously `validatePath` walked the path and `readFile` walked
-  it again from scratch, so anything swapped in between was what actually got read.
-  Only engages when `inputBaseDir` is set. Closes SECU-05.
-- **Diff writes no longer traverse a symlinked parent** — the recursive `mkdir` in both
-  diff writers followed symlinks in every intermediate component, and `O_NOFOLLOW`
-  guards only the final one, so a symlinked parent could redirect the write outside
-  `diffOutputBaseDir`. Parent directories are now created one component at a time with
-  symlinks refused, and the file is then opened inside the _resolved_ parent
-  directory rather than the caller's path, so no symlink is traversed at open time
-  at all, and both writers re-resolve the parent chain after the open to prove the
-  handle sits inside it. Truncation is deferred — the open no longer uses `O_TRUNC`, and `ftruncate`
-  runs only once the opened handle has been proven contained — and a failed check
-  removes only a file this write created — established by
-  `O_EXCL` on the create attempt, since plain `O_CREAT` succeeds identically for a
-  file that already existed empty. Only engages when `diffOutputBaseDir` is set.
-  Closes SECU-09.
-- **Absent file identity is refused, not ignored** — on a filesystem that reports no
-  inode (some network mounts) containment cannot be verified, so the operation throws
-  `PathValidationError` instead of silently passing a check that compares two zeroes.
-- **README gained a Security Model section** documenting what each limit does and does
-  not cover, including that the race defences _detect_ a swap rather than prevent it,
-  since Node exposes no `openat`. Closes SECU-06.
-- **Known limits, documented** — a hard link inside a boundary, and a FIFO planted
-  inside one, are not defended against; see README → Security Model → What is not
-  covered (tracked as SECU-13 and SECU-14).
+- **Pinned path reads to one inode** — Opened input files before `realpath` validation and verified `dev` and `ino` when `inputBaseDir` is set (SECU-05).
+- **Blocked symlink traversal in diff parent directories** — Created parent directories one segment at a time, rejected symlinks, and deferred truncation until after inode verification when `diffOutputBaseDir` is set (SECU-09).
+- **Rejected filesystems without inode numbers** — Threw `PathValidationError` when `ino === 0` under a containment boundary.
+- **Added Security Model documentation** — Documented resource limits and path containment in `README.md` (SECU-06).
 
 ### Dependencies
 
-- Runtime dependencies are unchanged: `pixelmatch` `~7.2.0`, `pngjs` `~7.0.0`.
-- Bumped devDependencies: `@playwright/test` `~1.63.0`, `@types/node` `~26.6.1`,
-  `@vitest/coverage-v8` `~5.0.1`, `eslint` `~10.10.0`, `prettier` `~3.9.8`,
-  `typescript-eslint` `~8.70.0`, `vitest` `~5.0.1`.
+- Kept runtime dependencies on `pixelmatch ~7.2.0` and `pngjs ~7.0.0`, and updated development dependencies.
 
 ## [6.3.0] - 2026-07-29
 
 ### Added
 
-- **`.not.toMatchPngSnapshot()`** — negated snapshot assertions are now
-  supported in both the Vitest and Jest matchers, and assert that the received
-  PNG **differs** from the stored snapshot. Previously any `.not` usage threw
-  `.not.toMatchPngSnapshot() is not supported.`
-    - Passes when the received PNG differs beyond the configured threshold;
-      fails when it matches.
-    - **Never writes or updates a snapshot**, even under `-u` — you cannot
-      record what an image must _not_ be.
-    - **Throws when no snapshot is stored**, rather than passing vacuously on a
-      missing baseline.
-    - Invalid input (non-PNG value, malformed matcher arguments) now throws
-      under `.not` instead of reporting `pass: false`, which the test framework
-      would have inverted into a silently passing assertion.
+- **Added `.not.toMatchPngSnapshot()` support** — Enabled negated snapshot assertions in Vitest and Jest to verify that a received PNG differs from the stored baseline without writing snapshots.
 
 ### Changed
 
-- **TypeScript 7** — `build` and `typecheck` now run the native TypeScript 7
-  compiler via the `@typescript/native` alias. TypeScript 6 is retained under
-  the `typescript` alias because the codemap generator, its tests, and
-  `typescript-eslint` still require the legacy compiler API. This is a
-  development-only change: the published `out/` artifact is semantically
-  identical, differing from a TypeScript 6 build only in `.d.ts` quote style and
-  one union member ordering. See `docs/TYPESCRIPT_7_MIGRATION.md`.
-- Refreshed development dependencies (`@playwright/test`, `@types/node`,
-  `@vitest/coverage-v8`, `eslint`, `prettier`, `typescript-eslint`, `vitest`)
-  and pinned GitHub Actions digests.
+- **Migrated build and type-checking to TypeScript 7** — Used `@typescript/native` (TypeScript 7) for `build` and `typecheck` while keeping TypeScript 6 for the codemap script and `typescript-eslint`.
+- Updated development dependencies and GitHub Actions digests.
 
 ## [6.2.0] - 2026-06-19
 
 ### Added
 
-- **checkerboard** — `pixelmatchOptions.checkerboard` is now forwarded to
-  pixelmatch (7.2.0+), letting callers control whether semi-transparent pixels
-  are blended against a checkerboard pattern (`true`, the default) or plain
-  white (`false`). Validated as a boolean by `validatePixelmatchOptions`.
-- **RELI-10** — New public `ComparisonError` (`code: 'ERR_COMPARISON'`) thrown
-  when the underlying `pixelmatch` call fails. The original failure is preserved
-  on the standard ES2022 `cause` property so callers can match by class or by
-  `code` instead of parsing free-form messages. Like `ResourceLimitError`, this
-  error is **not** downgraded by `throwErrorOnInvalidInputData: false` — a
-  comparison-kernel failure signals an integrity bug, not a recoverable input
-  problem. Applies to both `comparePng` and `comparePngAsync` since they share
-  `runComparison`.
+- **Added `pixelmatchOptions.checkerboard`** — Forwarded the `checkerboard` boolean option to `pixelmatch`.
+- **Added `ComparisonError` (`ERR_COMPARISON`)** — Wrapped errors from `pixelmatch` in `ComparisonError` with the original error on `cause` (RELI-10).
 
 ### Changed
 
-- **RELI-06** — `validateArea` now rejects negative `excludedAreas`
-  coordinates with `InvalidInputError` (`coordinates must be non-negative`)
-  instead of letting `addColoredAreasToImage` silently clamp them to `0`. A
-  negative coordinate is almost always a caller typo, so it now fails fast at
-  the validation boundary. Potentially breaking for callers that relied on the
-  previous clamping behaviour.
+- **Rejected negative coordinates in `validateArea`** — Threw `InvalidInputError` for negative `excludedAreas` coordinates (RELI-06).
 
 ### Fixed
 
-- **RELI-07** — the `persistDiff` guard now reads `mismatchedPixels === 0`
-  rather than `<= 0`. Behaviourally identical (pixelmatch never returns a
-  negative count) but states the actual "no mismatches ⇒ no diff file"
-  contract.
-- **excluded-areas-builder** — the drawing tool now clamps coordinates to the
-  last valid pixel index (`naturalW - 1` / `naturalH - 1`), so emitted areas
-  are valid inclusive pixel indices instead of one-past-the-edge values.
-- `excludedAreas` are now painted on the final normalized canvas, _after_ size
-  extension, so an excluded band that falls outside the smaller image is no
-  longer clamped away and reported as a mismatch. Same-size inputs are
-  unaffected.
-- The `./vitest` subpath export no longer ships an empty CommonJS
-  `vitest.types.js`; the `declare module 'vitest'` augmentation is inlined into
-  `vitest.mts`, and the published types entry points to the co-located `.d.mts`.
+- **Updated `persistDiff` check** — Checked `mismatchedPixels === 0` instead of `<= 0` (RELI-07).
+- **Clamped coordinates in `excluded-areas-builder`** — Clamped drawn coordinates to `naturalW - 1` and `naturalH - 1`.
+- **Applied `excludedAreas` after canvas extension** — Painted excluded areas on the final normalized canvas so excluded regions outside the smaller image always match.
+- **Inlined Vitest type augmentation** — Moved `declare module 'vitest'` into `src/vitest.mts`.
 
 ### Security
 
-- **SECU-10** — Moved the normalized-canvas `maxPixels` guard into
-  `normalizeImages`, _before_ `extendImage` runs. The check previously lived in
-  `runComparison`, which fires only after two extended canvases are already
-  allocated, so a `(16384x1024, 1024x16384)` input pair — each within
-  `DEFAULT_MAX_PIXELS` — could force ~2 GiB of zero-filled RGBA allocation
-  before the guard could throw.
-- **SECU-11** — `validatePath` now performs the `baseDir` containment check
-  _before_ the symlink/directory shape checks, closing an oracle that leaked
-  exists-symlink / exists-directory / other status for arbitrary absolute paths
-  when a security boundary was configured. Every out-of-bounds path now yields a
-  uniform `Path traversal detected: ...` error.
-- **SECU-12** — Both diff writers now issue an explicit `fchmodSync(fd, 0o600)`
-  / `await handle.chmod(0o600)` after open. `open(path, flags, 0o600)` only sets
-  the mode on newly created files (and is narrowed by umask), so overwriting a
-  pre-existing `0o644` diff left it group/world-readable; the post-open chmod
-  forces `0o600` in both the create and overwrite cases.
-- Hardened the sync diff writer against partial writes by replacing `writeSync`
-  (which can write fewer bytes than requested) with `writeFileSync`, which loops
-  until the full buffer is flushed. The async path already guaranteed
-  full-buffer writes via `FileHandle.writeFile`.
+- **Checked `maxPixels` before `extendImage`** — Moved the normalized-canvas `maxPixels` check into `normalizeImages` before buffer allocation (SECU-10).
+- **Checked `baseDir` containment before target shape** — Prevented `validatePath` from leaking symlink or directory status outside `baseDir` (SECU-11).
+- **Enforced `0o600` mode on diff files** — Added `fchmodSync(fd, 0o600)` and `handle.chmod(0o600)` after opening diff files (SECU-12).
+- **Prevented partial sync diff writes** — Used `writeFileSync` on the file descriptor to flush the full buffer.
 
 ## [6.1.1] - 2026-05-16
 
 ### Security
 
-- **SECU-03** — Closed the TOCTOU symlink-redirect window on diff writes. The
-  diff PNG is now written through an `O_NOFOLLOW` open, so a symlink planted at
-  `diffFilePath` between `validatePath` and the write is refused with a
-  `PathValidationError` instead of being followed. Regular-file overwrite
-  semantics are preserved; only the symlink-redirect attack is closed.
-- TSDoc on `diffFilePath` documents the new symlink-refusal contract and
-  `@throws PathValidationError`. TSDoc on `diffOutputBaseDir` clarifies that the
-  target-path race is now closed at write-time, while the residual
-  parent-directory race is tracked as `SECU-09`.
+- **Blocked symlink redirects on diff writes** — Opened diff files with `O_NOFOLLOW` and threw `PathValidationError` if `diffFilePath` is a symlink (SECU-03).
 
 ## [6.0.0] - 2026-04-25
 
 ### Added
 
-- `DEFAULT_EXCLUDED_AREA_COLOR` and `DEFAULT_EXTENDED_AREA_COLOR` exported constants so callers
-  can inspect or reference the built-in fill colours.
-- `comparePngAsync` for Promise-based comparisons using async filesystem I/O.
-- `excludedAreaColor` and `extendedAreaColor` options in `ComparePngOptions` to override the
-  default fill colours when they clash with image content.
-- `docker-compose.yml` for running tests with a single `docker compose up` command.
-- `CONTRIBUTING.md` with development setup and PR guidelines.
-- Dependabot configuration for automated weekly npm and GitHub Actions updates.
-- `format` / `format:check` npm scripts; `prettier` added as a dev dependency.
-- `lint:fix` npm script for ESLint auto-fix.
-- `docs/ARCHITECTURE.md` and generated `CODEMAP.md` to document the refactored pipeline and symbol surface.
+- Exported `DEFAULT_EXCLUDED_AREA_COLOR` and `DEFAULT_EXTENDED_AREA_COLOR`.
+- Added `comparePngAsync` for asynchronous file comparisons.
+- Added `excludedAreaColor` and `extendedAreaColor` options to `ComparePngOptions`.
+- Added `docker-compose.yml`, `CONTRIBUTING.md`, Dependabot config, Prettier scripts, `docs/ARCHITECTURE.md`, and `CODEMAP.md`.
 
 ### Changed
 
-- TypeScript configuration is now split between repo-wide development typechecking (`tsconfig.json`)
-  and emitted package builds (`tsconfig.prod.json`).
-- BREAKING: package support is now limited to macOS and Linux; `npm install` is blocked on Windows
-  via the package `os` field, and CI now validates Ubuntu and macOS instead of Windows.
-- `ComparePngOptions` now documents and enforces `maxPixels`, and `DEFAULT_MAX_PIXELS` is exported.
-- `diffFilePath` is now resolved to an absolute path via `path.resolve` before use, preventing
-  accidental relative-path writes.
-- Test timeout lowered from 90 s to 30 s in `vitest.config.mjs`.
-- GitHub Actions workflows now run with least-privilege `permissions: contents: read`.
-- Docker image switched from `node:22` to `node:22-slim`; container now runs as non-root `node`
-  user; Dockerfile renamed from `dockerfile` to `Dockerfile`.
-- Unit-test coverage thresholds are now enforced at 100% for lines, functions, branches, and statements.
+- Split TypeScript configs into `tsconfig.json` and `tsconfig.prod.json`.
+- **BREAKING:** Restricted supported operating systems to macOS and Linux (`"os": ["darwin", "linux"]`).
+- Enforced `maxPixels` and exported `DEFAULT_MAX_PIXELS`.
+- Resolved `diffFilePath` with `path.resolve`.
+- Enforced 100% unit test coverage thresholds across all metrics.
 
 ### Fixed
 
-- Off-by-one boundary in `fillImageSizeDifference` — pixels at exactly `x === origWidth` or
-  `y === origHeight` are now correctly painted.
-- Eliminated TOCTOU race condition in `getPngData` by replacing the `existsSync` + `readFileSync`
-  two-step with a single `try/catch` around `readFileSync`.
-- `validateArea` and color-tuple validation now reject non-number values such as `bigint`.
+- Fixed off-by-one boundary in `fillImageSizeDifference`.
+- Removed `existsSync` before `readFileSync` in `getPngData`.
+- Rejected `bigint` and other non-number values in `validateArea` and color validation.
 
 ### Removed
 
-- Unused `ts-node` and `@tsconfig/recommended` dev dependencies.
-- BREAKING: removed the public `PngData` export in favor of the discriminated internal `LoadedPng` result union.
+- Removed `ts-node` and `@tsconfig/recommended`.
+- **BREAKING:** Removed the public `PngData` export and replaced it with `LoadedPng`.
 
 ## [4.1.0] - 2025-06-27
 
 ### Added
 
-- Full TypeScript strict-mode rewrite with complete JSDoc coverage on all public APIs.
-- `throwErrorOnInvalidInputData` option (default `true`) replaces the old silent-failure behaviour.
-- `PixelmatchOptions` type exported for typed forwarding of pixelmatch configuration.
+- Rewrote the codebase in TypeScript strict mode with JSDoc comments.
+- Added `throwErrorOnInvalidInputData` (default `true`).
+- Exported `PixelmatchOptions`.
 
 ## [4.0.0] - 2025-05-05
 
 ### Changed
 
-- Migrated to pixelmatch 7.x (breaking: `threshold` default changed from `0.1` to pixelmatch's
-  updated default).
+- Upgraded to `pixelmatch` 7.x.
 
 ## [3.0.0] - 2024-11-10
 
 ### Added
 
-- `excludedAreas` option to mask rectangular regions before comparison.
-- Diff PNG is written only when `mismatchedPixels > 0`.
+- Added `excludedAreas` to mask rectangular regions before comparison.
+- Wrote the diff PNG only when `mismatchedPixels > 0`.
 
 ## [2.0.0] - 2024-08-14
 
 ### Changed
 
-- API changed to accept `Buffer` inputs in addition to file paths.
+- Accepted `Buffer` inputs in addition to file paths.
 
 ## [1.0.0] - 2024-03-01
 
 ### Added
 
-- Initial release: pixel-level PNG comparison via pixelmatch and pngjs.
+- Released initial pixel-level PNG comparison with `pixelmatch` and `pngjs`.
