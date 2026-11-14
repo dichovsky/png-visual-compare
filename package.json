@@ -94,7 +94,7 @@
         "expect": "~30.5.2",
         "jest": "~30.5.2",
         "pixelmatch": "~8.0.0",
-        "prettier": "~3.9.10",
+        "prettier": "~3.10.0",
         "rimraf": "~6.1.4",
         "typescript": "npm:@typescript/typescript6@~6.0.2",
         "typescript-eslint": "~8.72.2",
