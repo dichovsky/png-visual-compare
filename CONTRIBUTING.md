@@ -28,6 +28,7 @@ This project supports macOS and Linux only. It does not support Windows.
 | `npm run format:check`                | Check file formatting with Prettier                                                                     |
 | `npm run build`                       | Compile TypeScript to `./out` with `tsconfig.prod.json`                                                 |
 | `npm run typecheck`                   | Type-check the repository with `tsconfig.json`                                                          |
+| `npm run test:consumer-types`         | Type-check the packed tarball in a new project without `@types/pngjs` (CI `consumer-types` job)         |
 | `npm run codemap`                     | Generate `CODEMAP.md` for coding agents                                                                 |
 | `npm run tool:excluded-areas-builder` | Open the Excluded Areas Builder tool in the default browser                                             |
 

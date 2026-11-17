@@ -23,6 +23,7 @@ A Node.js library that compares PNG images or image regions without native binar
 ## Table of Contents
 
 - [Installation](#installation)
+- [Migration Guide to v8.0.0](#migration-guide-to-v800)
 - [Migration Guide to v7.0.0](#migration-guide-to-v700)
 - [Migration Guide to v6.0.0](#migration-guide-to-v600)
 - [Quick Start](#quick-start)
@@ -44,6 +45,23 @@ npm install -D png-visual-compare
 > **Operating System:** macOS or Linux only. Windows is not supported.
 >
 > **Node.js Version:** Node.js 26.0.0 or later is required.
+
+---
+
+## Migration Guide to v8.0.0
+
+1. Use Node.js 26.0.0 or later.
+2. Remove `LoadedPng` imports.
+
+### 1. Node.js Version Requirement
+
+`engines.node` requires `>=26.0.0`.
+
+### 2. Remove `LoadedPng` Imports
+
+The package no longer exports `LoadedPng`. Version 7.1.0 deprecated it because no public function returns or accepts it. Remove all `import type { LoadedPng } from 'png-visual-compare'` statements. If you upgrade from 5.x, remove your `PngData` imports too. Do not replace them with `LoadedPng` as the v6.0.0 guide shows.
+
+The declarations of the package entry points no longer refer to `pngjs`. Type-checking with `skipLibCheck: false` does not need `@types/pngjs`.
 
 ---
 
@@ -90,8 +108,6 @@ import type { PngData } from 'png-visual-compare';
 // After
 import type { LoadedPng } from 'png-visual-compare';
 ```
-
-`LoadedPng` is deprecated and will be removed in version 8.0.0 because no public function returns or accepts it. Remove the import when you update your code.
 
 ### 2. Option Validation Rules
 

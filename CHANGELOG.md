@@ -7,11 +7,16 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING: Removed the `LoadedPng` type export** — Version 7.1.0 deprecated `LoadedPng` because no public function returns or accepts it. The declarations of the entry points no longer refer to `pngjs` types, so type-checking with `skipLibCheck: false` and without `@types/pngjs` does not report `TS7016`. Migration: remove all `import type { LoadedPng } from 'png-visual-compare'` statements (TYPE-06).
+
 ### Changed
 
 - **BREAKING: Node.js 26.0.0 or later is required** — Updated `engines.node` to `>=26.0.0`, `.nvmrc` to `26`, `Dockerfile` to `node:26-slim`, and the `engines-floor` CI job to `26.0.0`.
 - **Upgraded vendored `pixelmatch` to 8.0.0** — Synced `src/vendor/pixelmatch.ts` to `pixelmatch` 8.0.0 (OKLab HyAB perceptual color distance and block pre-pass) and added support for `pixelmatchOptions.windowSize` and `pixelmatchOptions.ignoreMask`.
 - **Converted documentation to ASD-STE100** — Rewrote all repository Markdown documentation in Simplified Technical English (ASD-STE100).
+- **CI** — Added the `consumer-types` job to `test.yml`. It runs `npm run test:consumer-types`, which installs the packed tarball into a new project without `@types/pngjs` and type-checks every entry point (`strict`, `skipLibCheck: false`) with `moduleResolution` `node16` and `bundler`. If a declaration refers to `pngjs` types, the job fails (TYPE-06).
 
 ### Security
 
