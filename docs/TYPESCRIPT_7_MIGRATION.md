@@ -11,6 +11,6 @@ The repository uses the `typescript` development dependency for all type checks 
 | `npm run lint`          | Run Oxlint and fail on warnings.                                                     |
 | `npm run format:check`  | Check the repository format with Oxfmt.                                              |
 
-The codemap generator uses `@babel/parser` to read TypeScript syntax and extract symbols. The compiler emits the declarations that the public declaration tests inspect. The published package uses the compiled files in `out`.
+The codemap generator uses `@babel/parser` to read TypeScript syntax and extract symbols. Use the latest compatible 7.x release so Jest and the generator share one parser installation. The compiler emits the declarations that the public declaration tests inspect. The published package uses the compiled files in `out`.
 
 For the full test suite, run `npm test`. The suite checks the generated codemap, lint, formatting, licenses, types, unit coverage, and Playwright behavior.
