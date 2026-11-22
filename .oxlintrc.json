@@ -1,0 +1,25 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "categories": {
+        "correctness": "error"
+    },
+    "rules": {
+        "no-array-constructor": "error",
+        "no-var": "error",
+        "prefer-const": "error",
+        "prefer-rest-params": "error",
+        "prefer-spread": "error",
+        "typescript/ban-ts-comment": "error",
+        "typescript/no-empty-object-type": "error",
+        "typescript/no-explicit-any": "error",
+        "typescript/no-namespace": "error",
+        "typescript/no-require-imports": "error",
+        "typescript/no-unnecessary-type-constraint": "error",
+        "typescript/no-unsafe-function-type": "error"
+    },
+    "options": {
+        "denyWarnings": true,
+        "reportUnusedDisableDirectives": "error"
+    },
+    "ignorePatterns": ["out/", "coverage/", "test-results/", "dist/"]
+}

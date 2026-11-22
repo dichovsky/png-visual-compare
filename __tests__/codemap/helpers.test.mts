@@ -1,14 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import ts from 'typescript';
+import * as generator from '../../scripts/generate-codemap.mjs';
 
-const generator = await import('../../scripts/generate-codemap.mjs');
+const { parseSource } = generator;
+type Statement = ReturnType<typeof parseSource>['statements'][number];
 
-function parseSource(code: string): ts.SourceFile {
-    return ts.createSourceFile('test.ts', code, ts.ScriptTarget.Latest, /* setParentNodes */ true);
-}
-
-function findFirstStatement<T extends ts.Statement>(sourceFile: ts.SourceFile, predicate: (s: ts.Statement) => s is T): T {
-    const found = sourceFile.statements.find(predicate);
+function findFirstStatement<K extends Statement['type']>(source: ReturnType<typeof parseSource>, kind: K): Extract<Statement, { type: K }> {
+    const found = source.statements.find((statement): statement is Extract<Statement, { type: K }> => statement.type === kind);
     if (!found) throw new Error('statement not found in fixture');
     return found;
 }
@@ -48,29 +45,29 @@ describe('globToRegExp', () => {
 describe('normalizeSignature', () => {
     test('collapses newlines and indentation to single spaces', () => {
         const input = 'function\n   foo(  a:\n  number\n): number';
-        expect(generator.normalizeSignature(input)).toBe('function foo( a: number ): number');
+        expect(generator.normalizeSignature(parseSource(input))).toBe('function foo( a: number ): number');
     });
 
     test('preserves whitespace inside string literals', () => {
         const input = 'const greeting = "hello   world\\n!"';
-        expect(generator.normalizeSignature(input)).toBe('const greeting = "hello   world\\n!"');
+        expect(generator.normalizeSignature(parseSource(input))).toBe('const greeting = "hello   world\\n!"');
     });
 
     test('drops both line and block comments', () => {
         const input = 'function foo() /* inline */ : number\n// trailing\n;';
-        expect(generator.normalizeSignature(input)).toBe('function foo() : number ;');
+        expect(generator.normalizeSignature(parseSource(input))).toBe('function foo() : number ;');
     });
 
     test('preserves template literal contents', () => {
         const input = 'const x = `a   b\n  c`';
-        expect(generator.normalizeSignature(input)).toBe('const x = `a   b\n  c`');
+        expect(generator.normalizeSignature(parseSource(input))).toBe('const x = `a   b\n  c`');
     });
 });
 
 describe('extractJSDoc', () => {
     test('returns undefined when no JSDoc is present', () => {
         const sf = parseSource('function foo() {}');
-        const node = findFirstStatement(sf, ts.isFunctionDeclaration);
+        const node = findFirstStatement(sf, 'FunctionDeclaration');
         expect(generator.extractJSDoc(node)).toBeUndefined();
     });
 
@@ -85,7 +82,7 @@ describe('extractJSDoc', () => {
                 'function compare(a: number): number { return a; }',
             ].join('\n'),
         );
-        const node = findFirstStatement(sf, ts.isFunctionDeclaration);
+        const node = findFirstStatement(sf, 'FunctionDeclaration');
         expect(generator.extractJSDoc(node)).toBe('Compares two PNGs.');
     });
 
@@ -102,7 +99,7 @@ describe('extractJSDoc', () => {
                 'function oldApi(): void {}',
             ].join('\n'),
         );
-        const node = findFirstStatement(sf, ts.isFunctionDeclaration);
+        const node = findFirstStatement(sf, 'FunctionDeclaration');
         const doc = generator.extractJSDoc(node);
         expect(doc).toContain('Old API.');
         expect(doc).toContain('@deprecated use newApi instead');
@@ -117,7 +114,7 @@ describe('extractJSDoc', () => {
                 '\n',
             ),
         );
-        const node = findFirstStatement(sf, ts.isFunctionDeclaration);
+        const node = findFirstStatement(sf, 'FunctionDeclaration');
         expect(generator.extractJSDoc(node)).toBe('First paragraph.');
     });
 });
@@ -125,20 +122,20 @@ describe('extractJSDoc', () => {
 describe('extractSignature', () => {
     test('slices a function signature up to the body opening brace', () => {
         const sf = parseSource('function add(a: number, b: number): number { return a + b; }');
-        const node = findFirstStatement(sf, ts.isFunctionDeclaration);
+        const node = findFirstStatement(sf, 'FunctionDeclaration');
         expect(generator.extractSignature(sf, node, 200)).toBe('function add(a: number, b: number): number');
     });
 
     test('keeps full text for type aliases when short', () => {
         const sf = parseSource('type Foo = { a: number; b: string };');
-        const node = findFirstStatement(sf, ts.isTypeAliasDeclaration);
+        const node = findFirstStatement(sf, 'TSTypeAliasDeclaration');
         expect(generator.extractSignature(sf, node, 200)).toBe('type Foo = { a: number; b: string };');
     });
 
     test('truncates type aliases longer than maxSignatureLength with an ellipsis', () => {
         const longRhs = 'string'.repeat(80);
         const sf = parseSource(`type Long = ${longRhs};`);
-        const node = findFirstStatement(sf, ts.isTypeAliasDeclaration);
+        const node = findFirstStatement(sf, 'TSTypeAliasDeclaration');
         const sig = generator.extractSignature(sf, node, 50);
         expect(sig.length).toBe(51);
         expect(sig.endsWith('…')).toBe(true);
@@ -146,13 +143,13 @@ describe('extractSignature', () => {
 
     test('stops a class signature at the opening brace of its body', () => {
         const sf = parseSource('class Foo<T> extends Bar implements Baz { x = 1; }');
-        const node = findFirstStatement(sf, ts.isClassDeclaration);
+        const node = findFirstStatement(sf, 'ClassDeclaration');
         expect(generator.extractSignature(sf, node, 200)).toBe('class Foo<T> extends Bar implements Baz');
     });
 
     test('does not stop at a `{` inside a generic constraint', () => {
         const sf = parseSource('class Foo<T extends { a: number }> extends Bar { x = 1; }');
-        const node = findFirstStatement(sf, ts.isClassDeclaration);
+        const node = findFirstStatement(sf, 'ClassDeclaration');
         expect(generator.extractSignature(sf, node, 200)).toBe('class Foo<T extends { a: number }> extends Bar');
     });
 });
@@ -170,7 +167,7 @@ describe('extractClassMembers', () => {
                 '}',
             ].join('\n'),
         );
-        const cls = findFirstStatement(sf, ts.isClassDeclaration);
+        const cls = findFirstStatement(sf, 'ClassDeclaration');
         const members = generator.extractClassMembers(sf, cls);
         expect(members.map((m: { name: string; kind: string }) => `${m.kind}:${m.name}`)).toEqual([
             'property:x',

@@ -58,7 +58,6 @@ describe('diff writers refuse symlinked parent components (SECU-09)', () => {
     });
 
     test('refuses a symlinked parent and leaves the outside target untouched', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
         const sentinel = path.join(outsideDir, 'diff.png');
         writeFileSync(sentinel, 'pre-existing content');
         symlinkSync(outsideDir, path.join(baseDir, 'escape'));
@@ -69,7 +68,6 @@ describe('diff writers refuse symlinked parent components (SECU-09)', () => {
     });
 
     test('refuses a symlinked parent asynchronously and leaves the outside target untouched', async () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
         const sentinel = path.join(outsideDir, 'diff.png');
         writeFileSync(sentinel, 'pre-existing content');
         symlinkSync(outsideDir, path.join(baseDir, 'escape'));
@@ -80,7 +78,6 @@ describe('diff writers refuse symlinked parent components (SECU-09)', () => {
     });
 
     test('refuses a symlinked parent deeper in the chain', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
         mkdirSync(path.join(baseDir, 'a'), { recursive: true });
         symlinkSync(outsideDir, path.join(baseDir, 'a', 'b'));
 
@@ -90,7 +87,6 @@ describe('diff writers refuse symlinked parent components (SECU-09)', () => {
     });
 
     test('refuses a symlinked parent deeper in the chain asynchronously', async () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
         mkdirSync(path.join(baseDir, 'a'), { recursive: true });
         symlinkSync(outsideDir, path.join(baseDir, 'a', 'b'));
 
@@ -100,7 +96,6 @@ describe('diff writers refuse symlinked parent components (SECU-09)', () => {
     });
 
     test('writes through a symlinked base directory into the canonical location', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
         // The open happens inside the resolved directory, so nothing traverses a link.
         const realBase = path.join(rootDir, 'real-base');
         mkdirSync(path.join(realBase, 'sub'), { recursive: true });

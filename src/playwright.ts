@@ -1,7 +1,7 @@
 /**
  * Playwright adapter: `toMatchPngSnapshot` compares a received PNG Buffer against a
  * baseline PNG file stored at `testInfo.snapshotPath(name)` (see docs/adr/0001).
- * Has no side effects: use the exported `expect`, or `baseExpect.extend(pngMatchers)`.
+ * This module has no side effects. Use the exported `expect`, or `baseExpect.extend(pngMatchers)`.
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -43,7 +43,7 @@ function nextSnapshotIndex(testInfo: TestInfo, key: string): number {
 
 // Same character class and shortening as Playwright's own snapshot naming.
 function sanitizeForFilePath(value: string): string {
-    return value.replace(/[\x00-\x2C\x2E-\x2F\x3A-\x40\x5B-\x60\x7B-\x7F]+/g, '-');
+    return value.replace(/[^a-zA-Z0-9\u0080-\uFFFF-]+/g, '-');
 }
 
 function trimLongString(value: string): string {

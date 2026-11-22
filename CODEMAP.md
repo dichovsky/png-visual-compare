@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.2.1"
     },
-    "sourceHash": "25d8965e8bf077d29d7f54f5db28aa2d7d5771c618e26286258a72391df163ee",
+    "sourceHash": "71851383b1d1653166615885ca6d04ba4839bb9f128a8376cd2a7c7ae888abd9",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -39,7 +39,7 @@ Schema: `codemap.v2`
             "file": "src/types/color.ts",
             "line": 2,
             "signature": "export type Color = { r: number; g: number; b: number; };",
-            "jsdoc": "An RGB colour used to paint pixels on a PNG buffer. All channels are in the range 0–255.",
+            "jsdoc": "An RGB color used to paint pixels on a PNG buffer. All channels are in the range 0–255.",
             "typeOnly": true
         },
         {
@@ -57,9 +57,9 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 125,
+            "line": 123,
             "signature": "export class ComparisonError extends Error",
-            "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
+            "jsdoc": "Thrown when `pixelmatch` fails, for example when the normalized image buffers have different lengths. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
             "typeOnly": false
         },
         {
@@ -69,7 +69,7 @@ Schema: `codemap.v2`
             "file": "src/defaults.ts",
             "line": 7,
             "signature": "export const DEFAULT_EXCLUDED_AREA_COLOR: Color = { r: 0, g: 0, b: 255 }",
-            "jsdoc": "Default colour applied to excluded areas before comparison (blue).",
+            "jsdoc": "Default color applied to excluded areas before comparison (blue).",
             "typeOnly": false
         },
         {
@@ -79,7 +79,7 @@ Schema: `codemap.v2`
             "file": "src/defaults.ts",
             "line": 4,
             "signature": "export const DEFAULT_EXTENDED_AREA_COLOR: Color = { r: 0, g: 255, b: 0 }",
-            "jsdoc": "Default colour applied to size-extended padding regions (green).",
+            "jsdoc": "Default color applied to size-extended padding regions (green).",
             "typeOnly": false
         },
         {
@@ -117,9 +117,9 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 18,
+            "line": 20,
             "signature": "export class InvalidInputError extends Error",
-            "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded, or when an `excludedAreas`, colour, or `pixelmatchOptions` value is invalid. Per-input failures are recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid inputs as zero-size PNGs instead; invalid options, and both inputs being invalid, always throw. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…",
+            "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded. Also thrown when an `excludedAreas`, color, or `pixelmatchOptions` value is invalid. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…",
             "typeOnly": false
         },
         {
@@ -127,7 +127,7 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 58,
+            "line": 60,
             "signature": "export class PathValidationError extends Error",
             "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths - A FIFO or device inside a base directory, on reads and diff writes, refused instead of blocking the call - A diff file under `diffOutputBaseDir` that has more than one hard link, refused before it is truncated or written @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…",
             "typeOnly": false
@@ -147,9 +147,9 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 92,
+            "line": 94,
             "signature": "export class ResourceLimitError extends Error",
-            "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…",
+            "jsdoc": "Thrown when a PNG would exceed the resource limits that `maxDimension`, `maxPixels`, or `maxFileBytes` set. This error is **NOT** recoverable. It always throws, also when `throwErrorOnInvalidInputData` is `false`, because resource exhaustion is a security concern, not a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…",
             "typeOnly": false
         },
         {
@@ -167,9 +167,9 @@ Schema: `codemap.v2`
             "kind": "function",
             "entrypoint": "src/index.ts",
             "file": "src/comparePngAsync.ts",
-            "line": 27,
+            "line": 28,
             "signature": "export async function comparePngAsync(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): Promise<number>",
-            "jsdoc": null,
+            "jsdoc": "Compare two PNG inputs using asynchronous file I/O. The promise resolves to the mismatched pixel count.",
             "typeOnly": false
         },
         {
@@ -228,20 +228,11 @@ Schema: `codemap.v2`
             "path": "src/adapters/toPixelmatchOptions.ts",
             "symbols": [
                 {
-                    "name": "PixelmatchRawOptions",
-                    "kind": "type",
-                    "line": 4,
-                    "exported": true,
-                    "signature": "export type PixelmatchRawOptions = Parameters<typeof pixelmatch>[5];",
-                    "members": null,
-                    "jsdoc": null
-                },
-                {
                     "name": "toPixelmatchOptions",
                     "kind": "function",
-                    "line": 6,
+                    "line": 4,
                     "exported": true,
-                    "signature": "export function toPixelmatchOptions(opts?: PixelmatchOptions): PixelmatchRawOptions | undefined",
+                    "signature": "export function toPixelmatchOptions(opts?: PixelmatchOptions): PixelmatchKernelOptions | undefined",
                     "members": null,
                     "jsdoc": null
                 }
@@ -262,7 +253,7 @@ Schema: `codemap.v2`
                     "exported": true,
                     "signature": "export function addColoredAreasToImage(image: PNG, areas: Area[], color: Color): void",
                     "members": null,
-                    "jsdoc": "Paints rectangular areas on an image with a solid colour in-place."
+                    "jsdoc": "Paints rectangular areas on an image with a solid color in-place."
                 }
             ],
             "imports": [
@@ -318,11 +309,11 @@ Schema: `codemap.v2`
                 {
                     "name": "comparePngAsync",
                     "kind": "function",
-                    "line": 27,
+                    "line": 28,
                     "exported": true,
                     "signature": "export async function comparePngAsync(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): Promise<number>",
                     "members": null,
-                    "jsdoc": null
+                    "jsdoc": "Compare two PNG inputs using asynchronous file I/O. The promise resolves to the mismatched pixel count."
                 }
             ],
             "imports": [
@@ -374,7 +365,7 @@ Schema: `codemap.v2`
                     "exported": true,
                     "signature": "export const DEFAULT_EXTENDED_AREA_COLOR: Color = { r: 0, g: 255, b: 0 }",
                     "members": null,
-                    "jsdoc": "Default colour applied to size-extended padding regions (green)."
+                    "jsdoc": "Default color applied to size-extended padding regions (green)."
                 },
                 {
                     "name": "DEFAULT_EXCLUDED_AREA_COLOR",
@@ -383,7 +374,7 @@ Schema: `codemap.v2`
                     "exported": true,
                     "signature": "export const DEFAULT_EXCLUDED_AREA_COLOR: Color = { r: 0, g: 0, b: 255 }",
                     "members": null,
-                    "jsdoc": "Default colour applied to excluded areas before comparison (blue)."
+                    "jsdoc": "Default color applied to excluded areas before comparison (blue)."
                 },
                 {
                     "name": "DEFAULT_MAX_DIMENSION",
@@ -443,39 +434,39 @@ Schema: `codemap.v2`
                 {
                     "name": "InvalidInputError",
                     "kind": "class",
-                    "line": 18,
+                    "line": 20,
                     "exported": true,
                     "signature": "export class InvalidInputError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 19
+                            "line": 21
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 21
+                            "line": 23
                         }
                     ],
-                    "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded, or when an `excludedAreas`, colour, or `pixelmatchOptions` value is invalid. Per-input failures are recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid inputs as zero-size PNGs instead; invalid options, and both inputs being invalid, always throw. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…"
+                    "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded. Also thrown when an `excludedAreas`, color, or `pixelmatchOptions` value is invalid. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…"
                 },
                 {
                     "name": "PathValidationError",
                     "kind": "class",
-                    "line": 58,
+                    "line": 60,
                     "exported": true,
                     "signature": "export class PathValidationError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 59
+                            "line": 61
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 61
+                            "line": 63
                         }
                     ],
                     "jsdoc": "Thrown when a file path fails validation checks, including: - Path traversal attempts (when `inputBaseDir` or `diffOutputBaseDir` is set) - Symlink loops or invalid symlink usage - Empty, whitespace-only, or null-byte-containing paths - A FIFO or device inside a base directory, on reads and diff writes, refused instead of blocking the call - A diff file under `diffOutputBaseDir` that has more than one hard link, refused before it is truncated or written @example ```ts try { comparePng( '../../etc/passwd', 'image.png', { inputBaseDir: '/safe/…"
@@ -483,42 +474,42 @@ Schema: `codemap.v2`
                 {
                     "name": "ResourceLimitError",
                     "kind": "class",
-                    "line": 92,
+                    "line": 94,
                     "exported": true,
                     "signature": "export class ResourceLimitError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 93
+                            "line": 95
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 95
+                            "line": 97
                         }
                     ],
-                    "jsdoc": "Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`. This error is **NOT** recoverable and always throws regardless of `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern rather than a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…"
+                    "jsdoc": "Thrown when a PNG would exceed the resource limits that `maxDimension`, `maxPixels`, or `maxFileBytes` set. This error is **NOT** recoverable. It always throws, also when `throwErrorOnInvalidInputData` is `false`, because resource exhaustion is a security concern, not a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…"
                 },
                 {
                     "name": "ComparisonError",
                     "kind": "class",
-                    "line": 125,
+                    "line": 123,
                     "exported": true,
                     "signature": "export class ComparisonError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 126
+                            "line": 124
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 128
+                            "line": 126
                         }
                     ],
-                    "jsdoc": "Thrown when the underlying `pixelmatch` call fails — for example, when the two normalized image buffers have mismatched lengths, or when `pixelmatch` itself throws for any reason the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
+                    "jsdoc": "Thrown when `pixelmatch` fails, for example when the normalized image buffers have different lengths. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
                 }
             ],
             "imports": [],
@@ -552,7 +543,7 @@ Schema: `codemap.v2`
                     "exported": true,
                     "signature": "export function fillImageSizeDifference(image: PNG, width: number, height: number, color: Color): void",
                     "members": null,
-                    "jsdoc": "Paints the pixels that were added when the canvas was extended (i.e. those that lie outside the original image bounds) with a solid colour in-place."
+                    "jsdoc": "Paints the pixels that were added when the canvas was extended (i.e. those that lie outside the original image bounds) with a solid color in-place."
                 }
             ],
             "imports": [
@@ -817,8 +808,8 @@ Schema: `codemap.v2`
                     "name": "FileIdentity",
                     "kind": "type",
                     "line": 4,
-                    "exported": true,
-                    "signature": "export type FileIdentity = { readonly dev: bigint; readonly ino: bigint; };",
+                    "exported": false,
+                    "signature": "type FileIdentity = { readonly dev: bigint; readonly ino: bigint; };",
                     "members": null,
                     "jsdoc": "The subset of `BigIntStats` needed to identify a file on disk."
                 },
@@ -1285,8 +1276,8 @@ Schema: `codemap.v2`
                     "name": "ComparedPngSnapshot",
                     "kind": "type",
                     "line": 34,
-                    "exported": true,
-                    "signature": "export type ComparedPngSnapshot = { pass: boolean; mismatchedPixels: number; actualSerialized: string; expectedSerialized: string; };",
+                    "exported": false,
+                    "signature": "type ComparedPngSnapshot = { pass: boolean; mismatchedPixels: number; actualSerialized: string; expectedSerialized: string; };",
                     "members": null,
                     "jsdoc": null
                 },
@@ -1487,8 +1478,8 @@ Schema: `codemap.v2`
                     "name": "PersistableDiff",
                     "kind": "type",
                     "line": 6,
-                    "exported": true,
-                    "signature": "export type PersistableDiff = { readonly diff: PNG; readonly diffFilePath: ValidatedPath; };",
+                    "exported": false,
+                    "signature": "type PersistableDiff = { readonly diff: PNG; readonly diffFilePath: ValidatedPath; };",
                     "members": null,
                     "jsdoc": null
                 },
@@ -1573,7 +1564,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ResolvedOptions",
                     "kind": "type",
-                    "line": 9,
+                    "line": 8,
                     "exported": true,
                     "signature": "export type ResolvedOptions = { readonly excludedAreas: Area[]; readonly throwErrorOnInvalidInputData: boolean; readonly extendedAreaColor: Color; readonly excludedAreaColor: Color; readonly shouldCre…",
                     "members": null,
@@ -1582,25 +1573,25 @@ Schema: `codemap.v2`
                 {
                     "name": "LoadedPng",
                     "kind": "type",
-                    "line": 32,
+                    "line": 30,
                     "exported": true,
-                    "signature": "export type LoadedPng = { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
+                    "signature": "export type LoadedPng = | { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
                     "members": null,
                     "jsdoc": "Result of loading one image source: the decoded PNG, or why it could not be loaded."
                 },
                 {
                     "name": "LoadedSources",
                     "kind": "type",
-                    "line": 35,
+                    "line": 34,
                     "exported": true,
-                    "signature": "export type LoadedSources = { readonly png1: string | Buffer; readonly png2: string | Buffer; readonly first: LoadedPng; readonly second: LoadedPng; };",
+                    "signature": "export type LoadedSources = { readonly first: LoadedPng; readonly second: LoadedPng; };",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "NormalizedImages",
                     "kind": "type",
-                    "line": 42,
+                    "line": 39,
                     "exported": true,
                     "signature": "export type NormalizedImages = { readonly first: PNGWithMetadata; readonly second: PNGWithMetadata; readonly width: number; readonly height: number; };",
                     "members": null,
@@ -1609,18 +1600,9 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonResult",
                     "kind": "type",
-                    "line": 49,
+                    "line": 46,
                     "exported": true,
                     "signature": "export type ComparisonResult = { readonly mismatchedPixels: number; readonly diff?: PNG; };",
-                    "members": null,
-                    "jsdoc": null
-                },
-                {
-                    "name": "ComparisonContext",
-                    "kind": "type",
-                    "line": 54,
-                    "exported": true,
-                    "signature": "export type ComparisonContext = { readonly options: ResolvedOptions; readonly sources: LoadedSources; readonly normalized: NormalizedImages; readonly result: ComparisonResult; };",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1631,7 +1613,6 @@ Schema: `codemap.v2`
                 "../types/color",
                 "../types/compare.options",
                 "../types/validated-path",
-                "node:buffer",
                 "pngjs"
             ],
             "reExports": []
@@ -2109,7 +2090,7 @@ Schema: `codemap.v2`
                     "kind": "function",
                     "line": 33,
                     "exported": true,
-                    "signature": "export function handleFileReadError(_error: unknown, opts: ResolvedOptions): LoadedPng",
+                    "signature": "export function handleFileReadError(opts: ResolvedOptions): LoadedPng",
                     "members": null,
                     "jsdoc": "Validates and handles errors from file read operations during image source loading. Returns an invalid LoadedPng if read fails and throwError is false."
                 },
@@ -2243,7 +2224,7 @@ Schema: `codemap.v2`
                     "exported": true,
                     "signature": "export type Color = { r: number; g: number; b: number; };",
                     "members": null,
-                    "jsdoc": "An RGB colour used to paint pixels on a PNG buffer. All channels are in the range 0–255."
+                    "jsdoc": "An RGB color used to paint pixels on a PNG buffer. All channels are in the range 0–255."
                 }
             ],
             "imports": [],
@@ -2401,8 +2382,8 @@ Schema: `codemap.v2`
                     "name": "ValidatePathMode",
                     "kind": "type",
                     "line": 6,
-                    "exported": true,
-                    "signature": "export type ValidatePathMode = 'input' | 'output';",
+                    "exported": false,
+                    "signature": "type ValidatePathMode = 'input' | 'output';",
                     "members": null,
                     "jsdoc": null
                 },
@@ -2464,8 +2445,8 @@ Schema: `codemap.v2`
                     "name": "ValidatedPathWithReal",
                     "kind": "type",
                     "line": 136,
-                    "exported": true,
-                    "signature": "export type ValidatedPathWithReal = { readonly validated: ValidatedPath; readonly real?: string; };",
+                    "exported": false,
+                    "signature": "type ValidatedPathWithReal = { readonly validated: ValidatedPath; readonly real?: string; };",
                     "members": null,
                     "jsdoc": "A validated path together with the canonical (symlink-resolved) path that the containment check actually approved."
                 },
@@ -2915,7 +2896,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VITEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "kind": "const",
-                    "line": 25,
+                    "line": 24,
                     "exported": false,
                     "signature": "const VITEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "members": null,
@@ -2924,7 +2905,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestTestLike",
                     "kind": "type",
-                    "line": 27,
+                    "line": 26,
                     "exported": false,
                     "signature": "type VitestTestLike = { id: string; fails?: boolean; };",
                     "members": null,
@@ -2933,7 +2914,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestExpectedSnapshot",
                     "kind": "type",
-                    "line": 32,
+                    "line": 31,
                     "exported": false,
                     "signature": "type VitestExpectedSnapshot = { count: number; data?: string; key: string; markAsChecked: () => void; };",
                     "members": null,
@@ -2942,7 +2923,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestSnapshotReturn",
                     "kind": "type",
-                    "line": 39,
+                    "line": 38,
                     "exported": false,
                     "signature": "type VitestSnapshotReturn = { actual: string; expected?: string; key: string; pass: boolean; };",
                     "members": null,
@@ -2951,7 +2932,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestSnapshotState",
                     "kind": "type",
-                    "line": 46,
+                    "line": 45,
                     "exported": false,
                     "signature": "type VitestSnapshotState = { readonly snapshotUpdateState: 'all' | 'new' | 'none'; probeExpectedSnapshot: (options: { inlineSnapshot?: string; isInline: boolean; testId: string; testName: string; }) =…",
                     "members": null,
@@ -2960,7 +2941,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MatcherStateWithSnapshot",
                     "kind": "type",
-                    "line": 69,
+                    "line": 68,
                     "exported": false,
                     "signature": "type MatcherStateWithSnapshot = MatcherState & { error?: Error; snapshotState?: VitestSnapshotState | null; };",
                     "members": null,
@@ -2969,7 +2950,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getVitestTest",
                     "kind": "function",
-                    "line": 74,
+                    "line": 73,
                     "exported": false,
                     "signature": "function getVitestTest(matcherContext: MatcherState): VitestTestLike",
                     "members": null,
@@ -2978,7 +2959,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getAssertionName",
                     "kind": "function",
-                    "line": 84,
+                    "line": 83,
                     "exported": false,
                     "signature": "function getAssertionName(matcherContext: MatcherState): string",
                     "members": null,
@@ -2987,7 +2968,7 @@ Schema: `codemap.v2`
                 {
                     "name": "toMatchPngSnapshot",
                     "kind": "const",
-                    "line": 94,
+                    "line": 93,
                     "exported": false,
                     "signature": "const toMatchPngSnapshot",
                     "members": null,

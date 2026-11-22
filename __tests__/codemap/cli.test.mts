@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
-const SCRIPT_PATH = path.resolve(process.cwd(), 'scripts/generate-codemap.mjs');
+const SCRIPT_PATH = path.resolve(process.cwd(), 'scripts/generate-codemap.mts');
 const CHILD_ENV = { ...process.env, CODEMAP_SILENT: '1' };
 
 const BASE_CONFIG = JSON.stringify(
@@ -26,7 +26,7 @@ function scaffoldFixture(repoRoot: string, sourceContent: string): void {
     writeFileSync(path.join(repoRoot, 'codemap.config.json'), BASE_CONFIG);
 }
 
-describe('generate-codemap.mjs CLI', () => {
+describe('generate-codemap.mts CLI', () => {
     const scratchDirs: string[] = [];
 
     afterEach(() => {

@@ -7,17 +7,17 @@ This file gives instructions to Codex (Codex.ai/code) for work in this repositor
 ```sh
 npm run build          # compile TypeScript to ./out with tsconfig.prod.json (runs clean first)
 npm run clean          # delete ./out, ./coverage, ./test-results
-npm run lint           # run ESLint with @typescript-eslint
-npm run typecheck      # type-check the repository with tsconfig.json (src, tests, e2e, configs)
+npm run lint           # run Oxlint and fail on warnings
+npm run typecheck      # type-check the repository with tsconfig.json (src, tests, e2e, scripts, configs)
 npm run test:unit      # clean -> codemap:check -> lint -> format:check -> license check -> typecheck -> vitest coverage
 npm run test:e2e       # run Playwright e2e tests for Excluded Areas Builder and png-visual-compare/playwright
 npm run test           # run unit coverage gate and Playwright e2e tests
 npm run test:license   # check that all production dependency licenses are on the approved list
-npm run test:consumer-types  # build, pack, and type-check every entry point from a new consumer project (skipLibCheck: false, no @types/pngjs); CI job, not in npm test
-npm run codemap        # generate CODEMAP.md with scripts/generate-codemap.mjs
+npm run test:consumer-types  # type-check the packed entry points in a separate CI job without @types/pngjs
+npm run codemap        # generate CODEMAP.md with scripts/generate-codemap.mts
 npm run codemap:check  # fail if CODEMAP.md is out of date (runs in pretest:unit)
-npm run format         # format files with Prettier
-npm run format:check   # check formatting with Prettier
+npm run format         # format files with Oxfmt
+npm run format:check   # check formatting with Oxfmt
 ```
 
 Run one test file (skips pretest steps):

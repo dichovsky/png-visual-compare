@@ -57,6 +57,8 @@
 
 ## 🏛️ Architecture · Types · API · Reliability
 
+- [x] 🟢 ♻️ ARCH [ARCH-04]: Remove unused pipeline data
+    - **Impl:** Removed `ComparisonContext`, `ResolvedOptions.rawOptions`, and the original input references in `LoadedSources`.
 - [x] 🔴 ♻️ ARCH [ARCH-01]: Split `comparePng` into pipeline stages
     - **Impl:** Created `resolveOptions`, `loadSources`, `normalizeImages`, `runComparison`, and `persistDiff` in `src/pipeline/*`.
     - **Rat:** Separated option validation, loading, normalization, comparison, and file output into testable modules.
@@ -97,8 +99,8 @@
     - **Impl:** Ported `pixelmatch` to `src/vendor/pixelmatch.ts` under its ISC license and added parity tests in `__tests__/vendor/pixelmatch.test.ts`.
     - **Rat:** Removed the ESM-only runtime dependency so Jest and Vitest VM pools can load the CommonJS build without Babel transforms.
 - [x] 🟢 ♻️ TYPE [TYPE-06]: Remove the deprecated `LoadedPng` export (BREAKING, 8.0.0)
-    - **Impl:** Deleted `src/types/png.data.ts` and its entries in `src/types/index.ts` and `src/index.ts`. The internal type stays in `src/pipeline/types.ts`. `__tests__/index.test.ts` imports `LoadedPng` under `@ts-expect-error`, so a new export fails type-checking. Added `scripts/check-consumer-types.mjs` (`npm run test:consumer-types`, CI job `consumer-types`). It installs the packed tarball into a new project without `@types/pngjs` and type-checks all four entry points (`strict`, `skipLibCheck: false`) with `moduleResolution` `node16` and `bundler`. It allows zero diagnostics.
-    - **Rat:** No public function returns or accepts `LoadedPng`, but its export put `pngjs` types in the public declarations. A consumer that type-checks with `skipLibCheck: false` then needed `@types/pngjs`. The consumer check tests the files that npm publishes, not `src/`.
+    - **Impl:** Deleted `src/types/png.data.ts` and its entries in `src/types/index.ts` and `src/index.ts`. The internal type stays in `src/pipeline/types.ts`. `__tests__/index.test.ts` guards the removal with `@ts-expect-error`. Restoring the export makes the type check fail. Added `scripts/check-consumer-types.mts` (`npm run test:consumer-types`, CI job `consumer-types`). It installs the packed tarball into a new project without `@types/pngjs` and type-checks all four entry points (`strict`, `skipLibCheck: false`) with `moduleResolution` `node16` and `bundler`. It allows zero diagnostics.
+    - **Rat:** No public function returns or accepts `LoadedPng`, but its export put `pngjs` types in the public declarations. A consumer that type-checks with `skipLibCheck: false` then needed `@types/pngjs`. The consumer check tests the files that npm publishes.
 - [x] 🟢 ♻️ TYPE [TYPE-07]: Deduplicate `ComparePngInput` type
     - **Impl:** Defined `ComparePngInput` in `src/types/compare.input.ts` and used it in `comparePng`, `comparePngWithPorts`, and `comparePngAsync`.
     - **Rat:** Removed duplicate `string | Buffer` type definitions.
@@ -114,6 +116,10 @@
 
 ## 🧪 Tests & QA
 
+- [x] 🔴 🧪 TEST [TEST-08]: Restore the macOS test job
+    - **Impl:** Reused matcher registrations across tests. Kept module resets for import-time registration tests. Made test failures fail the macOS workflow job.
+- [x] 🟢 🧪 TEST [TEST-09]: Remove Windows-only test skips
+    - **Impl:** Removed early returns from filesystem tests. The supported macOS and Linux platforms run each assertion.
 - [x] 🟡 🧪 TEST [TEST-01]: Add fixture-free orchestrator unit tests
     - **Impl:** Added `__tests__/comparePng.logic.test.ts` and `__tests__/comparePng.ports.test.ts`.
     - **Rat:** Tested orchestration logic in memory without disk I/O.
@@ -129,6 +135,9 @@
 
 ## 🛠️ Build · Deps · CI · DX
 
+- [x] 🟢 ♻️ BUILD [BUILD-02]: Use NodeNext module resolution
+    - **Impl:** Removed the `node16` override. TypeScript selects NodeNext resolution from the `module` setting.
+- [x] 🟢 ♻️ BUILD [BUILD-06]: Remove the unused `_version` field from `tsconfig.json`
 - [x] 🟢 ♻️ DX [DX-03]: Add `test:fast` script
     - **Impl:** Added `npm run test:fast` to run Vitest without `pretest:unit`.
     - **Rat:** Provided a fast test command for local development.

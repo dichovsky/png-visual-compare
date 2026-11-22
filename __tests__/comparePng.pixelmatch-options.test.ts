@@ -119,32 +119,32 @@ const testDataArrayPixelmatchValidation: {
     {
         id: 10,
         name: 'pixelmatchOptions null is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pixelmatchOptions: null as any,
+        // @ts-expect-error pixelmatchOptions cannot be null.
+        pixelmatchOptions: null,
         throws: true,
         message: 'pixelmatchOptions must be an object when provided',
     },
     {
         id: 11,
         name: 'pixelmatchOptions array is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pixelmatchOptions: [] as any,
+        // @ts-expect-error pixelmatchOptions requires an options object.
+        pixelmatchOptions: [],
         throws: true,
         message: 'pixelmatchOptions must be an object when provided',
     },
     {
         id: 12,
         name: 'diffColor bigint channel is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pixelmatchOptions: { diffColor: [0, 0, BigInt(1)] as any },
+        // @ts-expect-error Color channels require numbers.
+        pixelmatchOptions: { diffColor: [0, 0, BigInt(1)] },
         throws: true,
         message: 'pixelmatchOptions.diffColor channel values must be integers in [0, 255]',
     },
     {
         id: 13,
         name: 'includeAA non-boolean is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pixelmatchOptions: { includeAA: 'yes' as any },
+        // @ts-expect-error includeAA requires a boolean.
+        pixelmatchOptions: { includeAA: 'yes' },
         throws: true,
         message: 'pixelmatchOptions.includeAA must be a boolean',
     },
@@ -157,8 +157,8 @@ const testDataArrayPixelmatchValidation: {
     {
         id: 15,
         name: 'checkerboard non-boolean is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pixelmatchOptions: { checkerboard: 'yes' as any },
+        // @ts-expect-error checkerboard requires a boolean.
+        pixelmatchOptions: { checkerboard: 'yes' },
         throws: true,
         message: 'pixelmatchOptions.checkerboard must be a boolean',
     },
@@ -197,8 +197,8 @@ const testDataArrayPixelmatchValidation: {
     {
         id: 21,
         name: 'windowSize non-number is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pixelmatchOptions: { windowSize: '16' as any },
+        // @ts-expect-error windowSize requires a number.
+        pixelmatchOptions: { windowSize: '16' },
         throws: true,
         message: 'pixelmatchOptions.windowSize must be a positive integer or Infinity',
     },
@@ -211,16 +211,16 @@ const testDataArrayPixelmatchValidation: {
     {
         id: 23,
         name: 'ignoreMask non-view is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pixelmatchOptions: { ignoreMask: [0] as any },
+        // @ts-expect-error ignoreMask requires a byte array view.
+        pixelmatchOptions: { ignoreMask: [0] },
         throws: true,
         message: 'pixelmatchOptions.ignoreMask must be a Uint8Array, Uint8ClampedArray, or Buffer',
     },
     {
         id: 24,
         name: 'ignoreMask wider typed array is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pixelmatchOptions: { ignoreMask: new Uint16Array(1) as any },
+        // @ts-expect-error ignoreMask accepts only 8-bit elements.
+        pixelmatchOptions: { ignoreMask: new Uint16Array(1) },
         throws: true,
         message: 'pixelmatchOptions.ignoreMask must be a Uint8Array, Uint8ClampedArray, or Buffer',
     },

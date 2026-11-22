@@ -56,8 +56,8 @@ describe('validateColor', () => {
     });
 
     it('should throw InvalidInputError for a missing channel (e.g. b omitted)', () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expectInvalidInputError(() => validateColor({ r: 0, g: 0 } as any, 'color'), 'color.b');
+        // @ts-expect-error The missing blue channel exercises runtime color validation.
+        expectInvalidInputError(() => validateColor({ r: 0, g: 0 }, 'color'), 'color.b');
     });
 
     it('should throw InvalidInputError for null', () => {

@@ -37,7 +37,7 @@ jobs:
                   node-version-file: .nvmrc
                   cache: 'npm'
             - run: npm ci
-            - run: npx playwright install --with-deps chromium
+            - run: npx playwright install-deps chromium
             - run: npm audit --audit-level=high
             # What prepublishOnly ran before the split; the publish job skips scripts.
             - run: npm test

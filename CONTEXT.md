@@ -2,6 +2,8 @@
 
 This library compares two PNG images pixel by pixel and returns the count of different pixels. Use it standalone or with test-framework matchers.
 
+[docs/WRITING_GUIDE.md](docs/WRITING_GUIDE.md) gives the writing rules for these terms.
+
 ## Terms
 
 **Baseline**:

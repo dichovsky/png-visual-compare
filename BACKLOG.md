@@ -30,7 +30,6 @@
 - [ ] 🟡 ♻️ TYPE [TYPE-04]: Add `readonly` to public `Area` and `Color` properties.
 - [ ] 🟡 ♻️ TYPE [TYPE-05]: Decide whether port interfaces are public or internal.
 - [ ] 🟡 📦 API [API-02]: Add `AbortSignal` support to `comparePngAsync`.
-- [ ] 🟢 ♻️ ARCH [ARCH-04]: Remove unused `ComparisonContext` and `rawOptions`.
 - [ ] 🟢 ♻️ ARCH [ARCH-05]: Separate `RuntimePorts` from `ResolvedOptions`.
 - [ ] 🟢 ♻️ ARCH [ARCH-06]: Move `validateImageSourceLoad.ts` to `src/internal/`.
 - [ ] 🟢 ♻️ ARCH [ARCH-07]: Freeze `DEFAULT_COMPARE_PNG_OPTIONS`.
@@ -48,8 +47,6 @@
 
 ## 🧪 Tests & QA
 
-- [ ] 🟢 🧪 TEST [TEST-09]: Remove unused `if (process.platform === 'win32') return;` checks from test files because Windows is not supported.
-- [ ] 🔴 🧪 TEST [TEST-08]: Fix the macOS Vitest worker crash (`Error: Worker exited unexpectedly`) in `pngSnapshotMatcher.test.ts`. Replace the 32 `vi.resetModules()` calls with direct calls to `registerJestPngSnapshotMatcher` or an extracted registration helper, then re-enable the `macos` CI gate.
 - [ ] 🟡 🧪 TEST [TEST-02]: Add a benchmark suite (`vitest bench`) for performance checks.
 - [ ] 🟡 🧪 TEST [TEST-03]: Add a packed-tarball integration test suite.
 - [ ] 🟢 🧪 TEST [TEST-04]: Add mutation testing with Stryker.
@@ -66,15 +63,13 @@
 ## 🛠️ Build · Deps · CI · DX
 
 - [ ] 🟢 ♻️ BUILD [BUILD-01]: Split shared compiler settings into `tsconfig.base.json`.
-- [ ] 🟢 ♻️ BUILD [BUILD-02]: Update `moduleResolution` to `nodenext`.
 - [ ] 🟢 ♻️ BUILD [BUILD-03]: Add explicit `import` and `require` conditions to `exports`.
 - [ ] 🟢 ♻️ BUILD [BUILD-04]: Generate an SBOM in `publish.yml`.
 - [ ] 🟢 ♻️ BUILD [BUILD-05]: Enable `stripInternal` in `tsconfig.prod.json`.
-- [ ] 🟢 ♻️ BUILD [BUILD-06]: Remove or document the `_version` field.
 - [ ] 🟢 ♻️ DEPS [DEPS-01]: Upgrade `@types/pngjs` when version 7.x is available.
 - [ ] 🟢 ♻️ DEPS [DEPS-02]: Add `docker` ecosystem updates to Dependabot.
 - [ ] 🟢 ♻️ DEPS [DEPS-03]: Widen `peerDependencies` upper bounds or add a check script.
-- [ ] 🟢 ♻️ DX [DX-01]: Move inline `node -e` script to `scripts/open-tool.mjs`.
+- [ ] 🟢 ♻️ DX [DX-01]: Move inline `node -e` script to `scripts/open-tool.mts`.
 - [ ] 🟢 ♻️ DX [DX-02]: Add `npm run dev` for Vitest watch mode.
 - [ ] 🟢 ♻️ DX [DX-04]: Add `.editorconfig`.
 - [ ] 🟢 ♻️ DX [DX-05]: Add pre-commit hooks with `simple-git-hooks` and `lint-staged`.

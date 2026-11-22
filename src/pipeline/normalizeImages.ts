@@ -52,7 +52,7 @@ export function normalizeImages(sources: LoadedSources, opts: ResolvedOptions): 
     // Paint excluded areas last, on the final normalized canvas, so they always match
     // regardless of content — including regions added by size extension. Painting before
     // extension left an excluded band clamped out of the smaller image, which the
-    // size-difference fill then coloured differently from the larger image.
+    // size-difference fill then colored differently from the larger image.
     if (opts.excludedAreas.length > 0) {
         addColoredAreasToImage(first, opts.excludedAreas, opts.excludedAreaColor);
         addColoredAreasToImage(second, opts.excludedAreas, opts.excludedAreaColor);

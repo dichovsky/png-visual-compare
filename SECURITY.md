@@ -18,4 +18,4 @@ Report vulnerabilities through the GitHub private vulnerability reporting flow f
 - Reproduction steps or proof of concept
 - Known mitigations
 
-Maintainers review security reports before public disclosure. Maintainers release fixes as patch versions for the supported release line.
+Maintainers examine security reports before public disclosure. Maintainers release fixes as patch versions for the supported release line.

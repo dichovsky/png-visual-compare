@@ -4,7 +4,7 @@ This document describes the internal architecture of `png-visual-compare`.
 
 ## System Overview
 
-The package compares PNG images and provides these interfaces:
+The package compares PNG images and gives these interfaces:
 
 - **Public synchronous API:** `comparePng(png1, png2, opts?)`
 - **Public asynchronous API:** `comparePngAsync(png1, png2, opts?)`
@@ -49,7 +49,7 @@ comparePng / comparePngAsync
 
 ### Subpath Exports
 
-Each subpath provides a `toMatchPngSnapshot()` matcher for one test framework. All three subpaths validate the received PNG and matcher arguments with `src/matchers/createPngSnapshotMatcher.ts` and compare images with `comparePng`.
+Each subpath gives a `toMatchPngSnapshot()` matcher for one test framework. All three subpaths validate the received PNG and matcher arguments with `src/matchers/createPngSnapshotMatcher.ts` and compare images with `comparePng`.
 
 - `png-visual-compare/vitest` (`src/vitest.mts`): side-effect import. Registers the matcher on Vitest `expect` and augments `Matchers<R, T>` (Vitest 5). Stores baselines as serialized `Buffer` strings in `.snap` files. Optional peer: `vitest >=5.0.0 <6`.
 - `png-visual-compare/jest` (`src/jest.ts`): side-effect import. Registers the matcher on Jest global `expect` when available, exports `registerJestPngSnapshotMatcher`, and augments Jest matcher types. Stores baselines as serialized `Buffer` strings in `.snap` files. Optional peers: `jest >=29 <31` and `expect`.
@@ -168,8 +168,8 @@ Key rules:
 - String paths use `readValidatedFileSync` or `readValidatedFile`, never a direct `readFile` call.
 - File inputs check `maxFileBytes` before reading any bytes, then check IHDR dimensions before full decode.
 - The loader scans all PNG inputs for duplicate IHDR chunks before decode so a second header cannot bypass dimension limits.
-- The loader inflates image data with `node:zlib` before decode, stops one byte past the expected byte count from the IHDR header, and requires that exact byte count.
-- The loader rejects zero-dimension PNGs with `InvalidInputError`.
+- The loader inflates image data with `node:zlib` before decode. The output limit is one byte above the size declared by the header. The loader accepts only the exact declared size.
+- The loader treats a PNG with a zero dimension as invalid. By default, it throws `InvalidInputError`.
 - `assertPngHeaderLimits` (internal) checks the PNG signature and IHDR limits without decoding pixel data. The Playwright matcher calls it before writing a baseline.
 - `throwErrorOnInvalidInputData: false` converts invalid image data into `{ kind: 'invalid' }`, but security and resource-limit errors still throw.
 
@@ -177,7 +177,7 @@ Key rules:
 
 `src/readValidatedFile.ts`
 
-Node.js does not provide a portable `openat` call. Instead of preventing path swaps, `readValidatedFile` detects them and rejects the read:
+Node.js does not give access to a portable `openat` call. Instead of preventing path swaps, `readValidatedFile` detects them and rejects the read:
 
 1. Run syntax checks (`assertPathSyntax`) and, when `inputBaseDir` is set, lexical containment (`assertLexicalContainment`). Paths outside the boundary fail before `open` touches the filesystem.
 2. Open the lexically resolved path to pin one inode. When `inputBaseDir` is set, pass `O_NONBLOCK` so a FIFO does not block (SECU-14).
@@ -290,7 +290,7 @@ Public error classes:
 - `npm run build` compiles the package with `tsconfig.prod.json`.
 - `package.json` exposes `"."`, `"./vitest"`, `"./jest"`, and `"./playwright"`.
 - npm publishes only `out/`.
-- The declarations of the entry points must not refer to `pngjs` types. If they do, a consumer without `@types/pngjs` gets TS7016 when `skipLibCheck` is `false`. `npm run test:consumer-types` builds and packs the package, installs the tarball into a new project without `@types/pngjs`, and type-checks every entry point (`strict`, `skipLibCheck: false`) with `moduleResolution` `node16` and `bundler`. CI runs this check in the `consumer-types` job, not in `npm test`.
+- The declarations of the entry points must not refer to `pngjs` types. If they do, a consumer without `@types/pngjs` gets TS7016 when `skipLibCheck` is `false`. `npm run test:consumer-types` builds and packs the package, installs the tarball into a new project without `@types/pngjs`, and type-checks every entry point (`strict`, `skipLibCheck: false`) with `moduleResolution` `node16` and `bundler`. CI runs this command in the separate `consumer-types` job.
 - `npm run codemap` generates `CODEMAP.md` from the source tree and `package.json`.
 
 ## Invariants for Maintainers

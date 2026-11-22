@@ -4,7 +4,7 @@ import { type Color } from './types';
 
 /**
  * Paints the pixels that were added when the canvas was extended (i.e. those that lie
- * outside the original image bounds) with a solid colour in-place.
+ * outside the original image bounds) with a solid color in-place.
  *
  * Call this after {@link extendImage} so the padded region is clearly marked in the diff
  * rather than left as transparent/black.
@@ -12,7 +12,7 @@ import { type Color } from './types';
  * @param image - The already-extended PNG to modify in-place.
  * @param width - Original width of the image before extension (pixels).
  * @param height - Original height of the image before extension (pixels).
- * @param color - RGB colour to paint the extended region with (alpha is always 255).
+ * @param color - RGB color to paint the extended region with (alpha is always 255).
  */
 export function fillImageSizeDifference(image: PNG, width: number, height: number, color: Color): void {
     // Paint the right extension (x >= width, all rows)

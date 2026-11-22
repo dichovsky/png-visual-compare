@@ -1,9 +1,9 @@
 import type { Color } from './types';
 
-/** Default colour applied to size-extended padding regions (green). */
+/** Default color applied to size-extended padding regions (green). */
 export const DEFAULT_EXTENDED_AREA_COLOR: Color = { r: 0, g: 255, b: 0 };
 
-/** Default colour applied to excluded areas before comparison (blue). */
+/** Default color applied to excluded areas before comparison (blue). */
 export const DEFAULT_EXCLUDED_AREA_COLOR: Color = { r: 0, g: 0, b: 255 };
 
 /**

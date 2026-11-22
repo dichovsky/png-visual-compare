@@ -64,8 +64,6 @@ describe('normalizeImages — SECU-10 canvas maxPixels guard owned by normalizeI
         const sameSizePng = new PNG({ width: 10, height: 10, fill: true });
         const opts = resolveOptions({ maxPixels: 50 });
         const sources: LoadedSources = {
-            png1: PNG.sync.write(sameSizePng),
-            png2: PNG.sync.write(sameSizePng),
             first: { kind: 'valid', png: sameSizePng as unknown as PNGWithMetadata },
             second: { kind: 'valid', png: sameSizePng as unknown as PNGWithMetadata },
         };

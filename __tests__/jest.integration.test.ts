@@ -1,21 +1,20 @@
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PNG } from 'pngjs';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 
 const requireFromProject = createRequire(resolve('package.json'));
 const JEST_CLI = requireFromProject.resolve('jest/bin/jest');
-const TYPESCRIPT = requireFromProject.resolve('typescript');
-const JEST_MATCHER = resolve('src/jest.ts');
 
 type JestReport = {
     snapshot: { added: number; matched: number; unchecked: number; unmatched: number; updated: number };
     testResults: { assertionResults: { status: string }[] }[];
 };
 
+let buildDir: string;
 let workDir: string;
 let snapshotPath: string;
 
@@ -37,19 +36,9 @@ function seedSnapshots(snapshots: Record<string, Buffer>): void {
 }
 
 function runJest(body: string, update: boolean, ci = true): { exitCode: number | null; output: string; report: JestReport } {
-    const transformer = join(workDir, 'typescript-transformer.cjs');
-    writeFileSync(
-        transformer,
-        `const ts = require(${JSON.stringify(TYPESCRIPT)});
-module.exports = { process(source, filename) {
-    return { code: ts.transpileModule(source, { fileName: filename,
-        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true }
-    }).outputText };
-} };`,
-    );
     writeFileSync(
         join(workDir, 'matcher.fixture.cjs'),
-        `require(${JSON.stringify(JEST_MATCHER)});
+        `require(${JSON.stringify(join(buildDir, 'jest.js'))});
 const received = Buffer.from(${JSON.stringify([...BLUE])});
 ${body}\n`,
     );
@@ -65,7 +54,7 @@ ${body}\n`,
                 rootDir: workDir,
                 cacheDirectory: join(workDir, '.jest-cache'),
                 testMatch: ['**/matcher.fixture.cjs'],
-                transform: { '\\.ts$': transformer },
+                transform: {},
                 modulePaths: [resolve('node_modules')],
             }),
             update ? '--updateSnapshot' : `--ci=${ci}`,
@@ -90,6 +79,15 @@ ${body}\n`,
         report: JSON.parse(readFileSync(reportPath, 'utf8')) as JestReport,
     };
 }
+
+beforeAll(() => {
+    buildDir = realpathSync(mkdtempSync(join(tmpdir(), 'pvc-jest-build-')));
+    execFileSync(resolve('node_modules/.bin/tsc'), ['--project', 'tsconfig.prod.json', '--outDir', buildDir]);
+});
+
+afterAll(() => {
+    rmSync(buildDir, { recursive: true, force: true });
+});
 
 beforeEach(() => {
     // Jest requires consistent physical paths on macOS, where /tmp is a symlink.
