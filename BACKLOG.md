@@ -50,7 +50,7 @@
 ## 🧪 Tests & QA
 
 - [ ] 🟢 🧪 TEST [TEST-09]: Remove unused `if (process.platform === 'win32') return;` checks from test files because Windows is not supported.
-- [ ] 🔴 🧪 TEST [TEST-08]: Fix the macOS Vitest worker crash (`Error: Worker exited unexpectedly`) in `pngSnapshotMatcher.test.ts`. Replace the 32 `vi.resetModules()` calls with direct calls to `registerJestPngSnapshotMatcher` or an extracted registration helper, then re-enable the `macos` CI gate.
+- [ ] 🔴 🧪 TEST [TEST-08]: Fix the macOS Vitest worker crash (`Error: Worker exited unexpectedly`) in `pngSnapshotMatcher.test.ts`. Replace the 32 `vi.resetModules()` calls with direct calls to `registerJestPngSnapshotMatcher` or an extracted registration helper. Then re-enable the `macos` CI gate.
 - [ ] 🟡 🧪 TEST [TEST-02]: Add a benchmark suite (`vitest bench`) for performance checks.
 - [ ] 🟡 🧪 TEST [TEST-03]: Add a packed-tarball integration test suite.
 - [ ] 🟢 🧪 TEST [TEST-04]: Add mutation testing with Stryker.

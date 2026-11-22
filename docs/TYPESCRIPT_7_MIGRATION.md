@@ -6,17 +6,17 @@ Use the TypeScript 7 native compiler for repository type-checking and package bu
 
 ## Constraints
 
-- TypeScript 7.0 does not provide the legacy JavaScript compiler API that repository scripts require.
+- TypeScript 7.0 does not give the legacy JavaScript compiler API that repository scripts require.
 - `scripts/generate-codemap.mjs` and `__tests__/codemap/helpers.test.mts` import `typescript` and call its compiler API.
 - `typescript-eslint` requires the TypeScript 6 compiler API.
 - The published package does not include TypeScript as a runtime dependency. This split toolchain affects development only.
 
 ## Dependency Layout
 
-| Dependency name      | Package                          | Purpose                                                     |
-| -------------------- | -------------------------------- | ----------------------------------------------------------- |
-| `@typescript/native` | `typescript@~7.0.2`              | Provides the native compiler for `build` and `typecheck`    |
-| `typescript`         | `@typescript/typescript6@~6.0.2` | Provides the TypeScript 6 compiler API for repository tools |
+| Dependency name      | Package                          | Purpose                                                  |
+| -------------------- | -------------------------------- | -------------------------------------------------------- |
+| `@typescript/native` | `typescript@~7.0.2`              | Gives the native compiler for `build` and `typecheck`    |
+| `typescript`         | `@typescript/typescript6@~6.0.2` | Gives the TypeScript 6 compiler API for repository tools |
 
 The compatibility package installs TypeScript 6, which also includes a `tsc` binary. The `build` and `typecheck` scripts run `node_modules/@typescript/native/bin/tsc` directly so they always use the TypeScript 7 native compiler.
 
@@ -56,13 +56,13 @@ Completed on 2026-07-23:
 The installation required two npm adjustments:
 
 1. A plain `npm install` kept the existing `typescript@6.0.3` lockfile entry instead of replacing it with the alias. Installing the alias explicitly updated `package-lock.json`. A clean `npm ci` verified that the lockfile is reproducible.
-2. Both the native compiler package and TypeScript 6 provide a `tsc` binary. The `build` and `typecheck` scripts call `node_modules/@typescript/native/bin/tsc` by path so the binary link order does not affect builds.
+2. Both the native compiler package and TypeScript 6 give a `tsc` binary. The `build` and `typecheck` scripts call `node_modules/@typescript/native/bin/tsc` by path so the binary link order does not affect builds.
 
 No source code or `tsconfig` changes were needed.
 
 ## Follow-up
 
-Review this split toolchain when TypeScript 7.1 provides a stable compiler API and `typescript-eslint` supports it. Then test a single `typescript` dependency and remove the compatibility alias if all checks pass.
+Review this split toolchain when TypeScript 7.1 gives a stable compiler API and `typescript-eslint` supports it. Then test a single `typescript` dependency and remove the compatibility alias if all checks pass.
 
 ## Rollback
 
