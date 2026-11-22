@@ -169,8 +169,8 @@ Key rules:
 - String paths use `readValidatedFileSync` or `readValidatedFile`, never a direct `readFile` call.
 - File inputs check `maxFileBytes` before reading any bytes, then check IHDR dimensions before full decode.
 - The loader scans all PNG inputs for duplicate IHDR chunks before decode so a second header cannot bypass dimension limits.
-- The loader inflates image data with `node:zlib` before decode. The loader stops one byte past the expected byte count from the IHDR header and requires that exact byte count.
-- The loader rejects zero-dimension PNGs with `InvalidInputError`.
+- The loader inflates image data with `node:zlib` before decode. The output limit is one byte above the size declared by the header. The loader accepts only the exact declared size.
+- The loader treats a PNG with a zero dimension as invalid. By default, it throws `InvalidInputError`.
 - `assertPngHeaderLimits` (internal) checks the PNG signature and IHDR limits without decoding pixel data. The Playwright matcher calls it before writing a baseline.
 - `throwErrorOnInvalidInputData: false` converts invalid image data into `{ kind: 'invalid' }`, but security and resource-limit errors still throw.
 

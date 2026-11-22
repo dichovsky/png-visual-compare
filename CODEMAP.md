@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.2.1"
     },
-    "sourceHash": "61c09c8d8ff009765a70286d61ab19b5fe0c97ddbde5b80387654e7b3457c507",
+    "sourceHash": "5b8061caaad6342708cd4efc1170257b5dcfa3e14ea919f1000123229f8e1200",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -57,9 +57,9 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 127,
+            "line": 124,
             "signature": "export class ComparisonError extends Error",
-            "jsdoc": "Thrown when the underlying `pixelmatch` call fails. These are examples: @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
+            "jsdoc": "Thrown when `pixelmatch` fails, for example when the normalized image buffers have different lengths. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
             "typeOnly": false
         },
         {
@@ -177,9 +177,9 @@ Schema: `codemap.v2`
             "kind": "function",
             "entrypoint": "src/index.ts",
             "file": "src/comparePngAsync.ts",
-            "line": 27,
+            "line": 28,
             "signature": "export async function comparePngAsync(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): Promise<number>",
-            "jsdoc": null,
+            "jsdoc": "Compare two PNG inputs using asynchronous file I/O. The promise resolves to the mismatched pixel count.",
             "typeOnly": false
         },
         {
@@ -328,11 +328,11 @@ Schema: `codemap.v2`
                 {
                     "name": "comparePngAsync",
                     "kind": "function",
-                    "line": 27,
+                    "line": 28,
                     "exported": true,
                     "signature": "export async function comparePngAsync(png1: ComparePngInput, png2: ComparePngInput, opts?: ComparePngOptions): Promise<number>",
                     "members": null,
-                    "jsdoc": null
+                    "jsdoc": "Compare two PNG inputs using asynchronous file I/O. The promise resolves to the mismatched pixel count."
                 }
             ],
             "imports": [
@@ -513,22 +513,22 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonError",
                     "kind": "class",
-                    "line": 127,
+                    "line": 124,
                     "exported": true,
                     "signature": "export class ComparisonError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 128
+                            "line": 125
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 130
+                            "line": 127
                         }
                     ],
-                    "jsdoc": "Thrown when the underlying `pixelmatch` call fails. These are examples: @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
+                    "jsdoc": "Thrown when `pixelmatch` fails, for example when the normalized image buffers have different lengths. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
                 }
             ],
             "imports": [],

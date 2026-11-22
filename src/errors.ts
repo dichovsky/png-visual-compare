@@ -102,10 +102,7 @@ export class ResourceLimitError extends Error {
 }
 
 /**
- * Thrown when the underlying `pixelmatch` call fails. These are examples:
- *
- * - The two normalized image buffers have mismatched lengths.
- * - `pixelmatch` throws for any reason that the public API does not control directly.
+ * Thrown when `pixelmatch` fails, for example when the normalized image buffers have different lengths.
  *
  * The standard ES2022 `cause` property keeps the original failure. Callers can examine it
  * without parsing error messages. Like {@link ResourceLimitError}, this error is **NOT**

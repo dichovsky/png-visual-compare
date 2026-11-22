@@ -65,12 +65,8 @@ The `vitest` peer dependency range is `>=5.0.0 <6`. Vitest 5 changed `Matchers` 
 ### 3. File Size Limits and Containment Checks
 
 - `maxFileBytes` (default `135266304`) limits the byte size of a PNG file read from a path. It throws `ResourceLimitError` when a file exceeds the limit, even when `throwErrorOnInvalidInputData` is `false`. This limit does not apply to `Buffer` inputs. See [Resource limits](#resource-limits).
-- When `inputBaseDir` or `diffOutputBaseDir` is set, the library throws `PathValidationError` in these conditions:
-    - A file changes between validation and use.
-    - The filesystem reports no inode number.
-    - A parent directory of `diffFilePath` is a symlink.
-
-    See [Security Model](#security-model).
+- With `inputBaseDir`, reads throw `PathValidationError` if the opened file and the validated path have different file identities or either inode number is zero.
+- With `diffOutputBaseDir`, writes apply the same identity checks. They also refuse symlinked parent directories below that base. See [Security Model](#security-model).
 
 ### 4. Peer Dependency Checks During Install
 
@@ -273,11 +269,11 @@ The Playwright matcher is synchronous and follows Playwright snapshot convention
 - **Baselines are PNG files** at `testInfo.snapshotPath(name)`. They use `snapshotPathTemplate` and sit next to `toHaveScreenshot()` baselines. `'header'` resolves to `header.png`. Unnamed assertions use `<title>-png-1.png`.
 - **`--update-snapshots`** works like `toMatchSnapshot()`:
     - `missing` writes missing baselines and marks the test as a soft failure.
-    - `changed` updates mismatching baselines.
-    - `all` rewrites all baselines that differ.
+    - `changed` writes missing baselines and updates baselines when the pixels differ under the comparison options.
+    - `all` writes missing baselines and updates existing baselines when the PNG file bytes differ.
     - `none` never writes baselines.
-- **`ignoreSnapshots: true`** skips the assertion.
-- **On failure**, the matcher attaches `<name>-expected.png`, `<name>-actual.png`, and `<name>-diff.png` to the Playwright HTML report.
+- **`ignoreSnapshots: true`** skips baseline lookup and comparison after the matcher checks its input and arguments.
+- **When a positive assertion fails because the pixels differ**, the matcher attaches `<name>-expected.png`, `<name>-actual.png`, and `<name>-diff.png` to the Playwright HTML report.
 - **Do not pass `diffFilePath` or `diffOutputBaseDir`**: the matcher manages diff paths and throws if you set those options.
 - **Image limits apply to baselines**: a received image above `maxDimension` or `maxPixels` throws `ResourceLimitError` before writing the baseline. For large `fullPage` or HiDPI screenshots, pass a larger `maxPixels` or `maxDimension` in the matcher options.
 - **Requires `@playwright/test` 1.60 or later.**
@@ -439,7 +435,7 @@ When `inputBaseDir` is set, the library checks path containment before `maxFileB
 
 ### Corrupt Image Data
 
-`pngjs` 7 does not report an error when non-interlaced PNG image data is truncated or has an invalid Adler-32 checksum. Also, `pngjs` 7 inflates interlaced PNG data without an output size limit. To prevent uninitialized memory reads and decompression bombs, this library inflates the image data with `node:zlib` before decoding. The inflated data must have the exact byte count declared by the header. Any mismatch throws `InvalidInputError`.
+`pngjs` 7 does not report an error when non-interlaced PNG image data is truncated or has an invalid Adler-32 checksum. Also, `pngjs` 7 inflates interlaced PNG data without an output size limit. To prevent uninitialized memory reads and decompression bombs, this library inflates the image data with `node:zlib` before decoding. The inflated data must have the exact byte count declared by the header. By default, a size mismatch throws `InvalidInputError`. With `throwErrorOnInvalidInputData: false`, the comparison can continue if the other input is valid.
 
 ### Path Containment
 

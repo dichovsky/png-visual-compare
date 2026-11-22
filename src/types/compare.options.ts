@@ -112,8 +112,8 @@ export type ComparePngOptions = {
      *
      * @default undefined (no diff file written)
      * @throws {PathValidationError} if a symlink exists at the target path at write-time,
-     *   or, with `diffOutputBaseDir`, if the target has more than one hard link or is
-     *   not a regular file.
+     *   or if a check under `diffOutputBaseDir` detects a symlink in the parent path,
+     *   a containment or file identity failure, a non-regular target, or multiple hard links.
      */
     diffFilePath?: string;
     /**
