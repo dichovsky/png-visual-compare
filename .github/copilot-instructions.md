@@ -12,6 +12,7 @@ npm run test:unit      # clean -> codemap:check -> lint -> format:check -> licen
 npm run test:e2e       # run Playwright e2e tests for Excluded Areas Builder and png-visual-compare/playwright
 npm run test:fast      # run vitest --reporter=verbose and skip the pretest:unit gate
 npm run test:license   # check that all production dependency licenses are on the approved list
+npm run test:consumer-types  # type-check the packed entry points in a separate CI job without @types/pngjs
 npm run test:docker    # clean -> docker build -> docker run (runs the full test suite in Docker)
 npm run codemap        # generate CODEMAP.md with scripts/generate-codemap.mts
 npm run codemap:check  # fail if CODEMAP.md is out of date (runs in pretest:unit)
@@ -116,7 +117,6 @@ src/
     color.ts                      # Color (r,g,b)
     compare.input.ts              # ComparePngInput (string | Buffer; internal, not exported from src/index.ts)
     compare.options.ts            # ComparePngOptions, PixelmatchOptions
-    png.data.ts                   # LoadedPng discriminated union
     validated-path.ts             # ValidatedPath branded type (internal, not re-exported from types/index.ts)
 
 __tests__/                        # one file per source module; matches src/ layout
@@ -131,6 +131,7 @@ e2e/
 scripts/
   generate-codemap.mts            # CODEMAP.md generator (--check mode for CI)
   check-licenses.mts              # production dependency license check
+  check-consumer-types.mts        # type-checks the packed entry points from a separate consumer project
   prerelease-check.mts            # pre-publish verification gate
   postrelease-check.mts           # post-publish registry check
   install-smoke.mts               # installs a tarball or package spec in a temp project and runs smoke tests
@@ -196,9 +197,8 @@ All types live in `src/types/`, with one file per type, and `src/types/index.ts`
 | `ComparePngOptions` | yes           | Options object for `comparePng` and `comparePngAsync`             |
 | `PixelmatchOptions` | yes           | Mapped by `toPixelmatchOptions` to the vendored pixelmatch format |
 | `Color`             | yes           | Public `{ r, g, b }` color used for pixel painting                |
-| `LoadedPng`         | yes           | Discriminated union for decoded images (deprecated)               |
 
-`src/index.ts` exports `Color` and `LoadedPng` in the public type surface.
+The loader result type `LoadedPng` is internal to `src/pipeline/types.ts`.
 
 `resolveOptions` validates `PixelmatchOptions`. Then `src/adapters/toPixelmatchOptions.ts` copies each known key into the options object for `src/vendor/pixelmatch.ts`. Unknown keys never reach `pixelmatch` (TYPE-03).
 
@@ -272,15 +272,18 @@ Coverage is 100% across all runtime source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches) and every pull request
 
-| Job           | OS            | Node                                              | Checks                           |
-| ------------- | ------------- | ------------------------------------------------- | -------------------------------- |
-| ubuntu        | ubuntu-latest | From `.nvmrc`                                     | Unit coverage and Playwright     |
-| macos         | macos-latest  | From `.nvmrc`                                     | Unit coverage and Playwright     |
-| engines-floor | ubuntu-latest | `.nvmrc` to build, then `26.0.0` (`engines.node`) | Packed tarball on the Node floor |
+| Job            | OS            | Node                                              | Checks                           |
+| -------------- | ------------- | ------------------------------------------------- | -------------------------------- |
+| ubuntu         | ubuntu-latest | From `.nvmrc`                                     | Unit coverage and Playwright     |
+| macos          | macos-latest  | From `.nvmrc`                                     | Unit coverage and Playwright     |
+| engines-floor  | ubuntu-latest | `.nvmrc` to build, then `26.0.0` (`engines.node`) | Packed tarball on the Node floor |
+| consumer-types | ubuntu-latest | From `.nvmrc`                                     | Strict consumer type check       |
 
 The `ubuntu` and `macos` jobs run `npm test`. The `pretest:e2e` hook installs Chromium on both platforms. Ubuntu first installs the Chromium system dependencies with `npx playwright install-deps chromium`. A failed test on either platform fails the workflow.
 
 The `engines-floor` job builds and packs the tarball with the `.nvmrc` Node version, switches to Node 26.0.0, and runs `node ./scripts/install-smoke.mts <tarball>`. That script installs the tarball into a temporary project with `--engine-strict`, loads the root entry with `require()` and ESM `import`, and verifies `comparePng` and `comparePngAsync`. `release:check:post` runs the same script against the published version. Keep `node-version` in `engines-floor` synchronized with `engines.node`.
+
+The `consumer-types` job runs `npm run test:consumer-types`. It installs the packed tarball in a new project without `@types/pngjs` and type-checks the four entry points with `skipLibCheck: false`.
 
 ### `publish.yml` — runs when a GitHub release is published (skips prereleases)
 

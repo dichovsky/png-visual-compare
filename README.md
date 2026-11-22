@@ -23,6 +23,7 @@ A Node.js library that compares PNG images or image regions without native binar
 ## Table of Contents
 
 - [Installation](#installation)
+- [Migration Guide to v8.0.0](#migration-guide-to-v800)
 - [Migration Guide to v7.0.0](#migration-guide-to-v700)
 - [Migration Guide to v6.0.0](#migration-guide-to-v600)
 - [Quick Start](#quick-start)
@@ -47,16 +48,38 @@ npm install -D png-visual-compare
 
 ---
 
-## Migration Guide to v7.0.0
+## Migration Guide to v8.0.0
 
 1. Use Node.js 26.0.0 or later.
+2. Remove `LoadedPng` imports.
+3. Rerun visual comparisons after the pixelmatch upgrade.
+
+### 1. Upgrade to Node.js 26
+
+Version 8 requires Node.js 26.0.0 or later.
+
+### 2. Remove `LoadedPng` Imports
+
+Version 7.1.0 deprecated `LoadedPng`. Version 8 removes the export. Remove imports of `LoadedPng`, or `PngData` if you upgrade from version 5. If you used either type to describe your own decoded images, define a local type for the fields your code uses. No public function accepts or returns the loader result.
+
+You can now type-check all package entry points with `skipLibCheck: false` without installing `@types/pngjs`.
+
+### 3. Review comparison results
+
+Version 8 uses pixelmatch 8. The same images and threshold can produce a different mismatch count and diff image. Rerun your visual tests and review changed results before updating thresholds or baselines.
+
+---
+
+## Migration Guide to v7.0.0
+
+1. Use Node.js 22.12.0 or later.
 2. Upgrade to Vitest 5 if you use `png-visual-compare/vitest`.
 3. Check for new errors from `maxFileBytes` and path containment rules.
 4. Upgrade `vitest` to v5 and `@playwright/test` to v1.60+ if they are installed in your project.
 
 ### 1. Node.js Version Requirement
 
-`engines.node` requires `>=26.0.0`.
+Version 7 requires Node.js 22.12.0 or later.
 
 ### 2. Vitest 5 Requirement
 
@@ -82,7 +105,7 @@ The `vitest` peer dependency range is `>=5.0.0 <6`. Vitest 5 changed `Matchers` 
 
 ### 1. Replace `PngData` with `LoadedPng`
 
-The package no longer exports `PngData`. Import `LoadedPng` instead:
+Versions 6 and 7 exported the renamed type as `LoadedPng`, as shown below. If you upgrade to version 8, remove the import.
 
 ```typescript
 // Before
@@ -91,8 +114,6 @@ import type { PngData } from 'png-visual-compare';
 // After
 import type { LoadedPng } from 'png-visual-compare';
 ```
-
-`LoadedPng` is deprecated and will be removed in version 8.0.0 because no public function returns or accepts it. Remove the import when you update your code.
 
 ### 2. Option Validation Rules
 

@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.2.1"
     },
-    "sourceHash": "226b5d0c66a90a5ee9317d5c5faa802d56e9c7389e63774ce20582ac2cd717bf",
+    "sourceHash": "71851383b1d1653166615885ca6d04ba4839bb9f128a8376cd2a7c7ae888abd9",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -121,16 +121,6 @@ Schema: `codemap.v2`
             "signature": "export class InvalidInputError extends Error",
             "jsdoc": "Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded. Also thrown when an `excludedAreas`, color, or `pixelmatchOptions` value is invalid. @example ```ts try { comparePng('invalid.png', 'image.png', { throwErrorOnInvalidInputDat…",
             "typeOnly": false
-        },
-        {
-            "name": "LoadedPng",
-            "kind": "type",
-            "entrypoint": "src/index.ts",
-            "file": "src/types/png.data.ts",
-            "line": 7,
-            "signature": "export type LoadedPng = InternalLoadedPng;",
-            "jsdoc": "@deprecated No public API returns or accepts a `LoadedPng` — it describes an internal loading step. It will be removed in 8.0.0; delete all imports of it (TYPE-06).",
-            "typeOnly": true
         },
         {
             "name": "PathValidationError",
@@ -769,7 +759,6 @@ Schema: `codemap.v2`
                         "Area",
                         "Color",
                         "ComparePngOptions",
-                        "LoadedPng",
                         "PixelmatchOptions"
                     ],
                     "typeOnly": true
@@ -1575,7 +1564,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ResolvedOptions",
                     "kind": "type",
-                    "line": 10,
+                    "line": 8,
                     "exported": true,
                     "signature": "export type ResolvedOptions = { readonly excludedAreas: Area[]; readonly throwErrorOnInvalidInputData: boolean; readonly extendedAreaColor: Color; readonly excludedAreaColor: Color; readonly shouldCre…",
                     "members": null,
@@ -1584,7 +1573,7 @@ Schema: `codemap.v2`
                 {
                     "name": "LoadedPng",
                     "kind": "type",
-                    "line": 33,
+                    "line": 30,
                     "exported": true,
                     "signature": "export type LoadedPng = | { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
                     "members": null,
@@ -1593,7 +1582,7 @@ Schema: `codemap.v2`
                 {
                     "name": "LoadedSources",
                     "kind": "type",
-                    "line": 37,
+                    "line": 34,
                     "exported": true,
                     "signature": "export type LoadedSources = { readonly first: LoadedPng; readonly second: LoadedPng; };",
                     "members": null,
@@ -1602,7 +1591,7 @@ Schema: `codemap.v2`
                 {
                     "name": "NormalizedImages",
                     "kind": "type",
-                    "line": 42,
+                    "line": 39,
                     "exported": true,
                     "signature": "export type NormalizedImages = { readonly first: PNGWithMetadata; readonly second: PNGWithMetadata; readonly width: number; readonly height: number; };",
                     "members": null,
@@ -1611,7 +1600,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonResult",
                     "kind": "type",
-                    "line": 49,
+                    "line": 46,
                     "exported": true,
                     "signature": "export type ComparisonResult = { readonly mismatchedPixels: number; readonly diff?: PNG; };",
                     "members": null,
@@ -2320,33 +2309,8 @@ Schema: `codemap.v2`
                         "PixelmatchOptions"
                     ],
                     "typeOnly": true
-                },
-                {
-                    "source": "./png.data",
-                    "names": [
-                        "LoadedPng"
-                    ],
-                    "typeOnly": true
                 }
             ]
-        },
-        {
-            "path": "src/types/png.data.ts",
-            "symbols": [
-                {
-                    "name": "LoadedPng",
-                    "kind": "type",
-                    "line": 7,
-                    "exported": true,
-                    "signature": "export type LoadedPng = InternalLoadedPng;",
-                    "members": null,
-                    "jsdoc": "@deprecated No public API returns or accepts a `LoadedPng` — it describes an internal loading step. It will be removed in 8.0.0; delete all imports of it (TYPE-06)."
-                }
-            ],
-            "imports": [
-                "../pipeline/types"
-            ],
-            "reExports": []
         },
         {
             "path": "src/types/validated-path.ts",

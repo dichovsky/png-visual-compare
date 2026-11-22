@@ -1,6 +1,4 @@
 import type { PNG, PNGWithMetadata } from 'pngjs';
-// Concrete files, not the `../types` barrel: the barrel re-exports the public `LoadedPng`
-// alias of the type defined below, which would close a type-only import cycle.
 import type { Area } from '../types/area';
 import type { Color } from '../types/color';
 import type { PixelmatchOptions } from '../types/compare.options';
@@ -27,8 +25,7 @@ export type ResolvedOptions = {
 /**
  * Result of loading one image source: the decoded PNG, or why it could not be loaded.
  *
- * Internal. The public `LoadedPng` in `src/types/png.data.ts` is a deprecated alias of this
- * type, kept only until 8.0.0 (TYPE-06).
+ * Internal: not exported from the package (the public alias was removed in 8.0.0, TYPE-06).
  */
 export type LoadedPng =
     | { readonly kind: 'valid'; readonly png: PNGWithMetadata }

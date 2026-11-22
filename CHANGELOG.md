@@ -12,10 +12,15 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Development tools** — TypeScript 7 now checks the scripts, tests, and library and builds the published package. The codemap generator reads TypeScript syntax with `@babel/parser`.
 - **Lint and formatting** — `npm run lint` uses Oxlint and fails on warnings. `npm run format` and `npm run format:check` use Oxfmt.
 - **CI** — The macOS job now fails the tests workflow if a test fails. The unit tests reuse matcher registrations across cases.
+- **Consumer type check** — The `consumer-types` CI job checks all four entry points from the packed tarball with `skipLibCheck: false` and without `@types/pngjs`. It checks ESM imports under `node16` and `bundler` resolution and a CommonJS consumer under `node16`.
 - **BREAKING: Node.js 26.0.0 or later is required** — Updated `engines.node` to `>=26.0.0`, `.nvmrc` to `26`, `Dockerfile` to `node:26-slim`, and the `engines-floor` CI job to `26.0.0`.
 - **Upgraded vendored `pixelmatch` to 8.0.0** — Synced `src/vendor/pixelmatch.ts` to `pixelmatch` 8.0.0 (OKLab HyAB perceptual color distance and block pre-pass) and added support for `pixelmatchOptions.windowSize` and `pixelmatchOptions.ignoreMask`.
 - **Rewrote documentation with ASD-STE100 principles** — Rewrote all repository Markdown documentation with ASD-STE100 Simplified Technical English principles. No one checked the text against the official STE dictionary.
 - **Added a writing guide and a second STE-principles pass** — Added `docs/WRITING_GUIDE.md` with the STE edition, the terminology table, and the validation commands. Applied the guide to the documentation and to the public API doc comments.
+
+### Removed
+
+- **Removed the deprecated `LoadedPng` type export (breaking)** — Remove imports of `LoadedPng` when you upgrade. If your code uses the type for its own decoded images, define a local type for that data. No public function accepts or returns `LoadedPng`. Strict TypeScript consumers can now check the package declarations without installing `@types/pngjs` (TYPE-06).
 
 ### Security
 
