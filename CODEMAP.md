@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.2.1"
     },
-    "sourceHash": "5b8061caaad6342708cd4efc1170257b5dcfa3e14ea919f1000123229f8e1200",
+    "sourceHash": "0a38befb48c488a9e6d52db1e3225dce4d108077b0ad194406041364b61d84a1",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -57,7 +57,7 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 124,
+            "line": 123,
             "signature": "export class ComparisonError extends Error",
             "jsdoc": "Thrown when `pixelmatch` fails, for example when the normalized image buffers have different lengths. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
             "typeOnly": false
@@ -513,19 +513,19 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonError",
                     "kind": "class",
-                    "line": 124,
+                    "line": 123,
                     "exported": true,
                     "signature": "export class ComparisonError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 125
+                            "line": 124
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 127
+                            "line": 126
                         }
                     ],
                     "jsdoc": "Thrown when `pixelmatch` fails, for example when the normalized image buffers have different lengths. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"

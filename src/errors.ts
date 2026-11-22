@@ -104,10 +104,9 @@ export class ResourceLimitError extends Error {
 /**
  * Thrown when `pixelmatch` fails, for example when the normalized image buffers have different lengths.
  *
- * The standard ES2022 `cause` property keeps the original failure. Callers can examine it
- * without parsing error messages. Like {@link ResourceLimitError}, this error is **NOT**
- * recoverable with `throwErrorOnInvalidInputData: false`. A comparison-kernel failure shows an
- * integrity bug in the pipeline, not an input problem that the user can recover from.
+ * The ES2022 `cause` property contains the original error. For example, check the length
+ * of `ignoreMask` if the cause reports a mask size mismatch. The comparison still throws
+ * when `throwErrorOnInvalidInputData` is `false`.
  *
  * @example
  * ```ts

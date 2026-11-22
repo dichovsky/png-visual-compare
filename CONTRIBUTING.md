@@ -49,7 +49,7 @@ Run `npm test` or `npm run test:unit` to check 100% coverage across the reposito
 npx vitest run -u
 ```
 
-PNG snapshot matcher tests import `../src/vitest.mjs` and check diff images with `toMatchPngSnapshot()`. The matcher compares decoded pixels with `comparePng`. Pass `ComparePngOptions` to change the comparison settings.
+PNG snapshot matcher tests import `../src/vitest.mjs` and check diff images with `toMatchPngSnapshot()`. The matcher compares decoded pixels with `comparePng`. Pass `ComparePngOptions` to change how the matcher compares pixels.
 
 ### Run E2E Tests
 
