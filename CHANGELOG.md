@@ -7,6 +7,8 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [8.0.0] - 2026-11-23
+
 ### Changed
 
 - **Development tools** — TypeScript 7 now checks the scripts, tests, and library and builds the published package. The codemap generator reads TypeScript syntax with `@babel/parser`.
