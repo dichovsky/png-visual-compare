@@ -91,15 +91,15 @@ export type ComparePngOptions = {
      *
      * **File mode contract (SECU-12):**
      * After the file is opened, the writer issues an explicit `fchmod` to mode
-     * `0o600` (owner read/write only). The final mode is then `0o600` regardless
-     * of (a) the process umask and (b) any pre-existing mode at the target
-     * when the diff overwrites an older file. Without the `fchmod`, POSIX would mask
+     * `0o600` (owner read/write only). The final mode is then `0o600`. The process
+     * umask does not change this mode. When the diff overwrites an older file, a
+     * pre-existing mode at the target does not change it either. Without the `fchmod`, POSIX would mask
      * the requested create-mode with `~umask`, so umask can only make permissions
      * *more* restrictive. Also, truncation of an existing file would otherwise leave a pre-existing
      * `0o644` file at its existing wider mode.
      *
      * **Residual scope:** Node exposes no `openat`, so a path swap cannot be
-     * *prevented* portably. Instead, a path swap is detected and refused. To redirect
+     * *prevented* portably. The library detects and refuses a path swap. To redirect
      * the write, an attacker must now rename a real directory in the resolved chain,
      * not plant a symlink. Without `diffOutputBaseDir` there is no boundary to enforce and none of
      * the parent-component checks run.
@@ -208,8 +208,8 @@ export type ComparePngOptions = {
      * and SECU-03. The **parent-directory** race is closed by SECU-09. Parents are
      * created one component at a time with symlinks refused. The file is opened
      * inside the resolved parent directory, so no symlink is traversed. A target with
-     * more than one hard link is refused before it is truncated (SECU-13), and a FIFO
-     * or device at the target is refused without blocking (SECU-14).
+     * more than one hard link is refused before it is truncated (SECU-13). A FIFO or
+     * device at the target is refused without blocking (SECU-14).
      *
      * Node exposes no `openat`, so the underlying race is detected rather than made
      * impossible. The guarantee is that no bytes are written outside the boundary. For

@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.2.1"
     },
-    "sourceHash": "b98cdef931a8f0255dfb2b605de957baf32913e28a693b8c27c60250246fd1af",
+    "sourceHash": "61c09c8d8ff009765a70286d61ab19b5fe0c97ddbde5b80387654e7b3457c507",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -57,9 +57,9 @@ Schema: `codemap.v2`
             "kind": "class",
             "entrypoint": "src/index.ts",
             "file": "src/errors.ts",
-            "line": 126,
+            "line": 127,
             "signature": "export class ComparisonError extends Error",
-            "jsdoc": "Thrown when the underlying `pixelmatch` call fails. For example, this error is thrown when the two normalized image buffers have mismatched lengths, or when `pixelmatch` throws for any reason that the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
+            "jsdoc": "Thrown when the underlying `pixelmatch` call fails. These are examples: @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…",
             "typeOnly": false
         },
         {
@@ -159,7 +159,7 @@ Schema: `codemap.v2`
             "file": "src/errors.ts",
             "line": 94,
             "signature": "export class ResourceLimitError extends Error",
-            "jsdoc": "Thrown when a PNG would exceed the resource limits that `maxDimension`, `maxPixels`, or `maxFileBytes` set. This error is **NOT** recoverable. It always throws, whatever the value of `throwErrorOnInvalidInputData` is. The reason is that resource exhaustion is a security concern, not a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…",
+            "jsdoc": "Thrown when a PNG would exceed the resource limits that `maxDimension`, `maxPixels`, or `maxFileBytes` set. This error is **NOT** recoverable. It always throws, also when `throwErrorOnInvalidInputData` is `false`, because resource exhaustion is a security concern, not a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…",
             "typeOnly": false
         },
         {
@@ -508,27 +508,27 @@ Schema: `codemap.v2`
                             "line": 97
                         }
                     ],
-                    "jsdoc": "Thrown when a PNG would exceed the resource limits that `maxDimension`, `maxPixels`, or `maxFileBytes` set. This error is **NOT** recoverable. It always throws, whatever the value of `throwErrorOnInvalidInputData` is. The reason is that resource exhaustion is a security concern, not a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…"
+                    "jsdoc": "Thrown when a PNG would exceed the resource limits that `maxDimension`, `maxPixels`, or `maxFileBytes` set. This error is **NOT** recoverable. It always throws, also when `throwErrorOnInvalidInputData` is `false`, because resource exhaustion is a security concern, not a routine input validation issue. @example ```ts try { // Defaults reject > 16384 px per axis, > 16,777,216 pixels, or file…"
                 },
                 {
                     "name": "ComparisonError",
                     "kind": "class",
-                    "line": 126,
+                    "line": 127,
                     "exported": true,
                     "signature": "export class ComparisonError extends Error",
                     "members": [
                         {
                             "name": "code",
                             "kind": "property",
-                            "line": 127
+                            "line": 128
                         },
                         {
                             "name": "constructor",
                             "kind": "constructor",
-                            "line": 129
+                            "line": 130
                         }
                     ],
-                    "jsdoc": "Thrown when the underlying `pixelmatch` call fails. For example, this error is thrown when the two normalized image buffers have mismatched lengths, or when `pixelmatch` throws for any reason that the public API does not control directly. @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
+                    "jsdoc": "Thrown when the underlying `pixelmatch` call fails. These are examples: @example ```ts try { comparePng('a.png', 'b.png'); } catch (error) { if (error instanceof…"
                 }
             ],
             "imports": [],

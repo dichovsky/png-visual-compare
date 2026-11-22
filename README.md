@@ -447,7 +447,7 @@ When `inputBaseDir` is set, the library checks path containment before `maxFileB
 
 When you set a base directory, the library checks for path swaps during I/O:
 
-- **Reads** reject paths lexically outside `inputBaseDir` before touching the filesystem. Then the library opens the file with `O_NONBLOCK` and pins the file descriptor. Next, the library verifies symlink-resolved containment. It also checks that the open descriptor has the same `dev` and `ino` as the approved path and is a regular file.
+- **Reads** reject paths lexically outside `inputBaseDir` before touching the filesystem. Then the library opens the file with `O_NONBLOCK` and pins the file descriptor. Then the library verifies symlink-resolved containment. It also checks that the open descriptor has the same `dev` and `ino` as the approved path and is a regular file.
 - **Writes** create missing parent directories one segment at a time and reject symlinks in the parent chain. The writer resolves the canonical parent directory and opens the file with `O_WRONLY | O_CREAT | O_NOFOLLOW | O_NONBLOCK`. After open, the writer verifies `dev` and `ino` and rejects non-regular files and files with more than one hard link. The writer truncates the file only after all checks pass. On failure, the writer closes the handle without unlinking the path. Thus the writer never deletes a file swapped in by another process.
 
 Node.js does not give access to `openat`. Because of this, these checks **detect** a path swap and abort the operation instead of preventing the rename at the OS level.

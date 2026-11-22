@@ -67,7 +67,7 @@ These rules do not apply to:
 
 ## Terminology
 
-Precise technical terms have priority over STE vocabulary. Keep a technical word if it is the precise term, even if the STE dictionary rejects the word in general language. For general language, use the STE alternative if it has the same meaning. Examples: "gives" (not "provides"), "lets" (not "allows" or "enables"), "is necessary" (not "is required").
+Precise technical terms have priority over STE vocabulary. Keep a technical word if it is the precise term. This rule also applies if the STE dictionary rejects the word in general language. For general language, use the STE alternative if it has the same meaning. Examples: "gives" (not "provides"), "lets" (not "allows" or "enables"), "is necessary" (not "is required").
 
 `CONTEXT.md` defines the domain terms. This table does not repeat their definitions.
 

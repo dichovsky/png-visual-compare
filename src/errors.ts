@@ -69,8 +69,8 @@ export class PathValidationError extends Error {
 
 /**
  * Thrown when a PNG would exceed the resource limits that `maxDimension`, `maxPixels`, or
- * `maxFileBytes` set. This error is **NOT** recoverable. It always throws, whatever the value of
- * `throwErrorOnInvalidInputData` is. The reason is that resource exhaustion is a security
+ * `maxFileBytes` set. This error is **NOT** recoverable. It always throws, also when
+ * `throwErrorOnInvalidInputData` is `false`, because resource exhaustion is a security
  * concern, not a routine input validation issue.
  *
  * Common triggers:
@@ -102,9 +102,10 @@ export class ResourceLimitError extends Error {
 }
 
 /**
- * Thrown when the underlying `pixelmatch` call fails. For example, this error is thrown when the
- * two normalized image buffers have mismatched lengths, or when `pixelmatch` throws for any
- * reason that the public API does not control directly.
+ * Thrown when the underlying `pixelmatch` call fails. These are examples:
+ *
+ * - The two normalized image buffers have mismatched lengths.
+ * - `pixelmatch` throws for any reason that the public API does not control directly.
  *
  * The standard ES2022 `cause` property keeps the original failure. Callers can examine it
  * without parsing error messages. Like {@link ResourceLimitError}, this error is **NOT**

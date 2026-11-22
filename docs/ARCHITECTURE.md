@@ -178,7 +178,7 @@ Key rules:
 
 `src/readValidatedFile.ts`
 
-Node.js does not provide a portable `openat` call. Instead of preventing path swaps, `readValidatedFile` detects them and rejects the read:
+Node.js does not give access to a portable `openat` call. Instead of preventing path swaps, `readValidatedFile` detects them and rejects the read:
 
 1. Run syntax checks (`assertPathSyntax`) and, when `inputBaseDir` is set, lexical containment (`assertLexicalContainment`). Paths outside the boundary fail before `open` touches the filesystem.
 2. Open the lexically resolved path to pin one inode. When `inputBaseDir` is set, pass `O_NONBLOCK` so a FIFO does not block (SECU-14).
