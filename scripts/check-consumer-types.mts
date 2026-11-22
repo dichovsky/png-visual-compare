@@ -1,4 +1,4 @@
-/** Check the packed declarations from a strict ESM consumer with no @types/pngjs (TYPE-06). */
+/** Check the packed declarations from strict ESM and CommonJS consumers with no @types/pngjs (TYPE-06). */
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -8,18 +8,23 @@ const repoRoot = path.resolve(import.meta.dirname, '..');
 const tsc = path.join(repoRoot, 'node_modules/.bin/tsc');
 const lock: { packages: Record<string, { version: string }> } = JSON.parse(readFileSync(path.join(repoRoot, 'package-lock.json'), 'utf8'));
 // Install the same peer and Node declarations used by the repository build.
-const peers = ['@types/node', '@playwright/test', 'expect', 'vitest'].map(
-    (name) => `${name}@${lock.packages[`node_modules/${name}`].version}`,
-);
+const peers = ['@types/node', '@playwright/test', 'expect', 'vitest'].map((name) => {
+    const version = lock.packages[`node_modules/${name}`]?.version;
+    if (!version) {
+        throw new Error(`Missing version for ${name} in package-lock.json.`);
+    }
+    return `${name}@${version}`;
+});
 
 // Playwright needs DOM types. The consumer also imports Node's Buffer.
 const baseOptions = { strict: true, skipLibCheck: false, noEmit: true, target: 'es2022', lib: ['es2023', 'dom'], types: ['node'] };
-const resolutions = {
-    node16: { module: 'node16', moduleResolution: 'node16' },
-    bundler: { module: 'esnext', moduleResolution: 'bundler' },
-};
+const checks = [
+    { file: 'consumer.mts', module: 'node16', moduleResolution: 'node16' },
+    { file: 'consumer.mts', module: 'esnext', moduleResolution: 'bundler' },
+    { file: 'consumer.cts', module: 'node16', moduleResolution: 'node16' },
+];
 
-const CONSUMER_SOURCE = `import { Buffer } from 'node:buffer';
+const ESM_SOURCE = `import { Buffer } from 'node:buffer';
 import { expect as jestExpect } from 'expect';
 import { expect as vitestExpect } from 'vitest';
 import {
@@ -79,6 +84,26 @@ playwrightExpect(png).toMatchPngSnapshot('named.png', options);
 export { isLibraryError, mismatched, pending, pngMatchers };
 `;
 
+const COMMONJS_SOURCE = `import png = require('png-visual-compare');
+import jestPng = require('png-visual-compare/jest');
+import playwrightPng = require('png-visual-compare/playwright');
+import { expect as jestExpect } from 'expect';
+
+// @ts-expect-error LoadedPng was removed in v8.
+type Removed = png.LoadedPng;
+const input = Buffer.alloc(0);
+const count: number = png.comparePng(input, input);
+jestPng.registerJestPngSnapshotMatcher(jestExpect);
+jestExpect(input).toMatchPngSnapshot();
+playwrightPng.expect(input).toMatchPngSnapshot();
+
+async function checkVitest() {
+    await import('png-visual-compare/vitest');
+    const { expect } = await import('vitest');
+    expect(input).toMatchPngSnapshot();
+}
+`;
+
 const consumerDir = mkdtempSync(path.join(tmpdir(), 'png-visual-compare-consumer-'));
 
 try {
@@ -95,12 +120,13 @@ try {
     if (existsSync(path.join(consumerDir, 'node_modules/@types/pngjs'))) {
         throw new Error('The consumer installed @types/pngjs, which can hide a broken public declaration.');
     }
-    writeFileSync(path.join(consumerDir, 'consumer.ts'), CONSUMER_SOURCE);
+    writeFileSync(path.join(consumerDir, 'consumer.mts'), ESM_SOURCE);
+    writeFileSync(path.join(consumerDir, 'consumer.cts'), COMMONJS_SOURCE);
 
-    for (const [name, resolution] of Object.entries(resolutions)) {
-        const compilerOptions = { ...baseOptions, ...resolution };
-        writeFileSync(path.join(consumerDir, 'tsconfig.json'), JSON.stringify({ compilerOptions, files: ['consumer.ts'] }));
-        console.log(`Checking packed declarations with moduleResolution ${name}`);
+    for (const { file, module, moduleResolution } of checks) {
+        const compilerOptions = { ...baseOptions, module, moduleResolution };
+        writeFileSync(path.join(consumerDir, 'tsconfig.json'), JSON.stringify({ compilerOptions, files: [file] }));
+        console.log(`Checking ${file} with moduleResolution ${moduleResolution}`);
         const result = spawnSync(tsc, ['--pretty', 'false', '--project', 'tsconfig.json'], { cwd: consumerDir, stdio: 'inherit' });
         if (result.error) throw result.error;
         if (result.status !== 0) process.exitCode = 1;
