@@ -8,7 +8,9 @@ cd png-visual-compare
 npm install
 ```
 
-This package requires Node.js 26.0.0 or later (`engines.node`). `.nvmrc` sets Node.js 26 for local development, CI, and the Docker image. The `engines-floor` CI job installs the packed tarball on Node.js 26.0.0 and runs `scripts/install-smoke.mjs`. To run this check locally:
+Node.js 26.0.0 or later is necessary for this package (`engines.node`). `.nvmrc` sets Node.js 26 for local development, CI, and the Docker image.
+
+The `engines-floor` CI job installs the packed tarball on Node.js 26.0.0 and runs `scripts/install-smoke.mjs`. To run this check locally:
 
 1. Run `npm run build && npm pack`.
 2. Switch to Node.js 26.0.0.
@@ -39,7 +41,7 @@ npx vitest run __tests__/comparePng.test.ts
 
 Run `npm test` or `npm run test:unit` to check 100% coverage across the repository. A focused `npx vitest run ... --coverage` command reports coverage only for the files in that run.
 
-> **Known failure on macOS.** In about 1 of 5 coverage runs, a Vitest worker stops with `Error: Worker exited unexpectedly`. Vitest loses the results for that file, and the 100% coverage gate fails on untested files. Run the command again. `BACKLOG.md` tracks this issue as TEST-08. Because of this issue, the macOS CI job uses `continue-on-error`. Linux is not affected.
+> **On macOS, run the coverage command again if a Vitest worker stops.** In about 1 of 5 coverage runs on macOS, a Vitest worker stops with `Error: Worker exited unexpectedly`. Vitest loses the results for that file, and the 100% coverage gate fails on untested files. `BACKLOG.md` tracks this issue as TEST-08. Because of this issue, the macOS CI job uses `continue-on-error`. Linux is not affected.
 
 ### Update Snapshots
 
@@ -47,7 +49,7 @@ Run `npm test` or `npm run test:unit` to check 100% coverage across the reposito
 npx vitest run -u
 ```
 
-PNG snapshot matcher tests import `../src/vitest.mjs` and check diff images with `toMatchPngSnapshot()`. Pass `ComparePngOptions` when you want a semantic comparison instead of a byte-for-byte comparison.
+PNG snapshot matcher tests import `../src/vitest.mjs` and check diff images with `toMatchPngSnapshot()`. The matcher compares decoded pixels with `comparePng`. Pass `ComparePngOptions` to change how the matcher compares pixels.
 
 ### Run E2E Tests
 
@@ -73,13 +75,14 @@ This command builds the Docker image and runs the unit and e2e tests in a contai
 
 - Make sure that all tests pass (`npm test`).
 - Make sure that type-checking passes (`npm run typecheck`).
-- Add tests for all new code (100% coverage is required for all metrics).
+- Add tests for all new code (100% coverage is necessary for all metrics).
 - Fix all ESLint errors and Prettier formatting issues.
 - Keep commits small and include one logical change per pull request.
+- Write documentation and doc comments with the rules in [docs/WRITING_GUIDE.md](docs/WRITING_GUIDE.md).
 
 ## Branch Protection
 
 The `main` branch enforces these rules:
 
 - The `ubuntu` and `engines-floor` CI checks must pass before merge.
-- Force pushes are not allowed.
+- Force pushes are not permitted.

@@ -1,7 +1,7 @@
 /**
  * Playwright adapter: `toMatchPngSnapshot` compares a received PNG Buffer against a
  * baseline PNG file stored at `testInfo.snapshotPath(name)` (see docs/adr/0001).
- * Has no side effects: use the exported `expect`, or `baseExpect.extend(pngMatchers)`.
+ * This module has no side effects. Use the exported `expect`, or `baseExpect.extend(pngMatchers)`.
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';

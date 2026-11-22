@@ -18,17 +18,17 @@ export type PixelmatchOptions = {
      */
     alpha?: number;
     /**
-     * RGB colour of anti-aliased pixels in the diff image as `[r, g, b]`.
+     * RGB color of anti-aliased pixels in the diff image as `[r, g, b]`.
      * @default [255, 255, 0]
      */
     aaColor?: [number, number, number];
     /**
-     * RGB colour of differing pixels in the diff image as `[r, g, b]`.
+     * RGB color of differing pixels in the diff image as `[r, g, b]`.
      * @default [255, 0, 0]
      */
     diffColor?: [number, number, number];
     /**
-     * Alternative RGB colour for differing pixels where the second image is darker than the first, to tell
+     * Alternative RGB color for differing pixels where the second image is darker than the first, to tell
      * "added" from "removed" content. When unset, all differing pixels use `diffColor`.
      * @default undefined
      */
@@ -51,7 +51,7 @@ export type PixelmatchOptions = {
      */
     windowSize?: number;
     /**
-     * One byte per pixel (`width × height` of the normalized comparison canvas); pixels with a
+     * One byte per pixel (`width × height` of the normalized comparison canvas). Pixels with a
      * non-zero value are skipped from comparison and drawn as unchanged in the diff output.
      * @default undefined
      */
@@ -60,7 +60,7 @@ export type PixelmatchOptions = {
 
 export type ComparePngOptions = {
     /**
-     * Rectangular areas to exclude from the comparison. Both images have these regions painted a solid colour
+     * Rectangular areas to exclude from the comparison. Both images have these regions painted a solid color
      * before diffing, so they always match regardless of content.
      * @default []
      */
@@ -75,43 +75,45 @@ export type ComparePngOptions = {
      * is a symlink at write-time, the write is refused with a {@link PathValidationError}
      * and the symlink's target is never touched. This closes the TOCTOU window where
      * a hostile process could plant a symlink between path validation and the write.
-     * Regular files at the target path continue to be overwritten as before — only
+     * Regular files at the target path continue to be overwritten as before. Only
      * the symlink-redirect attack is closed.
      *
-     * When `diffOutputBaseDir` is set, parent components are covered too: each is
-     * created singly with symlinks refused, the parent chain is then resolved and the
-     * file is opened *inside* that canonical directory, so no symlink is traversed at
-     * open time at all. Truncation is deferred until the opened handle has been proven
-     * to sit inside the boundary, so an escaped target is never emptied. An existing
-     * target with more than one hard link is refused before truncation too (SECU-13):
-     * the other name may be a file outside the boundary, and it is the same inode. So
-     * is a FIFO or device (SECU-14); the open does not block, so a FIFO
-     * planted at the target cannot hang the write.
+     * When `diffOutputBaseDir` is set, parent components are covered too. Each
+     * component is created singly with symlinks refused. Then the parent chain is
+     * resolved, and the file is opened *inside* that canonical directory. No symlink
+     * is traversed at open time. Truncation is deferred until the opened handle has been proven
+     * to sit inside the boundary, so an escaped target is never emptied.
+     *
+     * An existing target with more than one hard link is also refused before truncation (SECU-13).
+     * The other name can be a file outside the boundary, and it is the same inode. A
+     * FIFO or device at the target is also refused before truncation (SECU-14). The
+     * open does not block, so a FIFO planted at the target cannot hang the write.
      *
      * **File mode contract (SECU-12):**
-     * After the file is opened the writer issues an explicit `fchmod` to mode
-     * `0o600` (owner read/write only), so the final mode is `0o600` regardless
-     * of (a) the process umask and (b) any pre-existing mode at the target
-     * when the diff overwrites an older file. POSIX would otherwise mask the
-     * requested create-mode with `~umask` (so umask can only make permissions
-     * *more* restrictive), and truncating an existing file would otherwise leave a pre-existing
+     * After the file is opened, the writer issues an explicit `fchmod` to mode
+     * `0o600` (owner read/write only). The final mode is then `0o600`. The process
+     * umask does not change this mode. When the diff overwrites an older file, a
+     * pre-existing mode at the target does not change it either. Without the `fchmod`, POSIX would mask
+     * the requested create-mode with `~umask`, so umask can only make permissions
+     * *more* restrictive. Also, truncation of an existing file would otherwise leave a pre-existing
      * `0o644` file at its existing wider mode.
      *
      * **Residual scope:** Node exposes no `openat`, so a path swap cannot be
-     * *prevented* portably — it is detected and refused. Redirecting the write now
-     * requires renaming a real directory in the resolved chain rather than planting a
-     * symlink. Without `diffOutputBaseDir` there is no boundary to enforce and none of
+     * *prevented* portably. The library detects and refuses a path swap. To redirect
+     * the write, an attacker must now rename a real directory in the resolved chain,
+     * not plant a symlink. Without `diffOutputBaseDir` there is no boundary to enforce and none of
      * the parent-component checks run.
+     *
      * Failed writes close their handles without deleting the output path, which another
      * writer may have replaced. A refused write can leave an empty owner-only file at
-     * a redirected location outside `diffOutputBaseDir` after a detected parent swap;
-     * no diff bytes are written to that file. A later write failure can leave partial
+     * a redirected location outside `diffOutputBaseDir` after a detected parent swap.
+     * No diff bytes are written to that file. A later write failure can leave partial
      * output at the verified destination.
      *
      * @default undefined (no diff file written)
      * @throws {PathValidationError} if a symlink exists at the target path at write-time,
-     *   or, with `diffOutputBaseDir`, if the target has more than one hard link or is
-     *   not a regular file.
+     *   or if a check under `diffOutputBaseDir` detects a symlink in the parent path,
+     *   a containment or file identity failure, a non-regular target, or multiple hard links.
      */
     diffFilePath?: string;
     /**
@@ -122,13 +124,13 @@ export type ComparePngOptions = {
      */
     throwErrorOnInvalidInputData?: boolean;
     /**
-     * Colour used to paint size-extended padding regions (areas added when images differ in size).
+     * Color used to paint size-extended padding regions (areas added when images differ in size).
      * Override when the default green `{ r: 0, g: 255, b: 0 }` clashes with your image content.
      * @default { r: 0, g: 255, b: 0 }
      */
     extendedAreaColor?: Color;
     /**
-     * Colour used to paint excluded areas before comparison (making them always match).
+     * Color used to paint excluded areas before comparison (making them always match).
      * Override when the default blue `{ r: 0, g: 0, b: 255 }` clashes with your image content.
      * @default { r: 0, g: 0, b: 255 }
      */
@@ -136,9 +138,9 @@ export type ComparePngOptions = {
     /**
      * Maximum allowed width or height in pixels for either input image.
      * An error is thrown if either dimension exceeds this limit, protecting against
-     * denial-of-service via crafted PNG headers with enormous declared dimensions.
+     * denial-of-service through crafted PNG headers with enormous declared dimensions.
      * **This check always throws regardless of the `throwErrorOnInvalidInputData`
-     * setting**, because an oversized image is a security/resource-exhaustion signal
+     * option**, because an oversized image is a security/resource-exhaustion signal
      * rather than a routine "invalid input" condition.
      * Set to `Infinity` to disable the limit entirely.
      *
@@ -178,7 +180,7 @@ export type ComparePngOptions = {
      * inputs, whose memory the caller has already paid for.
      *
      * `maxDimension` and `maxPixels` read the declared IHDR header, so they bound
-     * the *decoded* image but say nothing about how many compressed bytes must be
+     * the *decoded* image. They do not limit how many compressed bytes must be
      * read to reach that header. This limit closes that gap. It is checked from the
      * file's size before reading and again against the bytes actually read. Like the
      * other two, it throws regardless of `throwErrorOnInvalidInputData`.
@@ -197,20 +199,20 @@ export type ComparePngOptions = {
      * When provided, `diffFilePath` must resolve to a path inside this directory
      * (validated after symlink resolution). Any attempt to write outside it throws
      * a `PathValidationError`. Use in server-side contexts where `diffFilePath`
-     * is caller-controlled to prevent arbitrary file writes via path traversal
+     * is caller-controlled to prevent arbitrary file writes through path traversal
      * (VUL-01: `../../etc/passwd`).
      *
      * **Note:** The option-time containment check is point-in-time, so the write path
      * re-proves it. The **target-path** race (a symlink planted at `diffFilePath`
-     * itself) is closed via `O_NOFOLLOW` — see {@link ComparePngOptions.diffFilePath}
-     * and SECU-03. The **parent-directory** race is closed by SECU-09: parents are
-     * created one component at a time with symlinks refused, and the file is opened
-     * inside the resolved parent directory so no symlink is traversed. A target with
-     * more than one hard link is refused before it is truncated (SECU-13), and a FIFO
-     * or device at the target is refused without blocking (SECU-14).
+     * itself) is closed through `O_NOFOLLOW` — see {@link ComparePngOptions.diffFilePath}
+     * and SECU-03. The **parent-directory** race is closed by SECU-09. Parents are
+     * created one component at a time with symlinks refused. The file is opened
+     * inside the resolved parent directory, so no symlink is traversed. A target with
+     * more than one hard link is refused before it is truncated (SECU-13). A FIFO or
+     * device at the target is refused without blocking (SECU-14).
      *
      * Node exposes no `openat`, so the underlying race is detected rather than made
-     * impossible; the guarantee is that no bytes are written outside the boundary. For
+     * impossible. The guarantee is that no bytes are written outside the boundary. For
      * critical security contexts, use OS-level chroot/jails or filesystem ACLs for
      * defense-in-depth.
      *
@@ -230,19 +232,19 @@ export type ComparePngOptions = {
      * When provided, string input paths (`png1` / `png2`) must resolve to a path
      * inside this directory (validated after symlink resolution). Any attempt to read
      * outside it throws a `PathValidationError`. Use in server-side contexts where
-     * image paths are caller-controlled to prevent arbitrary file reads via path
+     * image paths are caller-controlled to prevent arbitrary file reads through path
      * traversal (VUL-02: reading `/etc/passwd` as a PNG).
      *
      * **Note:** The read path does not trust the path a second time (SECU-05). The
-     * file is opened first, pinning one inode, and the handle's device/inode pair is
-     * then compared against the canonical path containment approved. A path swapped
+     * file is opened first, which pins one inode. Then the handle's device/inode pair
+     * is compared against the canonical path that containment approved. A path swapped
      * between validation and read is refused with a `PathValidationError`, so bytes
      * are never returned from an inode that failed the check. A FIFO or device
-     * inside the boundary is refused too, and the open does not block, so a
+     * inside the boundary is refused too. The open does not block, so a
      * FIFO planted there cannot hang the call (SECU-14).
      *
-     * Node exposes no `openat`, so the race is detected rather than prevented, and the
-     * check needs a filesystem that reports file identity — on a mount that reports
+     * Node exposes no `openat`, so the race is detected rather than prevented. The
+     * check needs a filesystem that reports file identity. On a mount that reports
      * none, the read is refused rather than passed silently. For critical security
      * contexts, use OS-level chroot/jails or filesystem ACLs for defense-in-depth.
      *
@@ -258,7 +260,7 @@ export type ComparePngOptions = {
      */
     inputBaseDir?: string;
     /**
-     * Options translated internally via an adapter to [pixelmatch](https://github.com/mapbox/pixelmatch).
+     * Options translated internally through an adapter to [pixelmatch](https://github.com/mapbox/pixelmatch).
      * The public option names remain stable even if the underlying pixelmatch library changes.
      * @default undefined
      */

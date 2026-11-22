@@ -43,7 +43,7 @@ npm install -D png-visual-compare
 
 > **Operating System:** macOS or Linux only. Windows is not supported.
 >
-> **Node.js Version:** Node.js 26.0.0 or later is required.
+> **Node.js Version:** Node.js 26.0.0 or later is necessary.
 
 ---
 
@@ -65,7 +65,8 @@ The `vitest` peer dependency range is `>=5.0.0 <6`. Vitest 5 changed `Matchers` 
 ### 3. File Size Limits and Containment Checks
 
 - `maxFileBytes` (default `135266304`) limits the byte size of a PNG file read from a path. It throws `ResourceLimitError` when a file exceeds the limit, even when `throwErrorOnInvalidInputData` is `false`. This limit does not apply to `Buffer` inputs. See [Resource limits](#resource-limits).
-- When `inputBaseDir` or `diffOutputBaseDir` is set, the library throws `PathValidationError` if a file changes between validation and use, if the filesystem reports no inode number, or if a parent directory of `diffFilePath` is a symlink. See [Security Model](#security-model).
+- With `inputBaseDir`, reads throw `PathValidationError` if the opened file and the validated path have different file identities or either inode number is zero.
+- With `diffOutputBaseDir`, writes apply the same identity checks. They also refuse symlinked parent directories below that base. See [Security Model](#security-model).
 
 ### 4. Peer Dependency Checks During Install
 
@@ -157,7 +158,7 @@ expect(asyncMismatchedPixels).toBe(0);
 
 ## Snapshot Matchers
 
-The package provides `toMatchPngSnapshot()` matchers for **Vitest**, **Jest**, and **Playwright** to compare a PNG `Buffer` against a stored baseline.
+The package gives `toMatchPngSnapshot()` matchers for **Vitest**, **Jest**, and **Playwright** to compare a PNG `Buffer` against a stored baseline.
 
 ### Vitest
 
@@ -266,8 +267,13 @@ export const expect = baseExpect.extend(pngMatchers);
 The Playwright matcher is synchronous and follows Playwright snapshot conventions:
 
 - **Baselines are PNG files** at `testInfo.snapshotPath(name)`. They use `snapshotPathTemplate` and sit next to `toHaveScreenshot()` baselines. `'header'` resolves to `header.png`. Unnamed assertions use `<title>-png-1.png`.
-- **`--update-snapshots`** works like `toMatchSnapshot()`: `missing` writes missing baselines and marks the test as a soft failure, `changed` updates mismatching baselines, `all` rewrites all baselines that differ, and `none` never writes baselines. `ignoreSnapshots: true` skips the assertion.
-- **On failure**, the matcher attaches `<name>-expected.png`, `<name>-actual.png`, and `<name>-diff.png` to the Playwright HTML report.
+- **`--update-snapshots`** works like `toMatchSnapshot()`:
+    - `missing` writes missing baselines and marks the test as a soft failure.
+    - `changed` writes missing baselines and updates baselines when the pixels differ under the comparison options.
+    - `all` writes missing baselines and updates existing baselines when the PNG file bytes differ.
+    - `none` never writes baselines.
+- **`ignoreSnapshots: true`** skips baseline lookup and comparison after the matcher checks its input and arguments.
+- **When a positive assertion fails because the pixels differ**, the matcher attaches `<name>-expected.png`, `<name>-actual.png`, and `<name>-diff.png` to the Playwright HTML report.
 - **Do not pass `diffFilePath` or `diffOutputBaseDir`**: the matcher manages diff paths and throws if you set those options.
 - **Image limits apply to baselines**: a received image above `maxDimension` or `maxPixels` throws `ResourceLimitError` before writing the baseline. For large `fullPage` or HiDPI screenshots, pass a larger `maxPixels` or `maxDimension` in the matcher options.
 - **Requires `@playwright/test` 1.60 or later.**
@@ -419,9 +425,9 @@ The security options are optional and protect distinct boundaries.
 
 ### Resource Limits
 
-`maxDimension` and `maxPixels` check the width and height in the PNG IHDR header. They limit the **decoded** image size and stop small files that declare huge dimensions (for example, `60000 × 60000` pixels).
+`maxDimension` and `maxPixels` check the width and height in the PNG IHDR header. They limit the **decoded** image size and stop small files that declare very large dimensions (for example, `60000 × 60000` pixels).
 
-They also limit decompression. Before `pngjs` decodes an image, the library inflates the image data with `node:zlib` and stops one byte past the size declared in the IHDR header (at most about 128 MiB with default limits). If a file decompresses past that size, the library rejects it immediately.
+They also limit decompression. Before `pngjs` decodes an image, the library inflates the image data with `node:zlib`. The inflation stops one byte past the size declared in the IHDR header (at most about 128 MiB with default limits). If a file decompresses past that size, the library rejects it immediately.
 
 `maxFileBytes` limits the **compressed** file size before the header is read. The library checks `maxFileBytes` against the file size before reading any bytes, and checks it again against the bytes read. The default limit is `135,266,304` bytes (129 MiB). `maxFileBytes` applies only to file path inputs, not to `Buffer` inputs.
 
@@ -429,7 +435,7 @@ When `inputBaseDir` is set, the library checks path containment before `maxFileB
 
 ### Corrupt Image Data
 
-`pngjs` 7 does not report an error when non-interlaced PNG image data is truncated or has an invalid Adler-32 checksum, and it inflates interlaced PNG data without an output size limit. To prevent uninitialized memory reads and decompression bombs, this library inflates the image data with `node:zlib` before decoding and requires the exact byte count declared by the header. Any mismatch throws `InvalidInputError`.
+`pngjs` 7 does not report an error when non-interlaced PNG image data is truncated or has an invalid Adler-32 checksum. Also, `pngjs` 7 inflates interlaced PNG data without an output size limit. To prevent uninitialized memory reads and decompression bombs, this library inflates the image data with `node:zlib` before decoding. The inflated data must have the exact byte count declared by the header. By default, a size mismatch throws `InvalidInputError`. With `throwErrorOnInvalidInputData: false`, the comparison can continue if the other input is valid.
 
 ### Path Containment
 
@@ -437,18 +443,18 @@ When `inputBaseDir` is set, the library checks path containment before `maxFileB
 
 When you set a base directory, the library checks for path swaps during I/O:
 
-- **Reads** reject paths lexically outside `inputBaseDir` before touching the filesystem. Then the library opens the file with `O_NONBLOCK`, pins the file descriptor, verifies symlink-resolved containment, and checks that the open descriptor has the same `dev` and `ino` as the approved path and is a regular file.
-- **Writes** create missing parent directories one segment at a time and reject symlinks in the parent chain. The writer resolves the canonical parent directory, opens the file with `O_WRONLY | O_CREAT | O_NOFOLLOW | O_NONBLOCK`, verifies `dev` and `ino` after open, rejects non-regular files and files with more than one hard link, and truncates the file only after all checks pass. On failure, the writer closes the handle without unlinking the path so it never deletes a file swapped in by another process.
+- **Reads** reject paths lexically outside `inputBaseDir` before touching the filesystem. Then the library opens the file with `O_NONBLOCK` and pins the file descriptor. Then the library verifies symlink-resolved containment. It also checks that the open descriptor has the same `dev` and `ino` as the approved path and is a regular file.
+- **Writes** create missing parent directories one segment at a time and reject symlinks in the parent chain. The writer resolves the canonical parent directory and opens the file with `O_WRONLY | O_CREAT | O_NOFOLLOW | O_NONBLOCK`. After open, the writer verifies `dev` and `ino` and rejects non-regular files and files with more than one hard link. The writer truncates the file only after all checks pass. On failure, the writer closes the handle without unlinking the path. Thus the writer never deletes a file swapped in by another process.
 
-Node.js does not provide `openat`. Because of this, these checks **detect** a path swap and abort the operation instead of preventing the rename at the OS level.
+Node.js does not give access to `openat`. Because of this, these checks **detect** a path swap and abort the operation instead of preventing the rename at the OS level.
 
-Both containment checks require non-zero inode numbers from the filesystem. If a filesystem reports `ino === 0`, the library throws `PathValidationError`.
+For both containment checks, the filesystem must report non-zero inode numbers. If a filesystem reports `ino === 0`, the library throws `PathValidationError`.
 
 ### What Is Not Covered
 
 - Setting `maxDimension` and `maxPixels` to `Infinity` removes the decompression size limit.
 - When `inputBaseDir` and `diffOutputBaseDir` are not set, containment, swap detection, hard-link checks, and FIFO checks do not run.
-- **Hard links on reads**: A hard link inside `inputBaseDir` shares the same inode as its target on the same filesystem. Reads allow hard links so content-addressed caches and `cp -al` baselines work. Diff writes under `diffOutputBaseDir` reject files with `nlink > 1`. Keep `inputBaseDir` writable only by trusted processes.
+- **Hard links on reads**: A hard link inside `inputBaseDir` shares the same inode as its target on the same filesystem. Reads accept hard links so that content-addressed caches and `cp -al` baselines work. Diff writes under `diffOutputBaseDir` reject files with `nlink > 1`. Keep `inputBaseDir` writable only by trusted processes.
 - This library is designed for test runners and server-side comparisons of controlled images. Do not use it as an untrusted sandbox.
 
 ---

@@ -3,15 +3,15 @@ import { drawPixelOnBuff } from './drawPixelOnBuff';
 import type { Area, Color } from './types';
 
 /**
- * Paints rectangular areas on an image with a solid colour in-place.
+ * Paints rectangular areas on an image with a solid color in-place.
  *
- * Used to neutralise excluded areas before diffing: both images are painted the same colour
+ * Used to neutralise excluded areas before diffing: both images are painted the same color
  * there (`excludedAreaColor`, blue by default), so those regions always match.
  * Area coordinates are clamped to the image bounds.
  *
  * @param image - The PNG image to modify in-place.
  * @param areas - List of rectangular regions to fill.
- * @param color - RGB colour to paint each region with (alpha is always 255).
+ * @param color - RGB color to paint each region with (alpha is always 255).
  */
 export function addColoredAreasToImage(image: PNG, areas: Area[], color: Color): void {
     const { height, width } = image;
