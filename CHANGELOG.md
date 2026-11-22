@@ -11,7 +11,8 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **BREAKING: Node.js 26.0.0 or later is required** — Updated `engines.node` to `>=26.0.0`, `.nvmrc` to `26`, `Dockerfile` to `node:26-slim`, and the `engines-floor` CI job to `26.0.0`.
 - **Upgraded vendored `pixelmatch` to 8.0.0** — Synced `src/vendor/pixelmatch.ts` to `pixelmatch` 8.0.0 (OKLab HyAB perceptual color distance and block pre-pass) and added support for `pixelmatchOptions.windowSize` and `pixelmatchOptions.ignoreMask`.
-- **Converted documentation to ASD-STE100** — Rewrote all repository Markdown documentation in Simplified Technical English (ASD-STE100).
+- **Rewrote documentation with ASD-STE100 principles** — Rewrote all repository Markdown documentation with ASD-STE100 Simplified Technical English principles. No one checked the text against the official STE dictionary.
+- **Added a writing guide and a second STE-principles pass** — Added `docs/WRITING_GUIDE.md` with the STE edition, the terminology table, and the validation commands. Applied the guide to the documentation and to the public API doc comments.
 
 ### Security
 
