@@ -1,8 +1,10 @@
 /**
- * Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded,
- * or when an `excludedAreas`, colour, or `pixelmatchOptions` value is invalid. Per-input
- * failures are recoverable via `throwErrorOnInvalidInputData: false`, which treats invalid
- * inputs as zero-size PNGs instead; invalid options, and both inputs being invalid, always throw.
+ * Thrown when a PNG input (file path or Buffer) is invalid, malformed, or cannot be decoded.
+ * Also thrown when an `excludedAreas`, color, or `pixelmatchOptions` value is invalid.
+ *
+ * You can recover from a failure of one input with `throwErrorOnInvalidInputData: false`.
+ * With this option value, the library uses a zero-size PNG for each invalid input.
+ * Invalid options always throw. Two invalid inputs always throw.
  *
  * @example
  * ```ts
@@ -35,10 +37,10 @@ export class InvalidInputError extends Error {
  * - A diff file under `diffOutputBaseDir` that has more than one hard link, refused before
  *   it is truncated or written
  *
- * This error is always re-thrown for security-boundary failures such as traversal checks,
- * symlink issues, and constrained-base-directory validation. Simpler local path-shape
- * validation failures may still be downgraded by callers when no base-directory security
- * boundary is being enforced.
+ * The library always re-throws this error for security-boundary failures, such as traversal
+ * checks, symlink issues, and constrained-base-directory validation. When no base-directory
+ * security boundary is set, callers can still downgrade simpler local path-shape validation
+ * failures.
  *
  * @example
  * ```ts
@@ -66,10 +68,10 @@ export class PathValidationError extends Error {
 }
 
 /**
- * Thrown when a PNG would exceed resource limits set via `maxDimension`, `maxPixels`, or `maxFileBytes`.
- * This error is **NOT** recoverable and always throws regardless of
- * `throwErrorOnInvalidInputData`, because resource exhaustion is a security concern
- * rather than a routine input validation issue.
+ * Thrown when a PNG would exceed the resource limits that `maxDimension`, `maxPixels`, or
+ * `maxFileBytes` set. This error is **NOT** recoverable. It always throws, whatever the value of
+ * `throwErrorOnInvalidInputData` is. The reason is that resource exhaustion is a security
+ * concern, not a routine input validation issue.
  *
  * Common triggers:
  * - A crafted PNG header declaring huge dimensions (e.g., 999,999 × 999,999)
@@ -100,15 +102,14 @@ export class ResourceLimitError extends Error {
 }
 
 /**
- * Thrown when the underlying `pixelmatch` call fails — for example, when the two
- * normalized image buffers have mismatched lengths, or when `pixelmatch` itself
- * throws for any reason the public API does not control directly.
+ * Thrown when the underlying `pixelmatch` call fails. For example, this error is thrown when the
+ * two normalized image buffers have mismatched lengths, or when `pixelmatch` throws for any
+ * reason that the public API does not control directly.
  *
- * The original failure is preserved on the standard ES2022 `cause` property so
- * callers can inspect it without parsing error messages. Like {@link ResourceLimitError},
- * this error is **NOT** recoverable via `throwErrorOnInvalidInputData: false`:
- * a comparison-kernel failure signals an integrity bug in the pipeline, not a
- * user-recoverable input problem.
+ * The standard ES2022 `cause` property keeps the original failure. Callers can examine it
+ * without parsing error messages. Like {@link ResourceLimitError}, this error is **NOT**
+ * recoverable with `throwErrorOnInvalidInputData: false`. A comparison-kernel failure shows an
+ * integrity bug in the pipeline, not an input problem that the user can recover from.
  *
  * @example
  * ```ts
