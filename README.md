@@ -52,10 +52,11 @@ npm install -D png-visual-compare
 
 1. Use Node.js 26.0.0 or later.
 2. Remove `LoadedPng` imports.
+3. Rerun visual comparisons after the pixelmatch upgrade.
 
-### 1. Node.js Version Requirement
+### 1. Upgrade to Node.js 26
 
-`engines.node` requires `>=26.0.0`.
+Version 8 requires Node.js 26.0.0 or later.
 
 ### 2. Remove `LoadedPng` Imports
 
@@ -63,18 +64,22 @@ The package no longer exports `LoadedPng`. Version 7.1.0 deprecated it because n
 
 The declarations of the package entry points no longer refer to `pngjs`. Type-checking with `skipLibCheck: false` does not need `@types/pngjs`.
 
+### 3. Review comparison results
+
+Version 8 uses pixelmatch 8. The same images and threshold can produce a different mismatch count and diff image. Rerun your visual tests and review changed results before updating thresholds or baselines.
+
 ---
 
 ## Migration Guide to v7.0.0
 
-1. Use Node.js 26.0.0 or later.
+1. Use Node.js 22.12.0 or later.
 2. Upgrade to Vitest 5 if you use `png-visual-compare/vitest`.
 3. Check for new errors from `maxFileBytes` and path containment rules.
 4. Upgrade `vitest` to v5 and `@playwright/test` to v1.60+ if they are installed in your project.
 
 ### 1. Node.js Version Requirement
 
-`engines.node` requires `>=26.0.0`.
+Version 7 requires Node.js 22.12.0 or later.
 
 ### 2. Vitest 5 Requirement
 
