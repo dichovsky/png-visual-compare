@@ -31,7 +31,7 @@ type SerializedPngSnapshot = {
  */
 export const NOT_REQUIRES_STORED_SNAPSHOT_MESSAGE = '.not.toMatchPngSnapshot() requires an existing snapshot to compare against.';
 
-export type ComparedPngSnapshot = {
+type ComparedPngSnapshot = {
     pass: boolean;
     mismatchedPixels: number;
     actualSerialized: string;

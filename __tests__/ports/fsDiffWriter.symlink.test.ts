@@ -50,8 +50,6 @@ describe('fsDiffWriter symlink refusal (SECU-03)', () => {
     });
 
     test('refuses to write when the target is a symlink to a non-existent file', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         const dangling = path.join(rootDir, 'dangling.txt');
         symlinkSync(dangling, target);
 
@@ -61,8 +59,6 @@ describe('fsDiffWriter symlink refusal (SECU-03)', () => {
     });
 
     test('refuses to write when the target is a symlink to an existing file; sentinel is preserved byte-for-byte', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         writeFileSync(sentinel, 'sentinel-bytes');
         symlinkSync(sentinel, target);
 
@@ -72,8 +68,6 @@ describe('fsDiffWriter symlink refusal (SECU-03)', () => {
     });
 
     test('refuses to write when the target is a symlink to a directory', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         mkdirSync(sentinelDir);
         symlinkSync(sentinelDir, target);
 
@@ -95,8 +89,6 @@ describe('fsDiffWriter symlink refusal (SECU-03)', () => {
     });
 
     test('wraps the symlink refusal in PathValidationError with a recognisable message', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         const forbidden = path.join(rootDir, 'forbidden.txt');
         symlinkSync(forbidden, target);
 
@@ -137,8 +129,6 @@ describe('fsDiffWriter file mode (SECU-12)', () => {
     });
 
     test('creates new diff files with mode 0o600 under a permissive umask', () => {
-        if (process.platform === 'win32') return; // Windows does not honour POSIX mode bits.
-
         fsDiffWriter.write(asValidatedPath(target), payload);
 
         const mode = lstatSync(target).mode & 0o777;
@@ -146,8 +136,6 @@ describe('fsDiffWriter file mode (SECU-12)', () => {
     });
 
     test('tightens the mode of a pre-existing 0o644 file on overwrite (fchmod, not just open-mode)', () => {
-        if (process.platform === 'win32') return; // Windows does not honour POSIX mode bits.
-
         // Pre-create the target with a wider mode, as if a previous version of
         // the library (or any other tool) had written it. `O_TRUNC` truncates
         // bytes but POSIX does NOT change the inode's mode; without the

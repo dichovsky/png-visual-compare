@@ -14,7 +14,7 @@ Schema: `codemap.v2`
         "name": "png-visual-compare",
         "version": "7.2.1"
     },
-    "sourceHash": "0a38befb48c488a9e6d52db1e3225dce4d108077b0ad194406041364b61d84a1",
+    "sourceHash": "226b5d0c66a90a5ee9317d5c5faa802d56e9c7389e63774ce20582ac2cd717bf",
     "entrypoints": [
         "src/index.ts",
         "src/jest.ts",
@@ -238,20 +238,11 @@ Schema: `codemap.v2`
             "path": "src/adapters/toPixelmatchOptions.ts",
             "symbols": [
                 {
-                    "name": "PixelmatchRawOptions",
-                    "kind": "type",
-                    "line": 4,
-                    "exported": true,
-                    "signature": "export type PixelmatchRawOptions = Parameters<typeof pixelmatch>[5];",
-                    "members": null,
-                    "jsdoc": null
-                },
-                {
                     "name": "toPixelmatchOptions",
                     "kind": "function",
-                    "line": 6,
+                    "line": 4,
                     "exported": true,
-                    "signature": "export function toPixelmatchOptions(opts?: PixelmatchOptions): PixelmatchRawOptions | undefined",
+                    "signature": "export function toPixelmatchOptions(opts?: PixelmatchOptions): PixelmatchKernelOptions | undefined",
                     "members": null,
                     "jsdoc": null
                 }
@@ -828,8 +819,8 @@ Schema: `codemap.v2`
                     "name": "FileIdentity",
                     "kind": "type",
                     "line": 4,
-                    "exported": true,
-                    "signature": "export type FileIdentity = { readonly dev: bigint; readonly ino: bigint; };",
+                    "exported": false,
+                    "signature": "type FileIdentity = { readonly dev: bigint; readonly ino: bigint; };",
                     "members": null,
                     "jsdoc": "The subset of `BigIntStats` needed to identify a file on disk."
                 },
@@ -1296,8 +1287,8 @@ Schema: `codemap.v2`
                     "name": "ComparedPngSnapshot",
                     "kind": "type",
                     "line": 34,
-                    "exported": true,
-                    "signature": "export type ComparedPngSnapshot = { pass: boolean; mismatchedPixels: number; actualSerialized: string; expectedSerialized: string; };",
+                    "exported": false,
+                    "signature": "type ComparedPngSnapshot = { pass: boolean; mismatchedPixels: number; actualSerialized: string; expectedSerialized: string; };",
                     "members": null,
                     "jsdoc": null
                 },
@@ -1498,8 +1489,8 @@ Schema: `codemap.v2`
                     "name": "PersistableDiff",
                     "kind": "type",
                     "line": 6,
-                    "exported": true,
-                    "signature": "export type PersistableDiff = { readonly diff: PNG; readonly diffFilePath: ValidatedPath; };",
+                    "exported": false,
+                    "signature": "type PersistableDiff = { readonly diff: PNG; readonly diffFilePath: ValidatedPath; };",
                     "members": null,
                     "jsdoc": null
                 },
@@ -1584,7 +1575,7 @@ Schema: `codemap.v2`
                 {
                     "name": "ResolvedOptions",
                     "kind": "type",
-                    "line": 11,
+                    "line": 10,
                     "exported": true,
                     "signature": "export type ResolvedOptions = { readonly excludedAreas: Area[]; readonly throwErrorOnInvalidInputData: boolean; readonly extendedAreaColor: Color; readonly excludedAreaColor: Color; readonly shouldCre…",
                     "members": null,
@@ -1593,25 +1584,25 @@ Schema: `codemap.v2`
                 {
                     "name": "LoadedPng",
                     "kind": "type",
-                    "line": 35,
+                    "line": 33,
                     "exported": true,
-                    "signature": "export type LoadedPng = { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
+                    "signature": "export type LoadedPng = | { readonly kind: 'valid'; readonly png: PNGWithMetadata } | { readonly kind: 'invalid'; readonly reason: 'path' | 'decode' | 'type' };",
                     "members": null,
                     "jsdoc": "Result of loading one image source: the decoded PNG, or why it could not be loaded."
                 },
                 {
                     "name": "LoadedSources",
                     "kind": "type",
-                    "line": 38,
+                    "line": 37,
                     "exported": true,
-                    "signature": "export type LoadedSources = { readonly png1: string | Buffer; readonly png2: string | Buffer; readonly first: LoadedPng; readonly second: LoadedPng; };",
+                    "signature": "export type LoadedSources = { readonly first: LoadedPng; readonly second: LoadedPng; };",
                     "members": null,
                     "jsdoc": null
                 },
                 {
                     "name": "NormalizedImages",
                     "kind": "type",
-                    "line": 45,
+                    "line": 42,
                     "exported": true,
                     "signature": "export type NormalizedImages = { readonly first: PNGWithMetadata; readonly second: PNGWithMetadata; readonly width: number; readonly height: number; };",
                     "members": null,
@@ -1620,18 +1611,9 @@ Schema: `codemap.v2`
                 {
                     "name": "ComparisonResult",
                     "kind": "type",
-                    "line": 52,
+                    "line": 49,
                     "exported": true,
                     "signature": "export type ComparisonResult = { readonly mismatchedPixels: number; readonly diff?: PNG; };",
-                    "members": null,
-                    "jsdoc": null
-                },
-                {
-                    "name": "ComparisonContext",
-                    "kind": "type",
-                    "line": 57,
-                    "exported": true,
-                    "signature": "export type ComparisonContext = { readonly options: ResolvedOptions; readonly sources: LoadedSources; readonly normalized: NormalizedImages; readonly result: ComparisonResult; };",
                     "members": null,
                     "jsdoc": null
                 }
@@ -1642,7 +1624,6 @@ Schema: `codemap.v2`
                 "../types/color",
                 "../types/compare.options",
                 "../types/validated-path",
-                "node:buffer",
                 "pngjs"
             ],
             "reExports": []
@@ -2120,7 +2101,7 @@ Schema: `codemap.v2`
                     "kind": "function",
                     "line": 33,
                     "exported": true,
-                    "signature": "export function handleFileReadError(_error: unknown, opts: ResolvedOptions): LoadedPng",
+                    "signature": "export function handleFileReadError(opts: ResolvedOptions): LoadedPng",
                     "members": null,
                     "jsdoc": "Validates and handles errors from file read operations during image source loading. Returns an invalid LoadedPng if read fails and throwError is false."
                 },
@@ -2437,8 +2418,8 @@ Schema: `codemap.v2`
                     "name": "ValidatePathMode",
                     "kind": "type",
                     "line": 6,
-                    "exported": true,
-                    "signature": "export type ValidatePathMode = 'input' | 'output';",
+                    "exported": false,
+                    "signature": "type ValidatePathMode = 'input' | 'output';",
                     "members": null,
                     "jsdoc": null
                 },
@@ -2500,8 +2481,8 @@ Schema: `codemap.v2`
                     "name": "ValidatedPathWithReal",
                     "kind": "type",
                     "line": 136,
-                    "exported": true,
-                    "signature": "export type ValidatedPathWithReal = { readonly validated: ValidatedPath; readonly real?: string; };",
+                    "exported": false,
+                    "signature": "type ValidatedPathWithReal = { readonly validated: ValidatedPath; readonly real?: string; };",
                     "members": null,
                     "jsdoc": "A validated path together with the canonical (symlink-resolved) path that the containment check actually approved."
                 },
@@ -2951,7 +2932,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VITEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "kind": "const",
-                    "line": 25,
+                    "line": 24,
                     "exported": false,
                     "signature": "const VITEST_PNG_SNAPSHOT_MATCHER_KEY",
                     "members": null,
@@ -2960,7 +2941,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestTestLike",
                     "kind": "type",
-                    "line": 27,
+                    "line": 26,
                     "exported": false,
                     "signature": "type VitestTestLike = { id: string; fails?: boolean; };",
                     "members": null,
@@ -2969,7 +2950,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestExpectedSnapshot",
                     "kind": "type",
-                    "line": 32,
+                    "line": 31,
                     "exported": false,
                     "signature": "type VitestExpectedSnapshot = { count: number; data?: string; key: string; markAsChecked: () => void; };",
                     "members": null,
@@ -2978,7 +2959,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestSnapshotReturn",
                     "kind": "type",
-                    "line": 39,
+                    "line": 38,
                     "exported": false,
                     "signature": "type VitestSnapshotReturn = { actual: string; expected?: string; key: string; pass: boolean; };",
                     "members": null,
@@ -2987,7 +2968,7 @@ Schema: `codemap.v2`
                 {
                     "name": "VitestSnapshotState",
                     "kind": "type",
-                    "line": 46,
+                    "line": 45,
                     "exported": false,
                     "signature": "type VitestSnapshotState = { readonly snapshotUpdateState: 'all' | 'new' | 'none'; probeExpectedSnapshot: (options: { inlineSnapshot?: string; isInline: boolean; testId: string; testName: string; }) =…",
                     "members": null,
@@ -2996,7 +2977,7 @@ Schema: `codemap.v2`
                 {
                     "name": "MatcherStateWithSnapshot",
                     "kind": "type",
-                    "line": 69,
+                    "line": 68,
                     "exported": false,
                     "signature": "type MatcherStateWithSnapshot = MatcherState & { error?: Error; snapshotState?: VitestSnapshotState | null; };",
                     "members": null,
@@ -3005,7 +2986,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getVitestTest",
                     "kind": "function",
-                    "line": 74,
+                    "line": 73,
                     "exported": false,
                     "signature": "function getVitestTest(matcherContext: MatcherState): VitestTestLike",
                     "members": null,
@@ -3014,7 +2995,7 @@ Schema: `codemap.v2`
                 {
                     "name": "getAssertionName",
                     "kind": "function",
-                    "line": 84,
+                    "line": 83,
                     "exported": false,
                     "signature": "function getAssertionName(matcherContext: MatcherState): string",
                     "members": null,
@@ -3023,7 +3004,7 @@ Schema: `codemap.v2`
                 {
                     "name": "toMatchPngSnapshot",
                     "kind": "const",
-                    "line": 94,
+                    "line": 93,
                     "exported": false,
                     "signature": "const toMatchPngSnapshot",
                     "members": null,

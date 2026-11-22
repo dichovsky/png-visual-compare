@@ -1,9 +1,7 @@
-import type { pixelmatch } from '../vendor/pixelmatch';
+import type { PixelmatchKernelOptions } from '../vendor/pixelmatch';
 import type { PixelmatchOptions } from '../types';
 
-export type PixelmatchRawOptions = Parameters<typeof pixelmatch>[5];
-
-export function toPixelmatchOptions(opts?: PixelmatchOptions): PixelmatchRawOptions | undefined {
+export function toPixelmatchOptions(opts?: PixelmatchOptions): PixelmatchKernelOptions | undefined {
     if (opts === undefined) {
         return undefined;
     }

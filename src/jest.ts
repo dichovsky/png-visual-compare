@@ -276,9 +276,9 @@ if (jestExpect !== undefined) {
 }
 
 declare global {
-    // eslint-disable-next-line @typescript-eslint/no-namespace
+    // oxlint-disable-next-line typescript/no-namespace -- Extend the global namespace exposed by @types/jest.
     namespace jest {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-object-type
+        // oxlint-disable-next-line typescript/no-empty-object-type -- Declaration merging requires the same generic default as @types/jest.
         interface Matchers<R, T = {}> {
             toMatchPngSnapshot(opts?: ComparePngOptions): R;
             toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): R;
@@ -287,11 +287,8 @@ declare global {
 }
 
 declare module 'expect' {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface Matchers<R extends void | Promise<void>, T = unknown> {
         toMatchPngSnapshot(opts?: ComparePngOptions): R;
         toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): R;
     }
 }
-
-export {};

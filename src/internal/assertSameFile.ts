@@ -1,7 +1,7 @@
 import { PathValidationError } from '../errors';
 
 /** The subset of `BigIntStats` needed to identify a file on disk. */
-export type FileIdentity = {
+type FileIdentity = {
     readonly dev: bigint;
     readonly ino: bigint;
 };

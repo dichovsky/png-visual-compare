@@ -8,7 +8,7 @@
  *   2. the `latest` dist-tag points at it,
  *   3. it carries a provenance attestation (Trusted Publishing / --provenance),
  *   4. a freshly-installed copy loads via require() and import and compares PNGs
- *      correctly (scripts/install-smoke.mjs).
+ *      correctly (scripts/install-smoke.mts).
  *
  * Each registry check retries to absorb CDN propagation lag right after publish.
  */
@@ -16,37 +16,30 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const repoRoot = process.cwd();
-const pkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-const { name, version } = pkg;
+const { name, version }: { name: string; version: string } = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
 
 const MAX_ATTEMPTS = 6;
 const RETRY_DELAY_MS = 10_000;
-const DEFAULT_DELAYS_MS = Array(MAX_ATTEMPTS - 1).fill(RETRY_DELAY_MS);
+const DEFAULT_DELAYS_MS = Array<number>(MAX_ATTEMPTS - 1).fill(RETRY_DELAY_MS);
 // version-live runs first, straight after publish, while the registry CDN can
 // still serve a stale packument for minutes ("may take a few minutes to become
 // available"; the 7.0.0 publish took ~90s). Doubling backoff, ~5 min in total.
 const VERSION_LIVE_DELAYS_MS = [5_000, 10_000, 20_000, 40_000, 80_000, 160_000];
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 // Failure details quote npm's stderr, which an inherited npm_config_loglevel=silent
 // (`npm run -s`, .npmrc) would blank; a CLI flag outranks every other config source.
-function npm(args, options = {}) {
-    return spawnSync('npm', [...args, '--loglevel=error'], { encoding: 'utf8', ...options });
+function npm(args: string[]) {
+    return spawnSync('npm', [...args, '--loglevel=error'], { encoding: 'utf8' });
 }
 
 /**
  * Retry `attempt` (a sync predicate returning boolean) until it returns true or
  * attempts run out, sleeping between tries to absorb registry propagation lag.
- *
- * @param {string} label
- * @param {() => boolean} attempt
- * @param {number[]} [delaysMs] wait before each retry; attempts = delaysMs.length + 1
- * @returns {Promise<boolean>}
  */
-async function withRetry(label, attempt, delaysMs = DEFAULT_DELAYS_MS) {
+async function withRetry(label: string, attempt: () => boolean, delaysMs = DEFAULT_DELAYS_MS) {
     const attempts = delaysMs.length + 1;
     for (let i = 1; i <= attempts; i += 1) {
         if (attempt()) return true;
@@ -58,9 +51,8 @@ async function withRetry(label, attempt, delaysMs = DEFAULT_DELAYS_MS) {
     return false;
 }
 
-/** @type {{ ok: boolean, name: string, detail: string }[]} */
-const results = [];
-const record = (ok, checkName, detail) => results.push({ ok, name: checkName, detail });
+const results: { ok: boolean; name: string; detail: string }[] = [];
+const record = (ok: boolean, checkName: string, detail: string) => results.push({ ok, name: checkName, detail });
 
 // 1. Version resolves on the registry.
 async function checkVersionLive() {
@@ -108,11 +100,12 @@ async function checkProvenance() {
             return false;
         }
         try {
-            const parsed = JSON.parse(view.stdout);
+            type PackageMetadata = { dist?: { attestations?: { url?: string; provenance?: { predicateType?: string } } } };
+            const parsed: PackageMetadata | PackageMetadata[] | null = JSON.parse(view.stdout);
             const meta = Array.isArray(parsed) ? parsed[0] : parsed;
             const attestations = meta?.dist?.attestations;
             if (attestations && (attestations.url || attestations.provenance)) {
-                detail = attestations.provenance?.predicateType ?? attestations.url;
+                detail = attestations.provenance?.predicateType ?? attestations.url ?? 'dist.attestations.provenance';
                 return true;
             }
             detail = 'no dist.attestations field';
@@ -125,13 +118,13 @@ async function checkProvenance() {
     record(ok, 'provenance', ok ? `Provenance attestation present (${detail}).` : `No provenance attestation after retries (${detail}).`);
 }
 
-// 4. Install + smoke test against the published artifact (scripts/install-smoke.mjs,
+// 4. Install + smoke test against the published artifact (scripts/install-smoke.mts,
 // shared with the engines-floor CI job). The whole run is retried, since the install
 // can hit the same propagation lag as the checks above.
 async function checkInstallSmoke() {
     let detail = '';
     const ok = await withRetry('install-smoke', () => {
-        const smoke = spawnSync(process.execPath, [path.join(repoRoot, 'scripts', 'install-smoke.mjs'), `${name}@${version}`], {
+        const smoke = spawnSync(process.execPath, [path.join(repoRoot, 'scripts', 'install-smoke.mts'), `${name}@${version}`], {
             encoding: 'utf8',
         });
         detail = (smoke.stderr ?? '').trim();

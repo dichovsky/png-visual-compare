@@ -46,14 +46,10 @@ describe('validatePath symlink containment', () => {
     });
 
     test('rejects a symlink inside baseDir that points to a file outside baseDir', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         expectPathValidationError(() => validatePath(outsideLink, baseDir, 'input'), 'Path traversal detected');
     });
 
     test('accepts a symlink inside baseDir that points to a file inside baseDir', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         expect(validatePath(insideLink, baseDir, 'input')).toBe(insideLink);
     });
 
@@ -69,8 +65,6 @@ describe('validatePath symlink containment', () => {
     });
 
     test('rejects an output path whose parent symlink escapes baseDir', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         expectPathValidationError(
             () => validatePath(path.join(outputEscapeLink, 'diff.png'), baseDir, 'output'),
             'Path traversal detected',
@@ -78,8 +72,6 @@ describe('validatePath symlink containment', () => {
     });
 
     test('rejects an output path when the final file already exists as a symlink', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         expectPathValidationError(() => validatePath(outputFileSymlink, baseDir, 'output'), 'output path must not be an existing symlink');
     });
 
@@ -90,8 +82,6 @@ describe('validatePath symlink containment', () => {
     });
 
     test('rejects circular symlinks with a dedicated message', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         expectPathValidationError(() => validatePath(loopLink, baseDir, 'input'), 'Path validation failed: symlink loop detected');
     });
 
@@ -129,8 +119,6 @@ describe('validatePath — SECU-11 out-of-bounds shape checks never leak filesys
     });
 
     test('an out-of-bounds existing symlink reports traversal — never "must not be an existing symlink"', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         symlinkSync(outsideRegularFile, outsideSymlink);
 
         try {
@@ -171,8 +159,6 @@ describe('validatePath — SECU-11 out-of-bounds shape checks never leak filesys
     });
 
     test('an in-bounds existing symlink still surfaces the shape error (legacy contract preserved inside the boundary)', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         const insideSymlink = path.join(baseDir, 'inside-link');
         symlinkSync(outsideRegularFile, insideSymlink);
 
@@ -187,8 +173,6 @@ describe('validatePath — SECU-11 out-of-bounds shape checks never leak filesys
     });
 
     test('without baseDir, the legacy shape-check-first behaviour is preserved (no oracle exists either way)', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         symlinkSync(outsideRegularFile, outsideSymlink);
 
         expectPathValidationError(() => validatePath(outsideSymlink, undefined, 'output'), 'output path must not be an existing symlink');

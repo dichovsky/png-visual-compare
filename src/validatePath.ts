@@ -3,7 +3,7 @@ import { isAbsolute, parse, relative, resolve, sep } from 'node:path';
 import { PathValidationError } from './errors';
 import type { ValidatedPath } from './types/validated-path';
 
-export type ValidatePathMode = 'input' | 'output';
+type ValidatePathMode = 'input' | 'output';
 
 function isContained(baseDir: string, targetPath: string): boolean {
     const rel = relative(baseDir, targetPath);
@@ -133,7 +133,7 @@ export function assertLexicalContainment(filePath: string, baseDir: string): voi
  * planted after validation would be followed by both walks and the two inodes
  * would agree on the escaped file.
  */
-export type ValidatedPathWithReal = {
+type ValidatedPathWithReal = {
     readonly validated: ValidatedPath;
     readonly real?: string;
 };

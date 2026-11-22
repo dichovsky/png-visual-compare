@@ -41,11 +41,11 @@ describe('validateImageSourceLoad helpers', () => {
     });
 
     test('handleFileReadError throws InvalidInputError when throwing is enabled', () => {
-        expect(() => handleFileReadError(new Error('boom'), createOptions())).toThrow(InvalidInputError);
+        expect(() => handleFileReadError(createOptions())).toThrow(InvalidInputError);
     });
 
     test('handleFileReadError returns invalid path when throwing is disabled', () => {
-        expect(handleFileReadError(new Error('boom'), createOptions({ throwErrorOnInvalidInputData: false }))).toEqual({
+        expect(handleFileReadError(createOptions({ throwErrorOnInvalidInputData: false }))).toEqual({
             kind: 'invalid',
             reason: 'path',
         });

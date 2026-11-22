@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PNG } from 'pngjs';
-import { afterEach, chai, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeAll, chai, describe, expect, test, vi } from 'vitest';
+import { registerJestPngSnapshotMatcher } from '../src/jest';
 import { createPngSnapshotMatcher } from '../src/matchers/createPngSnapshotMatcher';
 import {
     compareAgainstSerializedPngSnapshot,
@@ -15,10 +16,6 @@ const PNG_FILE = resolve('./test-data/actual/pnggrad16rgb.png');
 const VITEST_PNG_SNAPSHOT_MATCHER_KEY = Symbol.for('png-visual-compare/vitest/toMatchPngSnapshot');
 const JEST_PNG_SNAPSHOT_MATCHER_KEY = Symbol.for('png-visual-compare/jest/toMatchPngSnapshot');
 
-type ExtendSpy = ReturnType<typeof vi.fn>;
-type JestPluginModule = {
-    registerJestPngSnapshotMatcher: (expect: { extend: ExtendSpy }) => void;
-};
 type RegisteredMatchers = {
     toMatchPngSnapshot: ReturnType<typeof createPngSnapshotMatcher>;
 };
@@ -303,6 +300,19 @@ describe('png snapshot helpers', () => {
 });
 
 describe('vitest matcher entrypoint', () => {
+    let registeredMatchers: RegisteredMatchers;
+
+    beforeAll(async () => {
+        clearMatcherRegistration();
+        const extend = vi.spyOn(expect, 'extend');
+        try {
+            await import('../src/vitest.mjs');
+            registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+        } finally {
+            extend.mockRestore();
+        }
+    });
+
     afterEach(() => {
         clearMatcherRegistration();
         vi.restoreAllMocks();
@@ -329,30 +339,13 @@ describe('vitest matcher entrypoint', () => {
         expect(extendSpy).not.toHaveBeenCalled();
     });
 
-    test('throws on a real expect().not.toMatchPngSnapshot() assertion with no stored snapshot', async () => {
-        vi.resetModules();
-        clearMatcherRegistration();
-
-        await import('../src/vitest.mjs');
-
+    test('throws on a real expect().not.toMatchPngSnapshot() assertion with no stored snapshot', () => {
         expect(() => expect(readFileSync(PNG_FILE)).not.toMatchPngSnapshot()).toThrow(
             '.not.toMatchPngSnapshot() requires an existing snapshot to compare against.',
         );
     });
 
-    test('passes a negated Vitest assertion when the received PNG differs from the stored snapshot', async () => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-
-        await import('../src/vitest.mjs');
-
-        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Vitest matcher to be registered');
-        }
-
+    test('passes a negated Vitest assertion when the received PNG differs from the stored snapshot', () => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'vitest-negated-differs-id' });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -384,19 +377,7 @@ describe('vitest matcher entrypoint', () => {
         expect(processDomainSnapshot).not.toHaveBeenCalled();
     });
 
-    test('fails a negated Vitest assertion when the received PNG matches the stored snapshot', async () => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-
-        await import('../src/vitest.mjs');
-
-        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Vitest matcher to be registered');
-        }
-
+    test('fails a negated Vitest assertion when the received PNG matches the stored snapshot', () => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'vitest-negated-matches-id' });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -428,19 +409,7 @@ describe('vitest matcher entrypoint', () => {
         expect(processDomainSnapshot).not.toHaveBeenCalled();
     });
 
-    test('compares stored Vitest PNG snapshots with ComparePngOptions', async () => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-
-        await import('../src/vitest.mjs');
-
-        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Vitest matcher to be registered');
-        }
-
+    test('compares stored Vitest PNG snapshots with ComparePngOptions', () => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'vitest-test-id' });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -479,12 +448,7 @@ describe('vitest matcher entrypoint', () => {
     test.each([
         { name: 'options', matcherArgs: [{ excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }] }] },
         { name: 'an undefined name and options', matcherArgs: [undefined, { excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }] }] },
-    ])('compares the unnamed Vitest snapshot with ComparePngOptions given $name', async ({ matcherArgs }) => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-        await import('../src/vitest.mjs');
-        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+    ])('compares the unnamed Vitest snapshot with ComparePngOptions given $name', ({ matcherArgs }) => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'vitest-unnamed-id' });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -518,19 +482,7 @@ describe('vitest matcher entrypoint', () => {
         expect(probeExpectedSnapshot).toHaveBeenCalledWith(expect.objectContaining({ testName: 'compares PNG diffs' }));
     });
 
-    test('uses serialized received PNG when a Vitest snapshot does not exist yet', async () => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-
-        await import('../src/vitest.mjs');
-
-        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Vitest matcher to be registered');
-        }
-
+    test('uses serialized received PNG when a Vitest snapshot does not exist yet', () => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'vitest-new-snapshot-id' });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -563,12 +515,7 @@ describe('vitest matcher entrypoint', () => {
         expect(result.actual).toContain('"type": "Buffer"');
     });
 
-    test.each([false, true])('rejects malformed Vitest baselines before snapshot processing (existing: %s)', async (existing) => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-        await import('../src/vitest.mjs');
-        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+    test.each([false, true])('rejects malformed Vitest baselines before snapshot processing (existing: %s)', (existing) => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'invalid-baseline' });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -602,12 +549,7 @@ describe('vitest matcher entrypoint', () => {
         { mode: 'none', existing: false },
         { mode: 'none', existing: true },
         { mode: 'new', existing: true },
-    ] as const)('reports a regular Vitest mismatch without validating a baseline it cannot write: %j', async ({ mode, existing }) => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-        await import('../src/vitest.mjs');
-        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+    ] as const)('reports a regular Vitest mismatch without validating a baseline it cannot write: %j', ({ mode, existing }) => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'read-only-baseline' });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -647,12 +589,7 @@ describe('vitest matcher entrypoint', () => {
         { mode: 'none', existing: true, matches: false },
         { mode: 'all', existing: true, matches: false },
         { mode: 'all', existing: true, matches: true },
-    ] as const)('returns the raw Vitest comparison without reconciliation for test.fails: %j', async ({ mode, existing, matches }) => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-        await import('../src/vitest.mjs');
-        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+    ] as const)('returns the raw Vitest comparison without reconciliation for test.fails: %j', ({ mode, existing, matches }) => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'expected-failure', fails: true });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -683,12 +620,7 @@ describe('vitest matcher entrypoint', () => {
         expect(processDomainSnapshot).not.toHaveBeenCalled();
     });
 
-    test('rejects a new Vitest baseline over the configured image limits', async () => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-        await import('../src/vitest.mjs');
-        const registeredMatchers = extendSpy.mock.calls[0][0] as RegisteredMatchers;
+    test('rejects a new Vitest baseline over the configured image limits', () => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'oversized-baseline' });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -715,19 +647,7 @@ describe('vitest matcher entrypoint', () => {
         expect(processDomainSnapshot).not.toHaveBeenCalled();
     });
 
-    test('throws when Vitest test context is unavailable', async () => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-
-        await import('../src/vitest.mjs');
-
-        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Vitest matcher to be registered');
-        }
-
+    test('throws when Vitest test context is unavailable', () => {
         expect(() =>
             registeredMatchers.toMatchPngSnapshot.call(
                 {
@@ -743,19 +663,7 @@ describe('vitest matcher entrypoint', () => {
         ).toThrow('Vitest test context must be initialized');
     });
 
-    test('throws when Vitest assertion name is unavailable', async () => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-
-        await import('../src/vitest.mjs');
-
-        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Vitest matcher to be registered');
-        }
-
+    test('throws when Vitest assertion name is unavailable', () => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'missing-assertion-name' });
 
@@ -779,19 +687,7 @@ describe('vitest matcher entrypoint', () => {
         ).toThrow('Vitest assertion name must be initialized');
     });
 
-    test('throws when Vitest snapshot state is unavailable', async () => {
-        vi.resetModules();
-        clearMatcherRegistration();
-        const extendSpy = vi.spyOn(expect, 'extend');
-
-        await import('../src/vitest.mjs');
-
-        const registeredMatchers = extendSpy.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Vitest matcher to be registered');
-        }
-
+    test('throws when Vitest snapshot state is unavailable', () => {
         const assertion = {};
         chai.util.flag(assertion, 'vitest-test', { id: 'missing-snapshot-state' });
         chai.util.flag(assertion, '_name', 'toMatchPngSnapshot');
@@ -803,27 +699,32 @@ describe('vitest matcher entrypoint', () => {
 });
 
 describe('jest matcher entrypoint', () => {
+    let registeredMatchers: RegisteredMatchers;
+
+    beforeAll(() => {
+        clearMatcherRegistration();
+        const extend = vi.fn<(matchers: RegisteredMatchers) => void>();
+        registerJestPngSnapshotMatcher({ extend });
+        registeredMatchers = extend.mock.calls[0][0];
+        clearMatcherRegistration();
+    });
+
     afterEach(() => {
         clearMatcherRegistration();
-        delete (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect;
+        vi.unstubAllGlobals();
         vi.restoreAllMocks();
     });
 
     test('registers the matcher against the global Jest expect', async () => {
         vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
+        const extend = vi.fn<(matchers: RegisteredMatchers) => void>();
+        vi.stubGlobal('expect', { extend });
 
-        const jestPlugin = (await import('../src/jest.js')) as JestPluginModule;
+        const jestPlugin = await import('../src/jest.js');
 
         expect(extend).toHaveBeenCalledTimes(1);
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
-        expect(registeredMatchers).toHaveProperty('toMatchPngSnapshot');
+        const autoRegisteredMatchers = extend.mock.calls[0][0];
+        expect(autoRegisteredMatchers).toHaveProperty('toMatchPngSnapshot');
         expect(jestPlugin.registerJestPngSnapshotMatcher).toBeTypeOf('function');
 
         const snapshotState = createJestSnapshotState({
@@ -831,7 +732,7 @@ describe('jest matcher entrypoint', () => {
         });
 
         const result = expectSyncResult(
-            registeredMatchers.toMatchPngSnapshot.call(
+            autoRegisteredMatchers.toMatchPngSnapshot.call(
                 {
                     currentTestName: 'compares PNG diffs',
                     snapshotState,
@@ -846,22 +747,21 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState.matched).toBe(1);
     });
 
-    test('skips duplicate registration when the matcher is already installed', async () => {
-        vi.resetModules();
+    test('skips duplicate registration when the matcher is already installed', () => {
         const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
         (globalThis as Record<PropertyKey, unknown>)[JEST_PNG_SNAPSHOT_MATCHER_KEY] = true;
 
-        await import('../src/jest.js');
+        registerJestPngSnapshotMatcher({ extend });
 
         expect(extend).not.toHaveBeenCalled();
     });
 
     test('exports an explicit registration helper when Jest does not inject globals', async () => {
         vi.resetModules();
-        delete (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect;
+        vi.stubGlobal('expect', undefined);
 
-        const jestPlugin = (await import('../src/jest.js')) as JestPluginModule;
+        const jestPlugin = await import('../src/jest.js');
+        expect((globalThis as Record<PropertyKey, unknown>)[JEST_PNG_SNAPSHOT_MATCHER_KEY]).toBeUndefined();
         const extend = vi.fn();
 
         jestPlugin.registerJestPngSnapshotMatcher({ extend });
@@ -870,19 +770,7 @@ describe('jest matcher entrypoint', () => {
         expect(extend.mock.calls[0][0]).toHaveProperty('toMatchPngSnapshot');
     });
 
-    test('returns a helpful failure result when the stored Jest snapshot does not match', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('returns a helpful failure result when the stored Jest snapshot does not match', () => {
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call(
                 {
@@ -905,19 +793,7 @@ describe('jest matcher entrypoint', () => {
         expect(result.message()).toContain('479 mismatched pixels');
     });
 
-    test('returns a generic failure result when no Jest test name is available', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('returns a generic failure result when no Jest test name is available', () => {
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call(
                 {
@@ -933,19 +809,7 @@ describe('jest matcher entrypoint', () => {
         expect(result.message()).toBe('Received PNG snapshot does not match the stored snapshot (479 mismatched pixels).');
     });
 
-    test('uses the singular mismatch label when exactly one pixel differs', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('uses the singular mismatch label when exactly one pixel differs', () => {
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call(
                 {
@@ -962,19 +826,7 @@ describe('jest matcher entrypoint', () => {
         expect(result.message()).toContain('1 mismatched pixel');
     });
 
-    test('passes ComparePngOptions through Jest snapshot comparison', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('passes ComparePngOptions through Jest snapshot comparison', () => {
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call(
                 {
@@ -993,19 +845,7 @@ describe('jest matcher entrypoint', () => {
         expect(result.pass).toBe(true);
     });
 
-    test('creates a new Jest PNG snapshot when updates are enabled', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('creates a new Jest PNG snapshot when updates are enabled', () => {
         const snapshotState = createJestSnapshotState({}, 'new');
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call(
@@ -1021,19 +861,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState._snapshotData).toHaveProperty('creates snapshot 1');
     });
 
-    test('updates an existing Jest PNG snapshot when snapshot updates are enabled', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('updates an existing Jest PNG snapshot when snapshot updates are enabled', () => {
         const snapshotState = createJestSnapshotState(
             {
                 'updates snapshot 1': serializePngSnapshot(readFileSync(resolve('./test-data/expected/ILTQq copy.png'))),
@@ -1054,19 +882,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState._snapshotData['updates snapshot 1']).toContain('"type": "Buffer"');
     });
 
-    test('returns a helpful failure result when a new Jest PNG snapshot cannot be written', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('returns a helpful failure result when a new Jest PNG snapshot cannot be written', () => {
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call(
                 {
@@ -1081,19 +897,7 @@ describe('jest matcher entrypoint', () => {
         expect(result.message()).toContain('New PNG snapshot was not written for "creates snapshot"');
     });
 
-    test('counts a missing Jest PNG snapshot as unmatched in CI (none) mode', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('counts a missing Jest PNG snapshot as unmatched in CI (none) mode', () => {
         const snapshotState = createJestSnapshotState({});
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call(
@@ -1109,19 +913,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState.unmatched).toBe(1);
     });
 
-    test('returns a generic missing-snapshot message when no Jest test name is available', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('returns a generic missing-snapshot message when no Jest test name is available', () => {
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call(
                 {
@@ -1135,19 +927,7 @@ describe('jest matcher entrypoint', () => {
         expect(result.message()).toBe('New PNG snapshot was not written. Run Jest with -u to create it.');
     });
 
-    test('creates a new Jest PNG snapshot key under -u even when the snapshot file already exists', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('creates a new Jest PNG snapshot key under -u even when the snapshot file already exists', () => {
         const snapshotState = {
             _counters: new Map<string, number>(),
             _dirty: false,
@@ -1174,19 +954,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState._snapshotData).toHaveProperty('existing snapshot file 1');
     });
 
-    test('initializes Jest snapshot counters when they are missing', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('initializes Jest snapshot counters when they are missing', () => {
         const snapshotState = {
             _counters: new Map<string, number>(),
             _dirty: false,
@@ -1211,19 +979,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState).toHaveProperty('added', 1);
     });
 
-    test('creates a Jest PNG snapshot when no snapshot path is exposed yet', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('creates a Jest PNG snapshot when no snapshot path is exposed yet', () => {
         const snapshotState = {
             _counters: new Map<string, number>(),
             _dirty: false,
@@ -1293,19 +1049,7 @@ describe('jest matcher entrypoint', () => {
             },
             message: 'Snapshot state does not expose updateSnapshot mode.',
         },
-    ])('throws when Jest snapshot state has $name', async ({ snapshotState, message }) => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    ])('throws when Jest snapshot state has $name', ({ snapshotState, message }) => {
         expect(() =>
             registeredMatchers.toMatchPngSnapshot.call(
                 {
@@ -1317,44 +1061,11 @@ describe('jest matcher entrypoint', () => {
         ).toThrow(message);
     });
 
-    test('throws when the Jest matcher runs without snapshot state', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('throws when the Jest matcher runs without snapshot state', () => {
         expect(() => registeredMatchers.toMatchPngSnapshot.call({}, readFileSync(PNG_FILE))).toThrow('Snapshot state must be initialized');
     });
 
-    test('does not auto-register when Jest globals are unavailable', async () => {
-        vi.resetModules();
-        delete (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect;
-
-        const jestPlugin = (await import('../src/jest.js')) as JestPluginModule;
-
-        expect(jestPlugin.registerJestPngSnapshotMatcher).toBeTypeOf('function');
-    });
-
-    test('throws on a negated Jest assertion when no snapshot is stored', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('throws on a negated Jest assertion when no snapshot is stored', () => {
         const snapshotState = createJestSnapshotState({}, 'all');
 
         expect(() =>
@@ -1369,19 +1080,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState.added).toBe(0);
     });
 
-    test('passes a negated Jest assertion when the received PNG differs from the stored snapshot', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('passes a negated Jest assertion when the received PNG differs from the stored snapshot', () => {
         const storedSnapshot = serializePngSnapshot(createSolidPng(255, 0, 0));
         const snapshotState = createJestSnapshotState({ 'differs from snapshot 1': storedSnapshot }, 'all');
         const result = expectSyncResult(
@@ -1402,19 +1101,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState._snapshotData['differs from snapshot 1']).toBe(storedSnapshot);
     });
 
-    test('fails a negated Jest assertion when the received PNG matches the stored snapshot', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('fails a negated Jest assertion when the received PNG matches the stored snapshot', () => {
         const snapshotState = createJestSnapshotState({
             'matches snapshot: dark mode 1': serializePngSnapshot(readFileSync(PNG_FILE)),
         });
@@ -1435,12 +1122,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState._dirty).toBe(false);
     });
 
-    test('leaves unused sibling Jest snapshots unchecked', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-        await import('../src/jest.js');
-        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+    test('leaves unused sibling Jest snapshots unchecked', () => {
         const serialized = serializePngSnapshot(createSolidPng(255, 0, 0));
         const snapshotState = createJestSnapshotState({ 'siblings 1': serialized, 'siblings 2': serialized });
         const markSnapshotsAsCheckedForTest = vi.fn();
@@ -1461,12 +1143,7 @@ describe('jest matcher entrypoint', () => {
         { mode: 'all', receivedMatches: true, existing: true, isNot: true },
         { mode: 'new', receivedMatches: false, existing: false, isNot: false },
         { mode: 'all', receivedMatches: false, existing: false, isNot: false },
-    ] as const)('does not mutate snapshot state for a Jest expected failure: %j', async ({ mode, receivedMatches, existing, isNot }) => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-        await import('../src/jest.js');
-        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+    ] as const)('does not mutate snapshot state for a Jest expected failure: %j', ({ mode, receivedMatches, existing, isNot }) => {
         const original: Record<string, string> = existing ? { 'expected failure 1': serializePngSnapshot(createSolidPng(255, 0, 0)) } : {};
         const snapshotState = createJestSnapshotState({ ...original }, mode);
         const result = expectSyncResult(
@@ -1481,12 +1158,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState).toMatchObject({ _dirty: false, added: 0, matched: 0, unmatched: 0, updated: 0 });
     });
 
-    test.each([false, true])('rejects malformed Jest baselines before persisting (existing: %s)', async (existing) => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-        await import('../src/jest.js');
-        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+    test.each([false, true])('rejects malformed Jest baselines before persisting (existing: %s)', (existing) => {
         const original: Record<string, string> = existing ? { 'invalid baseline 1': serializePngSnapshot(createSolidPng(255, 0, 0)) } : {};
         const snapshotState = createJestSnapshotState({ ...original }, 'all');
 
@@ -1501,12 +1173,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState).toMatchObject({ _dirty: false, added: 0, updated: 0 });
     });
 
-    test('rejects a new Jest baseline over the configured image limits', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-        await import('../src/jest.js');
-        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+    test('rejects a new Jest baseline over the configured image limits', () => {
         const snapshotState = createJestSnapshotState({}, 'new');
 
         expect(() =>
@@ -1517,19 +1184,7 @@ describe('jest matcher entrypoint', () => {
         expect(snapshotState).toMatchObject({ _dirty: false, added: 0, _snapshotData: {} });
     });
 
-    test('reports a negated Jest match without a test name', async () => {
-        vi.resetModules();
-        const extend = vi.fn();
-        (globalThis as typeof globalThis & { expect?: { extend: ExtendSpy } }).expect = { extend };
-
-        await import('../src/jest.js');
-
-        const registeredMatchers = extend.mock.calls[0]?.[0] as RegisteredMatchers | undefined;
-
-        if (registeredMatchers === undefined) {
-            throw new Error('Expected the Jest matcher to be registered');
-        }
-
+    test('reports a negated Jest match without a test name', () => {
         const snapshotState = createJestSnapshotState({ ' 1': serializePngSnapshot(readFileSync(PNG_FILE)) });
         const result = expectSyncResult(
             registeredMatchers.toMatchPngSnapshot.call({ isNot: true, snapshotState } as never, readFileSync(PNG_FILE)),
@@ -1542,11 +1197,7 @@ describe('jest matcher entrypoint', () => {
     test.each([
         { name: 'options', matcherArgs: [{ excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }] }] },
         { name: 'an undefined name and options', matcherArgs: [undefined, { excludedAreas: [{ x1: 5, y1: 410, x2: 50, y2: 460 }] }] },
-    ])('compares the unnamed Jest snapshot with ComparePngOptions given $name', async ({ matcherArgs }) => {
-        const { registerJestPngSnapshotMatcher } = (await import('../src/jest.js')) as JestPluginModule;
-        const extend = vi.fn();
-        registerJestPngSnapshotMatcher({ extend });
-        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+    ])('compares the unnamed Jest snapshot with ComparePngOptions given $name', ({ matcherArgs }) => {
         const snapshotState = createJestSnapshotState({
             'compares PNG diffs 1': serializePngSnapshot(readFileSync(resolve('./test-data/expected/ILTQq copy.png'))),
         });
@@ -1573,11 +1224,7 @@ describe('jest matcher entrypoint', () => {
         { name: 'counts a missing baseline', mode: 'none', stored: false, matches: false, status: 'unmatched', writes: false },
         { name: 'counts a negated match', mode: 'all', stored: true, matches: true, isNot: true, status: 'unmatched', writes: false },
         { name: 'leaves an expected failure uncounted', mode: 'all', stored: true, matches: false, testFailing: true, writes: false },
-    ] as const)('routes Jest 30.5 snapshot state through the test identity: $name', async (row) => {
-        const { registerJestPngSnapshotMatcher } = (await import('../src/jest.js')) as JestPluginModule;
-        const extend = vi.fn();
-        registerJestPngSnapshotMatcher({ extend });
-        const registeredMatchers = extend.mock.calls[0][0] as RegisteredMatchers;
+    ] as const)('routes Jest 30.5 snapshot state through the test identity: $name', (row) => {
         const stored = createSolidPng(255, 0, 0);
         const received = row.matches ? stored : createSolidPng(0, 0, 255);
         const original: Record<string, string> = row.stored ? { 'attempt 1': serializePngSnapshot(stored) } : {};

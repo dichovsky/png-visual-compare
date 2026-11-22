@@ -11,7 +11,6 @@ export default defineConfig({
             exclude: ['src/types/**/*', 'src/index.ts', 'src/pipeline/types.ts', 'src/ports/types.ts', 'src/ports/asyncTypes.ts'],
             ...(isFullCoverageRun
                 ? {
-                      all: true,
                       include: ['src/**/*.ts', 'src/**/*.mts'],
                       thresholds: {
                           lines: 100,

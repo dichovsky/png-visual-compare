@@ -1,4 +1,5 @@
 {
+    "$schema": "./node_modules/oxfmt/configuration_schema.json",
     "trailingComma": "all",
     "tabWidth": 4,
     "semi": true,
@@ -7,12 +8,6 @@
     "useTabs": false,
     "arrowParens": "always",
     "endOfLine": "lf",
-    "overrides": [
-        {
-            "files": ["*.json", ".*.json"],
-            "options": {
-                "tabWidth": 4
-            }
-        }
-    ]
+    "sortPackageJson": false,
+    "ignorePatterns": ["node_modules/", "test-results/", ".claude/", "CODEMAP.md"]
 }
