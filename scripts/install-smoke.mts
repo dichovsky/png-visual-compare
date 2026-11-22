@@ -1,7 +1,7 @@
 /**
  * Consumer install smoke test for png-visual-compare.
  *
- * Usage: node ./scripts/install-smoke.mjs <tarball path | name@version>
+ * Usage: node ./scripts/install-smoke.mts <tarball path | name@version>
  *
  * Installs the spec into a fresh temporary project with `--engine-strict`, then,
  * from inside that project, loads the root entry through both require() and a
@@ -10,17 +10,16 @@
  *
  * Runs in the `engines-floor` job of `.github/workflows/test.yml` (the packed
  * tarball on Node 26.0.0, the `engines.node` floor) and in the install-smoke
- * check of `scripts/postrelease-check.mjs` (the version just published).
+ * check of `scripts/postrelease-check.mts` (the version just published).
  */
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const PACKAGE_NAME = 'png-visual-compare';
-const testData = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'test-data');
+const testData = path.join(import.meta.dirname, '..', 'test-data');
 const ACTUAL = path.join(testData, 'actual', 'ILTQq.png');
 const EXPECTED = path.join(testData, 'expected', 'youtube-play-button.png');
 // Same pair and count as __tests__/comparePng.test.ts and __tests__/comparePngAsync.test.ts.
@@ -28,7 +27,7 @@ const EXPECTED_MISMATCH = 429113;
 
 const spec = process.argv[2];
 if (!spec) {
-    process.stderr.write('usage: node ./scripts/install-smoke.mjs <tarball path | name@version>\n');
+    process.stderr.write('usage: node ./scripts/install-smoke.mts <tarball path | name@version>\n');
     process.exit(2);
 }
 // npm resolves a relative tarball path against the temp project, not the caller's cwd.

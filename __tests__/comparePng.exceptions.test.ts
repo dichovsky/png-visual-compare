@@ -144,8 +144,8 @@ const testDataArrayOptionValidation: {
     {
         id: 2,
         name: 'diffFilePath non-string value',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        opts: { diffFilePath: 42 as any },
+        // @ts-expect-error diffFilePath requires a string.
+        opts: { diffFilePath: 42 },
         throws: true,
         errorPattern: 'diffFilePath must be a string',
         errorClass: TypeError,
@@ -226,8 +226,8 @@ const testDataArrayOptionValidation: {
     {
         id: 12,
         name: 'diffOutputBaseDir non-string value',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        opts: { diffOutputBaseDir: 42 as any },
+        // @ts-expect-error diffOutputBaseDir requires a string.
+        opts: { diffOutputBaseDir: 42 },
         throws: true,
         errorPattern: 'diffOutputBaseDir must be a string',
         errorClass: TypeError,
@@ -235,8 +235,8 @@ const testDataArrayOptionValidation: {
     {
         id: 13,
         name: 'inputBaseDir non-string value',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        opts: { inputBaseDir: 42 as any },
+        // @ts-expect-error inputBaseDir requires a string.
+        opts: { inputBaseDir: 42 },
         throws: true,
         errorPattern: 'inputBaseDir must be a string',
         errorClass: TypeError,
@@ -312,8 +312,8 @@ const testDataArrayOptionValidation: {
     {
         id: 23,
         name: 'excludedAreas must be an array when provided',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        opts: { excludedAreas: 'nope' as any },
+        // @ts-expect-error excludedAreas requires an array of rectangles.
+        opts: { excludedAreas: 'nope' },
         throws: true,
         errorPattern: 'opts.excludedAreas must be an array when provided',
         errorClass: InvalidInputError,
@@ -321,8 +321,8 @@ const testDataArrayOptionValidation: {
     {
         id: 24,
         name: 'excludedAreas null is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        opts: { excludedAreas: null as any },
+        // @ts-expect-error excludedAreas cannot be null.
+        opts: { excludedAreas: null },
         throws: true,
         errorPattern: 'opts.excludedAreas must be an array when provided',
         errorClass: InvalidInputError,
@@ -330,8 +330,8 @@ const testDataArrayOptionValidation: {
     {
         id: 25,
         name: 'excludedAreas null entry is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        opts: { excludedAreas: [null] as any },
+        // @ts-expect-error Each excluded area requires rectangle coordinates.
+        opts: { excludedAreas: [null] },
         throws: true,
         errorPattern: 'excludedAreas[0]: area must be an object with x1, y1, x2, y2 coordinates',
         errorClass: InvalidInputError,
@@ -339,8 +339,8 @@ const testDataArrayOptionValidation: {
     {
         id: 26,
         name: 'excludedAreas bigint coordinate is rejected',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        opts: { excludedAreas: [{ x1: BigInt(0), y1: 0, x2: 10, y2: 10 }] as any },
+        // @ts-expect-error Rectangle coordinates require numbers.
+        opts: { excludedAreas: [{ x1: BigInt(0), y1: 0, x2: 10, y2: 10 }] },
         throws: true,
         errorPattern: 'excludedAreas[0]: coordinates must be finite integers',
         errorClass: InvalidInputError,

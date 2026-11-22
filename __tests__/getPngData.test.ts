@@ -90,16 +90,16 @@ describe('getPngData', () => {
 
     it('should throw an error for an unknown input type when throwErrorOnInvalidInputData is true', () => {
         expectErrorType(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            () => getPngData(123 as any, true),
+            // @ts-expect-error Numbers exercise the runtime check for unsupported PNG inputs.
+            () => getPngData(123, true),
             InvalidInputError,
             'Unknown PNG file input type',
         );
     });
 
     it('should return an invalid LoadedPng for an unknown input type when throwErrorOnInvalidInputData is false', () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = getPngData(123 as any, false);
+        // @ts-expect-error Numbers exercise the runtime check for unsupported PNG inputs.
+        const result = getPngData(123, false);
         expect(result).toEqual({ kind: 'invalid', reason: 'type' });
     });
 });

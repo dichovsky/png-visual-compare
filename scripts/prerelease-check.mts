@@ -22,24 +22,22 @@ import path from 'node:path';
 
 const repoRoot = process.cwd();
 
-function readJson(relativePath) {
+function readJson<T>(relativePath: string): T {
     return JSON.parse(readFileSync(path.join(repoRoot, relativePath), 'utf8'));
 }
 
-const pkg = readJson('package.json');
-const { name, version } = pkg;
+const { name, version } = readJson<{ name: string; version: string }>('package.json');
 
-/** @type {{ ok: boolean, name: string, detail: string }[]} */
-const results = [];
+const results: { ok: boolean; name: string; detail: string }[] = [];
 
-function record(ok, checkName, detail) {
+function record(ok: boolean, checkName: string, detail: string) {
     results.push({ ok, name: checkName, detail });
 }
 
 // The checks read npm's error text from stderr. `npm run -s` (or a loglevel in
 // .npmrc) exports npm_config_loglevel=silent to this process, which would blank
 // that stderr; a CLI flag outranks every other config source.
-function npm(args) {
+function npm(args: string[]) {
     return spawnSync('npm', [...args, '--loglevel=error'], { encoding: 'utf8' });
 }
 
@@ -92,7 +90,7 @@ function checkCodemapVersion() {
 
 // 4. Lockfile version matches package.json.
 function checkLockfileVersion() {
-    const lock = readJson('package-lock.json');
+    const lock = readJson<{ version: string; packages?: Record<string, { version?: string }> }>('package-lock.json');
     const rootVersion = lock.version;
     const selfEntryVersion = lock.packages?.['']?.version;
     if (rootVersion === version && (selfEntryVersion === undefined || selfEntryVersion === version)) {
@@ -118,7 +116,8 @@ function checkPackContents() {
         record(false, 'pack-contents', `\`npm pack --dry-run\` failed (exit ${pack.status}): ${(pack.stderr ?? '').trim()}`);
         return;
     }
-    let parsed;
+    type PackEntry = { files?: { path: string }[] };
+    let parsed: PackEntry[] | Record<string, PackEntry> | null;
     try {
         parsed = JSON.parse(pack.stdout);
     } catch {
@@ -128,8 +127,8 @@ function checkPackContents() {
     // npm <= 11 prints an array of pack results; npm 12 prints an object keyed by package name.
     const entry = Array.isArray(parsed) ? parsed[0] : parsed?.[name];
     const files = entry?.files ?? [];
-    if (files.length === 0) {
-        record(false, 'pack-contents', 'Package tarball would be empty; run `npm run build` before releasing.');
+    if (!files.some((file) => file.path.startsWith('out/'))) {
+        record(false, 'pack-contents', 'Package tarball has no build output; run `npm run build` before releasing.');
         return;
     }
     const stray = files.map((file) => file.path).filter((filePath) => !filePath.startsWith('out/') && !ALWAYS_INCLUDED.test(filePath));

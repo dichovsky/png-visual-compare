@@ -36,8 +36,6 @@ describe('comparePng TOCTOU defence on diff write (SECU-03)', () => {
     });
 
     test('refuses to write through a symlink planted between validation and write; sentinel is preserved', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
-
         writeFileSync(sentinel, 'sentinel-bytes');
 
         const planSymlinkBeforeWrite: ComparisonPorts = {

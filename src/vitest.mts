@@ -15,7 +15,6 @@ import type { ComparePngOptions } from './types/index.js';
 
 declare module 'vitest' {
     // `Matchers<R, T>` covers `expect().*`, `expect.*` and `expect.extend` at once (Vitest 5).
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface Matchers<R, T> {
         toMatchPngSnapshot(opts?: ComparePngOptions): R;
         toMatchPngSnapshot(hint?: string, opts?: ComparePngOptions): R;
@@ -175,5 +174,3 @@ if ((globalThis as Record<PropertyKey, unknown>)[VITEST_PNG_SNAPSHOT_MATCHER_KEY
     expect.extend({ toMatchPngSnapshot });
     (globalThis as Record<PropertyKey, unknown>)[VITEST_PNG_SNAPSHOT_MATCHER_KEY] = true;
 }
-
-export {};

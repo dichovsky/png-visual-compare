@@ -5,16 +5,16 @@
 ```sh
 git clone https://github.com/dichovsky/png-visual-compare.git
 cd png-visual-compare
-npm install
+npm ci
 ```
 
 Node.js 26.0.0 or later is necessary for this package (`engines.node`). `.nvmrc` sets Node.js 26 for local development, CI, and the Docker image.
 
-The `engines-floor` CI job installs the packed tarball on Node.js 26.0.0 and runs `scripts/install-smoke.mjs`. To run this check locally:
+The `engines-floor` CI job installs the packed tarball on Node.js 26.0.0 and runs `scripts/install-smoke.mts`. To run this check locally:
 
 1. Run `npm run build && npm pack`.
 2. Switch to Node.js 26.0.0.
-3. Run `node ./scripts/install-smoke.mjs png-visual-compare-<version>.tgz`.
+3. Run `node ./scripts/install-smoke.mts png-visual-compare-<version>.tgz`.
 
 This project supports macOS and Linux only. It does not support Windows.
 
@@ -24,14 +24,16 @@ This project supports macOS and Linux only. It does not support Windows.
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `npm test`                            | Run unit tests with 100% repo-wide coverage and Playwright e2e tests                                    |
 | `npm run test:e2e`                    | Run Playwright e2e tests for the Excluded Areas Builder and the `png-visual-compare/playwright` matcher |
-| `npm run lint`                        | Run ESLint                                                                                              |
-| `npm run lint:fix`                    | Run ESLint and fix problems automatically                                                               |
-| `npm run format`                      | Format all files with Prettier                                                                          |
-| `npm run format:check`                | Check file formatting with Prettier                                                                     |
+| `npm run lint`                        | Run Oxlint and fail on warnings                                                                         |
+| `npm run lint:fix`                    | Apply automatic Oxlint fixes                                                                            |
+| `npm run format`                      | Format supported files with Oxfmt                                                                       |
+| `npm run format:check`                | Check file formatting with Oxfmt                                                                        |
 | `npm run build`                       | Compile TypeScript to `./out` with `tsconfig.prod.json`                                                 |
 | `npm run typecheck`                   | Type-check the repository with `tsconfig.json`                                                          |
 | `npm run codemap`                     | Generate `CODEMAP.md` for coding agents                                                                 |
 | `npm run tool:excluded-areas-builder` | Open the Excluded Areas Builder tool in the default browser                                             |
+
+For details about the compiler and code generator, see [TypeScript 7 tooling](docs/TYPESCRIPT_7_MIGRATION.md).
 
 ### Run One Unit Test File
 
@@ -40,8 +42,6 @@ npx vitest run __tests__/comparePng.test.ts
 ```
 
 Run `npm test` or `npm run test:unit` to check 100% coverage across the repository. A focused `npx vitest run ... --coverage` command reports coverage only for the files in that run.
-
-> **On macOS, run the coverage command again if a Vitest worker stops.** In about 1 of 5 coverage runs on macOS, a Vitest worker stops with `Error: Worker exited unexpectedly`. Vitest loses the results for that file, and the 100% coverage gate fails on untested files. `BACKLOG.md` tracks this issue as TEST-08. Because of this issue, the macOS CI job uses `continue-on-error`. Linux is not affected.
 
 ### Update Snapshots
 
@@ -76,13 +76,13 @@ This command builds the Docker image and runs the unit and e2e tests in a contai
 - Make sure that all tests pass (`npm test`).
 - Make sure that type-checking passes (`npm run typecheck`).
 - Add tests for all new code (100% coverage is necessary for all metrics).
-- Fix all ESLint errors and Prettier formatting issues.
+- Fix all Oxlint errors and warnings. Run `npm run format` to apply Oxfmt formatting.
 - Keep commits small and include one logical change per pull request.
 - Write documentation and doc comments with the rules in [docs/WRITING_GUIDE.md](docs/WRITING_GUIDE.md).
 
 ## Branch Protection
 
-The `main` branch enforces these rules:
+A failed `macos` job fails the Tests workflow. The `main` branch has these protection rules:
 
 - The `ubuntu` and `engines-floor` CI checks must pass before merge.
 - Force pushes are not permitted.

@@ -57,6 +57,8 @@
 
 ## 🏛️ Architecture · Types · API · Reliability
 
+- [x] 🟢 ♻️ ARCH [ARCH-04]: Remove unused pipeline data
+    - **Impl:** Removed `ComparisonContext`, `ResolvedOptions.rawOptions`, and the original input references in `LoadedSources`.
 - [x] 🔴 ♻️ ARCH [ARCH-01]: Split `comparePng` into pipeline stages
     - **Impl:** Created `resolveOptions`, `loadSources`, `normalizeImages`, `runComparison`, and `persistDiff` in `src/pipeline/*`.
     - **Rat:** Separated option validation, loading, normalization, comparison, and file output into testable modules.
@@ -111,6 +113,10 @@
 
 ## 🧪 Tests & QA
 
+- [x] 🔴 🧪 TEST [TEST-08]: Restore the macOS test job
+    - **Impl:** Reused matcher registrations across tests. Kept module resets for import-time registration tests. Made test failures fail the macOS workflow job.
+- [x] 🟢 🧪 TEST [TEST-09]: Remove Windows-only test skips
+    - **Impl:** Removed early returns from filesystem tests. The supported macOS and Linux platforms run each assertion.
 - [x] 🟡 🧪 TEST [TEST-01]: Add fixture-free orchestrator unit tests
     - **Impl:** Added `__tests__/comparePng.logic.test.ts` and `__tests__/comparePng.ports.test.ts`.
     - **Rat:** Tested orchestration logic in memory without disk I/O.
@@ -126,6 +132,9 @@
 
 ## 🛠️ Build · Deps · CI · DX
 
+- [x] 🟢 ♻️ BUILD [BUILD-02]: Use NodeNext module resolution
+    - **Impl:** Removed the `node16` override. TypeScript selects NodeNext resolution from the `module` setting.
+- [x] 🟢 ♻️ BUILD [BUILD-06]: Remove the unused `_version` field from `tsconfig.json`
 - [x] 🟢 ♻️ DX [DX-03]: Add `test:fast` script
     - **Impl:** Added `npm run test:fast` to run Vitest without `pretest:unit`.
     - **Rat:** Provided a fast test command for local development.

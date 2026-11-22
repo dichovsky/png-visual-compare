@@ -5,18 +5,18 @@
 ```sh
 npm run build          # compile TypeScript to ./out with tsconfig.prod.json (runs clean first)
 npm run clean          # delete ./out, ./coverage, ./test-results
-npm run lint           # run ESLint with typescript-eslint
-npm run typecheck      # type-check the repository with tsconfig.json (src, tests, e2e, configs)
+npm run lint           # run Oxlint and fail on warnings
+npm run typecheck      # type-check the repository with tsconfig.json (src, tests, e2e, scripts, configs)
 npm run test           # run full suite: npm run test:unit && npm run test:e2e
 npm run test:unit      # clean -> codemap:check -> lint -> format:check -> license check -> typecheck -> vitest --coverage
 npm run test:e2e       # run Playwright e2e tests for Excluded Areas Builder and png-visual-compare/playwright
 npm run test:fast      # run vitest --reporter=verbose and skip the pretest:unit gate
 npm run test:license   # check that all production dependency licenses are on the approved list
 npm run test:docker    # clean -> docker build -> docker run (runs the full test suite in Docker)
-npm run codemap        # generate CODEMAP.md with scripts/generate-codemap.mjs
+npm run codemap        # generate CODEMAP.md with scripts/generate-codemap.mts
 npm run codemap:check  # fail if CODEMAP.md is out of date (runs in pretest:unit)
-npm run format         # format files with Prettier
-npm run format:check   # check formatting with Prettier
+npm run format         # format files with Oxfmt
+npm run format:check   # check formatting with Oxfmt
 npm run release:check:pre   # pre-publish check: unpublished version, matching CHANGELOG/CODEMAP/lockfile, and ./out tarball only
 npm run release:check:post  # post-publish check: live version, latest dist-tag, provenance attestation, and install smoke
 npm run tool:excluded-areas-builder  # open tools/excluded-areas-builder.html (macOS and Linux only)
@@ -129,11 +129,11 @@ e2e/
   fixtures/playwright-matcher/    # nested playwright.config.ts and matcher.fixture.ts for that test
 
 scripts/
-  generate-codemap.mjs            # CODEMAP.md generator (--check mode for CI)
-  check-licenses.mjs              # production dependency license check
-  prerelease-check.mjs            # pre-publish verification gate
-  postrelease-check.mjs           # post-publish registry check
-  install-smoke.mjs               # installs a tarball or package spec in a temp project and runs smoke tests
+  generate-codemap.mts            # CODEMAP.md generator (--check mode for CI)
+  check-licenses.mts              # production dependency license check
+  prerelease-check.mts            # pre-publish verification gate
+  postrelease-check.mts           # post-publish registry check
+  install-smoke.mts               # installs a tarball or package spec in a temp project and runs smoke tests
 
 test-data/
   actual/                         # "actual" PNG fixtures (budweiser640x862.png is used in the size-diff test)
@@ -272,17 +272,15 @@ Coverage is 100% across all runtime source files.
 
 ### `test.yml` — runs on every push (except `release/*` branches) and every pull request
 
-| Job           | OS            | Node                                              | Gates merges             |
-| ------------- | ------------- | ------------------------------------------------- | ------------------------ |
-| ubuntu        | ubuntu-latest | from `.nvmrc` (Node `26`)                         | yes                      |
-| macos         | macos-latest  | from `.nvmrc` (Node `26`)                         | no — `continue-on-error` |
-| engines-floor | ubuntu-latest | `.nvmrc` to build, then `26.0.0` (`engines.node`) | yes                      |
+| Job           | OS            | Node                                              | Checks                           |
+| ------------- | ------------- | ------------------------------------------------- | -------------------------------- |
+| ubuntu        | ubuntu-latest | From `.nvmrc`                                     | Unit coverage and Playwright     |
+| macos         | macos-latest  | From `.nvmrc`                                     | Unit coverage and Playwright     |
+| engines-floor | ubuntu-latest | `.nvmrc` to build, then `26.0.0` (`engines.node`) | Packed tarball on the Node floor |
 
-The `ubuntu` and `macos` jobs run `npm run test`. Ubuntu installs Playwright Chromium with `--with-deps`. macOS omits `--with-deps` because that flag installs Linux packages.
+The `ubuntu` and `macos` jobs run `npm test`. The `pretest:e2e` hook installs Chromium on both platforms. Ubuntu first installs the Chromium system dependencies with `npx playwright install-deps chromium`. A failed test on either platform fails the workflow.
 
-The `engines-floor` job builds and packs the tarball with the `.nvmrc` Node version, switches to Node 26.0.0, and runs `node ./scripts/install-smoke.mjs <tarball>`. That script installs the tarball into a temporary project with `--engine-strict`, loads the root entry with `require()` and ESM `import`, and verifies `comparePng` and `comparePngAsync`. `release:check:post` runs the same script against the published version. Keep `node-version` in `engines-floor` synchronized with `engines.node`.
-
-macOS is a supported platform (`"os": ["darwin", "linux"]`). Its CI job uses `continue-on-error` because Vitest hits a macOS-only worker crash (`Error: Worker exited unexpectedly`) in about 1 of 5 coverage runs (tracked as TEST-08). Windows is not supported.
+The `engines-floor` job builds and packs the tarball with the `.nvmrc` Node version, switches to Node 26.0.0, and runs `node ./scripts/install-smoke.mts <tarball>`. That script installs the tarball into a temporary project with `--engine-strict`, loads the root entry with `require()` and ESM `import`, and verifies `comparePng` and `comparePngAsync`. `release:check:post` runs the same script against the published version. Keep `node-version` in `engines-floor` synchronized with `engines.node`.
 
 ### `publish.yml` — runs when a GitHub release is published (skips prereleases)
 
@@ -291,7 +289,7 @@ Three jobs run in sequence:
 ```
 verify         (contents: read)
   npm ci
-  npx playwright install --with-deps chromium
+  npx playwright install-deps chromium
   npm audit --audit-level=high
   npm test                   <- full unit and e2e suite
   npm run build              <- clean and compile with tsconfig.prod.json

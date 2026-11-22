@@ -17,12 +17,12 @@ function readProductionDependencyPaths() {
         .slice(1);
 }
 
-function readPackageMetadata(packagePath) {
+function readPackageMetadata(packagePath: string): { name: string; version: string; license?: unknown } {
     const packageJsonPath = path.join(packagePath, 'package.json');
     return JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 }
 
-const disallowedPackages = [];
+const disallowedPackages: { name: string; version: string; license: string }[] = [];
 
 for (const dependencyPath of readProductionDependencyPaths()) {
     const packageMetadata = readPackageMetadata(dependencyPath);

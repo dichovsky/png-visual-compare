@@ -174,6 +174,65 @@ describe('generate()', () => {
         expect(sideEffect.signature).toBe('Registers a global X.');
     });
 
+    test('indexes TypeScript decorators, auto-accessors, and deferred imports', () => {
+        const repoRoot = track(
+            setupFixture([
+                {
+                    relPath: 'src/index.ts',
+                    contents: [
+                        'import defer * as data from "./data";',
+                        'export @decorate class Model {',
+                        '    accessor value = data.initial;',
+                        '    set(@legacy input: number): void {}',
+                        '}',
+                    ].join('\n'),
+                },
+                { relPath: 'src/data.ts', contents: 'export const initial = 1;' },
+            ]),
+        );
+        const index = generator.generate({ repoRoot }).codemap.files.find((file) => file.path === 'src/index.ts');
+        expect(index?.imports).toEqual(['./data']);
+        expect(index?.symbols[0].signature).toBe('export @decorate class Model');
+        expect(index?.symbols[0].members).toEqual([
+            { name: 'value', kind: 'property', line: 3 },
+            { name: 'set', kind: 'method', line: 4 },
+        ]);
+    });
+
+    test('keeps trailing comments with their statement and file side effects before directives', () => {
+        const repoRoot = track(
+            setupFixture([
+                {
+                    relPath: 'src/index.ts',
+                    contents: [
+                        '"use strict";',
+                        '/** @sideEffect This follows a directive. */',
+                        'export const first = 1; /** Trailing comment. */',
+                        'export const second = 2;',
+                        '/** Call {@link second the second value}. @param x omitted @since 1 */',
+                        'export function third(x: number): void {}',
+                    ].join('\n'),
+                },
+            ]),
+        );
+        const { publicApi } = generator.generate({ repoRoot }).codemap;
+        expect(publicApi.map(({ name }) => name)).toEqual(['first', 'second', 'third']);
+        expect(publicApi.find(({ name }) => name === 'second')?.jsdoc).toBeNull();
+        expect(publicApi.find(({ name }) => name === 'third')?.jsdoc).toBe('Call the second value. @since 1');
+    });
+
+    test('produces the same source hash and symbols for UTF-8 and UTF-16 source files with a BOM', () => {
+        const contents = 'export const label = "Ω";\n';
+        const repoRoot = track(setupFixture([{ relPath: 'src/index.ts', contents }]));
+        const original = generator.generate({ repoRoot }).codemap;
+        const withBom = '\uFEFF' + contents;
+        const encodings = [Buffer.from(withBom), Buffer.from(withBom, 'utf16le'), Buffer.from(withBom, 'utf16le').swap16()];
+        for (const bytes of encodings) {
+            writeFileSync(path.join(repoRoot, 'src/index.ts'), bytes);
+            expect(generator.generate({ repoRoot }).codemap).toEqual(original);
+        }
+    });
+
     test('adding a new exported symbol updates both sourceHash and publicApi', () => {
         const repoRoot = track(setupFixture([{ relPath: 'src/index.ts', contents: 'export function existing(): void {}\n' }]));
         const before = generator.generate({ repoRoot }).codemap;

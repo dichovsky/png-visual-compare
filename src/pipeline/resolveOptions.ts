@@ -81,6 +81,5 @@ export function resolveOptions(raw: ComparePngOptions | undefined): ResolvedOpti
         inputBaseDir,
         diffOutputBaseDir,
         pixelmatchOptions: raw?.pixelmatchOptions,
-        rawOptions: raw,
     };
 }

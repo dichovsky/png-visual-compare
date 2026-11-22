@@ -3,7 +3,7 @@ import { fsDiffWriter } from '../ports/fsDiffWriter';
 import type { ComparisonResult, ResolvedOptions } from './types';
 import type { ValidatedPath } from '../types/validated-path';
 
-export type PersistableDiff = {
+type PersistableDiff = {
     readonly diff: PNG;
     readonly diffFilePath: ValidatedPath;
 };

@@ -13,5 +13,5 @@ export function loadSources(png1: string | Buffer, png2: string | Buffer, opts: 
         throw new InvalidInputError(describeBothInvalidSources(first.reason, second.reason));
     }
 
-    return { png1, png2, first, second };
+    return { first, second };
 }

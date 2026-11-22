@@ -98,7 +98,7 @@ npm run codemap:check
 npm run test:unit
 ```
 
-- `npm run format:check` examines the Markdown and TypeScript format with Prettier.
+- `npm run format:check` examines the Markdown and TypeScript format with Oxfmt.
 - `npm run codemap:check` fails if a doc comment changed and `CODEMAP.md` is out of date. To update the file, run `npm run codemap`.
 - `npm run test:unit` runs lint, the type check, and the tests with the 100% coverage gate.
 

@@ -19,7 +19,7 @@ export const fsAsyncImageSource: AsyncImageSourcePort = {
                 if (error instanceof PathValidationError) {
                     return handlePathValidationError(error, opts);
                 }
-                return handleFileReadError(error, opts);
+                return handleFileReadError(opts);
             }
 
             if (opts.throwErrorOnInvalidInputData) {

@@ -56,49 +56,47 @@
     ],
     "scripts": {
         "prebuild": "npm run clean",
-        "build": "node ./node_modules/@typescript/native/bin/tsc --pretty --project tsconfig.prod.json",
-        "clean": "rimraf ./out ./coverage ./test-results",
-        "codemap": "node ./scripts/generate-codemap.mjs",
-        "codemap:check": "node ./scripts/generate-codemap.mjs --check",
+        "build": "tsc --pretty --project tsconfig.prod.json",
+        "clean": "rm -rf ./out ./coverage ./test-results",
+        "codemap": "node ./scripts/generate-codemap.mts",
+        "codemap:check": "node ./scripts/generate-codemap.mts --check",
         "docker:build": "docker build --compress -t test-png-visual-compare .",
         "docker:run": "docker run --rm test-png-visual-compare",
-        "format": "prettier --write .",
-        "format:check": "prettier --check .",
-        "lint": "eslint .",
-        "lint:fix": "eslint . --fix",
+        "format": "oxfmt --write .",
+        "format:check": "oxfmt --check .",
+        "lint": "oxlint .",
+        "lint:fix": "oxlint --fix .",
         "prepublishOnly": "npm test && npm run build",
-        "release:check:pre": "node ./scripts/prerelease-check.mjs",
-        "release:check:post": "node ./scripts/postrelease-check.mjs",
+        "release:check:pre": "node ./scripts/prerelease-check.mts",
+        "release:check:post": "node ./scripts/postrelease-check.mts",
         "test": "npm run test:unit && npm run test:e2e",
         "test:docker": "npm run clean && npm run docker:build && npm run docker:run",
         "pretest:e2e": "npx playwright install chromium",
         "test:e2e": "playwright test",
         "test:fast": "vitest run --reporter=verbose",
-        "test:license": "node ./scripts/check-licenses.mjs",
+        "test:license": "node ./scripts/check-licenses.mts",
         "pretest:unit": "npm run clean && npm run codemap:check && npm run lint && npm run format:check && npm run test:license && npm run typecheck",
         "test:unit": "VITEST_FULL_COVERAGE=true vitest run --coverage",
         "tool:excluded-areas-builder": "node -e \"const { execFileSync } = require('node:child_process'); if (process.platform === 'darwin') { execFileSync('open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else if (process.platform === 'linux') { execFileSync('xdg-open', ['tools/excluded-areas-builder.html'], { stdio: 'inherit' }); } else { throw new Error('Unsupported platform: development tooling is only supported on macOS and Linux'); }\"",
-        "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit"
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "pngjs": "~7.0.0"
     },
     "devDependencies": {
+        "@babel/parser": "~7.29.15",
         "@jest/globals": "~30.5.2",
-        "@playwright/test": "~1.65.0",
+        "@playwright/test": "~1.65.1",
         "@types/node": "~26.6.6",
         "@types/pngjs": "~6.0.5",
-        "@typescript/native": "npm:typescript@~7.0.2",
-        "@vitest/coverage-v8": "~5.1.0",
-        "eslint": "~10.15.0",
+        "@vitest/coverage-v8": "~5.1.1",
         "expect": "~30.5.2",
         "jest": "~30.5.2",
+        "oxfmt": "~0.79.0",
+        "oxlint": "~1.94.0",
         "pixelmatch": "~8.0.0",
-        "prettier": "~3.10.0",
-        "rimraf": "~6.1.4",
-        "typescript": "npm:@typescript/typescript6@~6.0.2",
-        "typescript-eslint": "~8.72.2",
-        "vitest": "~5.1.0"
+        "typescript": "~7.0.2",
+        "vitest": "~5.1.1"
     },
     "peerDependencies": {
         "@playwright/test": ">=1.60.0 <2",
@@ -125,11 +123,15 @@
     },
     "overrides": {
         "deepmerge": "~4.1.2",
-        "glob": "~14.0.4",
-        "minimatch": "~11.0.6"
+        "glob": "~14.0.6",
+        "minimatch": "~11.0.9"
     },
     "os": [
         "darwin",
         "linux"
-    ]
+    ],
+    "allowScripts": {
+        "@parcel/watcher": false,
+        "fsevents": false
+    }
 }

@@ -9,6 +9,9 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Development tools** — TypeScript 7 now checks the scripts, tests, and library and builds the published package. The codemap generator reads TypeScript syntax with `@babel/parser`.
+- **Lint and formatting** — `npm run lint` uses Oxlint and fails on warnings. `npm run format` and `npm run format:check` use Oxfmt.
+- **CI** — The macOS job now fails the tests workflow if a test fails. The unit tests reuse matcher registrations across cases.
 - **BREAKING: Node.js 26.0.0 or later is required** — Updated `engines.node` to `>=26.0.0`, `.nvmrc` to `26`, `Dockerfile` to `node:26-slim`, and the `engines-floor` CI job to `26.0.0`.
 - **Upgraded vendored `pixelmatch` to 8.0.0** — Synced `src/vendor/pixelmatch.ts` to `pixelmatch` 8.0.0 (OKLab HyAB perceptual color distance and block pre-pass) and added support for `pixelmatchOptions.windowSize` and `pixelmatchOptions.ignoreMask`.
 - **Rewrote documentation with ASD-STE100 principles** — Rewrote all repository Markdown documentation with ASD-STE100 Simplified Technical English principles. No one checked the text against the official STE dictionary.

@@ -30,7 +30,7 @@ export function handlePathValidationError(error: unknown, opts: ResolvedOptions)
  *
  * @throws {InvalidInputError} If file read fails and throwError is true.
  */
-export function handleFileReadError(_error: unknown, opts: ResolvedOptions): LoadedPng {
+export function handleFileReadError(opts: ResolvedOptions): LoadedPng {
     if (opts.throwErrorOnInvalidInputData) {
         throw new InvalidInputError('Invalid PNG input: the source could not be loaded');
     }

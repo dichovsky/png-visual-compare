@@ -64,14 +64,12 @@ describe('readValidatedFile', () => {
     });
 
     test('follows a symlink whose target stays inside the base directory', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
         const linkPath = path.join(baseDir, 'link.png');
         symlinkSync(filePath, linkPath);
         expect(readValidatedFileSync(linkPath, baseDir)).toEqual(contents);
     });
 
     test('refuses a symlink whose target escapes the base directory', () => {
-        if (process.platform === 'win32') return; // TODO: add Windows symlink coverage.
         const outside = path.join(rootDir, 'outside.png');
         writeFileSync(outside, 'secret');
         const linkPath = path.join(baseDir, 'escape.png');

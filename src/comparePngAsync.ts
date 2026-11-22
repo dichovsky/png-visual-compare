@@ -21,7 +21,7 @@ async function loadSourcesAsync(
         throw new InvalidInputError(describeBothInvalidSources(first.reason, second.reason));
     }
 
-    return { png1, png2, first, second };
+    return { first, second };
 }
 
 /** Compare two PNG inputs using asynchronous file I/O. The promise resolves to the mismatched pixel count. */
